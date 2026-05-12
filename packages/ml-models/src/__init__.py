@@ -1,4 +1,5 @@
-from .model import StrokeClassifier
-from .dataset import StrokeDataset
+"""SportIQ ML Models — Stroke classification, training, and export."""
 
-__all__ = ["StrokeClassifier", "StrokeDataset"]
+from .model import BadmintonStrokeClassifier, CLASSES
+
+__all__ = ["BadmintonStrokeClassifier", "CLASSES"]

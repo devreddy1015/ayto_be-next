@@ -1,3 +1,8 @@
+"""Model export: ONNX, TFLite, and CoreML with INT8 quantization.
+
+Provides functions to export the trained BadmintonStrokeClassifier
+to mobile-friendly formats for on-device inference.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -9,23 +14,38 @@ try:
 except ImportError:
     onnx = None
 
-from .model import StrokeClassifier
+try:
+    from .model import BadmintonStrokeClassifier
+except ImportError:
+    from model import BadmintonStrokeClassifier
 
 
 def export_onnx(
     model_path: str | Path,
     output_path: str | Path,
-    input_size: int = 132,
+    input_size: int = 27,
     seq_len: int = 30,
     hidden_size: int = 128,
     num_layers: int = 2,
     num_classes: int = 6,
 ) -> Path:
-    model = StrokeClassifier(
-        input_size=input_size,
-        hidden_size=hidden_size,
-        num_layers=num_layers,
-        num_classes=num_classes,
+    """Export model to ONNX format.
+
+    Args:
+        model_path: Path to the saved .pt model state dict.
+        output_path: Destination path for the .onnx file.
+        input_size: Number of input features per timestep.
+        seq_len: Sequence length.
+        hidden_size: LSTM hidden size.
+        num_layers: Number of LSTM layers.
+        num_classes: Number of output classes.
+
+    Returns:
+        Path to the exported ONNX model.
+    """
+    model = BadmintonStrokeClassifier(
+        input_size=input_size, hidden_size=hidden_size,
+        num_layers=num_layers, num_classes=num_classes,
     )
     model.load_state_dict(torch.load(model_path, map_location="cpu", weights_only=True))
     model.eval()
@@ -35,11 +55,8 @@ def export_onnx(
     output.parent.mkdir(parents=True, exist_ok=True)
 
     torch.onnx.export(
-        model,
-        dummy,
-        str(output),
-        input_names=["keypoints"],
-        output_names=["logits"],
+        model, dummy, str(output),
+        input_names=["keypoints"], output_names=["logits"],
         dynamic_axes={"keypoints": {0: "batch_size"}, "logits": {0: "batch_size"}},
         opset_version=13,
     )
@@ -52,38 +69,129 @@ def export_onnx(
     return output
 
 
-def export_tflite_via_onnx(
-    onnx_path: str | Path,
+def export_tflite(
+    model_path: str | Path,
     output_path: str | Path,
+    input_size: int = 27,
+    seq_len: int = 30,
+    quantize_int8: bool = True,
 ) -> Path:
-    try:
-        import subprocess
+    """Export model to TFLite format with optional INT8 quantization.
 
-        output = Path(output_path)
-        output.parent.mkdir(parents=True, exist_ok=True)
+    Converts PyTorch → ONNX → TensorFlow → TFLite.
+
+    Args:
+        model_path: Path to the saved .pt model.
+        output_path: Destination path for .tflite file.
+        input_size: Input feature dimension.
+        seq_len: Sequence length.
+        quantize_int8: If True, apply INT8 quantization for mobile.
+
+    Returns:
+        Path to the exported TFLite model.
+    """
+    try:
+        import numpy as np
+        import tensorflow as tf
+    except ImportError:
+        raise ImportError("tensorflow is required for TFLite export — pip install tensorflow")
+
+    # Step 1: Export to ONNX first
+    onnx_path = Path(output_path).with_suffix(".onnx")
+    export_onnx(model_path, onnx_path, input_size=input_size, seq_len=seq_len)
+
+    # Step 2: Convert ONNX to TF SavedModel via onnx2tf or onnx_tf
+    try:
+        from onnx_tf.backend import prepare
+        onnx_model = onnx.load(str(onnx_path))
+        tf_rep = prepare(onnx_model)
+        tf_model_dir = Path(output_path).parent / "tf_saved_model"
+        tf_rep.export_graph(str(tf_model_dir))
+    except ImportError:
+        # Fallback: try onnx2tf CLI
+        import subprocess
+        tf_model_dir = Path(output_path).parent / "tf_saved_model"
         subprocess.run(
-            ["onnx2tf", "-i", str(onnx_path), "-o", str(output.parent / "tf_model")],
+            ["onnx2tf", "-i", str(onnx_path), "-o", str(tf_model_dir)],
             check=True,
         )
-        print(f"TFLite conversion initiated. Check {output.parent / 'tf_model'}")
-        return output
-    except FileNotFoundError:
-        print("onnx2tf not found. Install via: pip install onnx2tf")
-        raise
+
+    # Step 3: Convert to TFLite
+    converter = tf.lite.TFLiteConverter.from_saved_model(str(tf_model_dir))
+    if quantize_int8:
+        converter.optimizations = [tf.lite.Optimize.DEFAULT]
+        # Representative dataset for quantization
+        def representative_dataset():
+            for _ in range(100):
+                yield [np.random.randn(1, seq_len, input_size).astype(np.float32)]
+        converter.representative_dataset = representative_dataset
+        converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+        converter.inference_input_type = tf.int8
+        converter.inference_output_type = tf.int8
+
+    tflite_model = converter.convert()
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(tflite_model)
+    print(f"Exported TFLite model to {output} (INT8={quantize_int8})")
+    return output
+
+
+def export_coreml(
+    model_path: str | Path,
+    output_path: str | Path,
+    input_size: int = 27,
+    seq_len: int = 30,
+) -> Path:
+    """Export model to CoreML format for iOS deployment.
+
+    Args:
+        model_path: Path to the saved .pt model.
+        output_path: Destination path for .mlmodel file.
+        input_size: Input feature dimension.
+        seq_len: Sequence length.
+
+    Returns:
+        Path to the exported CoreML model.
+    """
+    try:
+        import coremltools as ct
+    except ImportError:
+        raise ImportError("coremltools is required — pip install coremltools")
+
+    model = BadmintonStrokeClassifier(input_size=input_size)
+    model.load_state_dict(torch.load(model_path, map_location="cpu", weights_only=True))
+    model.eval()
+
+    dummy = torch.randn(1, seq_len, input_size)
+    traced = torch.jit.trace(model, dummy)
+
+    mlmodel = ct.convert(
+        traced,
+        inputs=[ct.TensorType(name="keypoints", shape=(1, seq_len, input_size))],
+        convert_to="mlprogram",
+    )
+
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    mlmodel.save(str(output))
+    print(f"Exported CoreML model to {output}")
+    return output
 
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model", required=True)
+    parser = argparse.ArgumentParser(description="Export trained model")
+    parser.add_argument("--model", required=True, help="Path to .pt model")
     parser.add_argument("--output", default="models/stroke_classifier.onnx")
-    parser.add_argument("--format", choices=["onnx", "tflite"], default="onnx")
+    parser.add_argument("--format", choices=["onnx", "tflite", "coreml"], default="onnx")
+    parser.add_argument("--quantize", action="store_true", help="INT8 quantization")
     args = parser.parse_args()
 
     if args.format == "onnx":
         export_onnx(args.model, args.output)
     elif args.format == "tflite":
-        onnx_out = Path(args.output).with_suffix(".onnx")
-        export_onnx(args.model, onnx_out)
-        export_tflite_via_onnx(onnx_out, args.output)
+        export_tflite(args.model, args.output, quantize_int8=args.quantize)
+    elif args.format == "coreml":
+        export_coreml(args.model, args.output)

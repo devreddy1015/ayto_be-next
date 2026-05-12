@@ -2,15 +2,17 @@ data_dir: data/processed/strokes
 save_dir: models
 
 seq_len: 30
-input_size: 132  # 33 landmarks * 4 features (x, y, z, visibility)
+input_size: 27  # 9 key joints × 3 coordinates (x, y, z)
 hidden_size: 128
 num_layers: 2
 num_classes: 6
 dropout: 0.3
+num_heads: 4
 
 batch_size: 32
 lr: 0.001
 weight_decay: 0.0001
 epochs: 50
+patience: 10
 
 use_wandb: false

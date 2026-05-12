@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SportIQ — Session Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0A0A0F;
+      --surface: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.08);
+      --border-active: rgba(0,245,160,0.25);
+      --primary: #00F5A0;
+      --primary-dim: rgba(0,245,160,0.12);
+      --accent: #FF3D5A;
+      --text: #FFFFFF;
+      --text-secondary: rgba(255,255,255,0.6);
+      --text-tertiary: rgba(255,255,255,0.35);
+      --radius: 16px;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(20px);
+      z-index: 100;
+    }
+    .nav-logo {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-logo svg { width: 24px; height: 24px; }
+    .nav-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 1px;
+    }
+    .nav-export {
+      background: var(--primary-dim);
+      border: 1px solid var(--border-active);
+      color: var(--primary);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+    }
+    .nav-export:hover {
+      background: rgba(0,245,160,0.2);
+      transform: scale(1.03);
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 24px 80px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 700px) {
+      .hero { grid-template-columns: 1fr; }
+    }
+    .hero-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.3s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-card:hover {
+      border-color: rgba(0,245,160,0.3);
+      transform: scale(1.02);
+      background: rgba(255,255,255,0.06);
+      box-shadow: 0 4px 24px rgba(0,245,160,0.06);
+    }
+    .hero-value {
+      font-size: 52px;
+      font-weight: 900;
+      color: var(--primary);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+    .hero-value.accent { color: var(--accent); }
+    .hero-unit {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .hero-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .pie-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    .pie-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .pie-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 3px;
+    }
+    .ring-container {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ring-svg {
+      transform: rotate(-90deg);
+    }
+    .ring-value {
+      position: absolute;
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--primary);
+      font-variant-numeric: tabular-nums;
+    }
+    .section {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 280px;
+    }
+    .chart-wrap canvas { width: 100% !important; height: 100% !important; }
+    .timeline {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 4px 0 8px;
+      scrollbar-width: none;
+    }
+    .timeline::-webkit-scrollbar { display: none; }
+    .timeline-card {
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      min-width: 90px;
+      transition: all 0.2s;
+    }
+    .timeline-card:hover {
+      border-color: var(--border-active);
+      transform: translateY(-2px);
+    }
+    .tl-badge {
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+    .tl-speed {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .tl-unit {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .comp-bars { display: flex; flex-direction: column; gap: 14px; }
+    .comp-row { display: grid; grid-template-columns: 100px 1fr; gap: 12px; align-items: center; }
+    .comp-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: right; }
+    .comp-track { height: 8px; background: rgba(255,255,255,0.04); border-radius: 4px; position: relative; overflow: hidden; }
+    .comp-bar-you { position: absolute; top: 0; left: 0; bottom: 0; background: var(--primary); border-radius: 4px; opacity: 0.9; transition: width 1.5s ease; }
+    .comp-bar-pro { position: absolute; top: 0; left: 0; bottom: 0; background: var(--accent); opacity: 0.25; border-radius: 4px; }
+    .comp-footer { display: flex; justify-content: center; gap: 28px; margin-top: 12px; }
+    .comp-legend { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; color: var(--text-tertiary); }
+    .comp-leg-dot { width: 8px; height: 8px; border-radius: 4px; }
+    .radar-wrap { width: 100%; max-width: 500px; margin: 0 auto; height: 340px; }
+    .detail-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    @media (max-width: 500px) { .detail-grid { grid-template-columns: repeat(2, 1fr); } }
+    .detail-item {
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 16px 12px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .detail-val { font-size: 22px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+    .detail-lbl { font-size: 10px; font-weight: 600; color: var(--text-tertiary); margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
+    .count-up { transition: color 0.3s; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-logo">
+    <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="5" stroke="#00F5A0" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="#00F5A0"/></svg>
+    SportIQ
+  </span>
+  <span class="nav-title">BADDY SESSION #1</span>
+  <button class="nav-export">⟳ EXPORT</button>
+</nav>
+
+<div class="container">
+
+  <!-- HERO CARDS -->
+  <div class="hero">
+    <div class="hero-card">
+      <div class="hero-value count-up" data-target="287">0</div>
+      <div class="hero-unit">km/h</div>
+      <div class="hero-label">MAX SPEED</div>
+    </div>
+    <div class="hero-card">
+      <canvas id="pieChart" width="140" height="140" style="max-width:140px;max-height:140px"></canvas>
+      <div class="pie-legend">
+        <span class="pie-item"><span class="pie-dot" style="background:#FF3D5A"></span>Smash 12</span>
+        <span class="pie-item"><span class="pie-dot" style="background:#00F5A0"></span>Clear 6</span>
+        <span class="pie-item"><span class="pie-dot" style="background:#FFB800"></span>Drop 8</span>
+        <span class="pie-item"><span class="pie-dot" style="background:#7C4DFF"></span>Net 4</span>
+        <span class="pie-item"><span class="pie-dot" style="background:#00B8D4"></span>Serve 4</span>
+      </div>
+      <div class="hero-label">STROKES</div>
+    </div>
+    <div class="hero-card">
+      <div class="ring-container">
+        <svg class="ring-svg" width="100" height="100" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+          <circle id="ringProgress" cx="50" cy="50" r="44" fill="none" stroke="#00F5A0" stroke-width="6"
+            stroke-dasharray="276.46" stroke-dashoffset="276.46" stroke-linecap="round"
+            style="transition: stroke-dashoffset 2s ease;"/>
+        </svg>
+        <span class="ring-value count-up" data-target="82">0</span>
+      </div>
+      <div class="hero-label">FORM SCORE</div>
+    </div>
+  </div>
+
+  <!-- SHUTTLE TRAJECTORY -->
+  <div class="section">
+    <div class="section-title">SHUTTLE SPEED TRAJECTORY</div>
+    <div class="chart-wrap"><canvas id="trajectoryChart"></canvas></div>
+  </div>
+
+  <!-- STROKE TIMELINE -->
+  <div class="section">
+    <div class="section-title">STROKE TIMELINE</div>
+    <div class="timeline" id="timelineEl"></div>
+  </div>
+
+  <!-- VS PRO -->
+  <div class="section">
+    <div class="section-title">VS PRO PLAYER — VIKTOR AXELSEN</div>
+    <div class="comp-bars" id="compBars"></div>
+    <div class="radar-wrap"><canvas id="radarChart"></canvas></div>
+    <div class="comp-footer">
+      <div class="comp-legend"><div class="comp-leg-dot" style="background:var(--primary)"></div>You</div>
+      <div class="comp-legend"><div class="comp-leg-dot" style="background:var(--accent)"></div>Viktor Axelsen</div>
+    </div>
+  </div>
+
+  <!-- SESSION DETAILS -->
+  <div class="section">
+    <div class="section-title">SESSION DETAILS</div>
+    <div class="detail-grid">
+      <div class="detail-item"><div class="detail-val count-up" data-target="28">0</div><div class="detail-lbl">Minutes</div></div>
+      <div class="detail-item"><div class="detail-val count-up" data-target="198">0</div><div class="detail-lbl">Avg km/h</div></div>
+      <div class="detail-item"><div class="detail-val count-up" data-target="34">0</div><div class="detail-lbl">Strokes</div></div>
+      <div class="detail-item"><div class="detail-val count-up" data-target="94">0</div><div class="detail-lbl">Detection %</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  Chart.defaults.color = 'rgba(255,255,255,0.6)';
+  Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+  Chart.defaults.font.family = 'Inter';
+  Chart.defaults.font.size = 11;
+  Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(10,10,15,0.95)';
+  Chart.defaults.plugins.tooltip.titleColor = '#fff';
+  Chart.defaults.plugins.tooltip.bodyColor = 'rgba(255,255,255,0.7)';
+  Chart.defaults.plugins.tooltip.borderColor = 'rgba(0,245,160,0.3)';
+  Chart.defaults.plugins.tooltip.borderWidth = 1;
+
+  // --- ANIMATE COUNT-UP NUMBERS ---
+  function animateNumbers() {
+    document.querySelectorAll('.count-up').forEach(el => {
+      const target = parseInt(el.getAttribute('data-target'));
+      const duration = 1500;
+      const start = performance.now();
+      function update(ts) {
+        const progress = Math.min((ts - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(eased * target);
+        if (progress < 1) requestAnimationFrame(update);
+      }
+      requestAnimationFrame(update);
+    });
+  }
+
+  // --- ANIMATE RING ---
+  function animateRing() {
+    const ring = document.getElementById('ringProgress');
+    if (!ring) return;
+    const circumference = 2 * Math.PI * 44; // 276.46
+    const targetPct = 82;
+    setTimeout(() => {
+      ring.style.strokeDashoffset = circumference - (targetPct / 100) * circumference;
+    }, 300);
+  }
+
+  // --- PIE CHART ---
+  new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Smash', 'Clear', 'Drop', 'Net', 'Serve'],
+      datasets: [{
+        data: [12, 6, 8, 4, 4],
+        backgroundColor: ['#FF3D5A', '#00F5A0', '#FFB800', '#7C4DFF', '#00B8D4'],
+        borderColor: 'rgba(10,10,15,1)',
+        borderWidth: 3,
+        hoverBorderColor: 'rgba(0,245,160,0.3)',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.raw} strokes`
+          }
+        }
+      }
+    }
+  });
+
+  // --- TRAJECTORY LINE CHART ---
+  const trajLabels = Array.from({length: 15}, (_,i) => `${i*2}s`);
+  const trajData = [120,140,180,220,200,150,100,160,240,287,250,190,140,180,230];
+
+  new Chart(document.getElementById('trajectoryChart'), {
+    type: 'line',
+    data: {
+      labels: trajLabels,
+      datasets: [{
+        label: 'Speed (km/h)',
+        data: trajData,
+        borderColor: '#00F5A0',
+        backgroundColor: 'rgba(0,245,160,0.08)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: ctx => {
+          const v = ctx.parsed?.y ?? 0;
+          return v > 250 ? '#FF3D5A' : '#00F5A0';
+        },
+        pointBorderColor: '#0A0A0F',
+        pointBorderWidth: 2,
+        pointHoverRadius: 6,
+        borderWidth: 2.5,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y} km/h`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 }, callback: v => v + ' km/h' },
+          min: 0,
+          max: 320,
+        }
+      },
+      interaction: { intersect: false, mode: 'index' }
+    }
+  });
+
+  // --- STROKE TIMELINE (dynamic) ---
+  const strokes = [
+    { type:'Smash', speed:287, color:'#FF3D5A', time:'4:12' },
+    { type:'Clear', speed:210, color:'#00F5A0', time:'5:30' },
+    { type:'Drop', speed:145, color:'#FFB800', time:'7:45' },
+    { type:'Net', speed:60, color:'#7C4DFF', time:'9:10' },
+    { type:'Smash', speed:275, color:'#FF3D5A', time:'12:22' },
+    { type:'Serve', speed:95, color:'#00B8D4', time:'0:05' },
+    { type:'Clear', speed:198, color:'#00F5A0', time:'15:40' },
+    { type:'Drop', speed:130, color:'#FFB800', time:'18:15' },
+  ];
+
+  const tlEl = document.getElementById('timelineEl');
+  strokes.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'timeline-card';
+    card.innerHTML = `
+      <div class="tl-badge" style="background:${s.color}20; color:${s.color}">${s.type}</div>
+      <div class="tl-speed">${s.speed}</div>
+      <div class="tl-unit">km/h</div>
+    `;
+    tlEl.appendChild(card);
+  });
+
+  // --- PRO COMPARISON BARS ---
+  const compData = [
+    { label:'Smash Power', you:78, pro:95 },
+    { label:'Wrist Snap', you:65, pro:92 },
+    { label:'Footwork', you:71, pro:88 },
+    { label:'Serve Accuracy', you:55, pro:85 },
+    { label:'Reaction Speed', you:80, pro:90 },
+  ];
+  const compBarsEl = document.getElementById('compBars');
+  compData.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'comp-row';
+    row.innerHTML = `
+      <span class="comp-label">${c.label}</span>
+      <div class="comp-track">
+        <div class="comp-bar-you" style="width:0%"></div>
+        <div class="comp-bar-pro" style="width:${c.pro}%"></div>
+      </div>
+    `;
+    compBarsEl.appendChild(row);
+    setTimeout(() => {
+      row.querySelector('.comp-bar-you').style.width = c.you + '%';
+    }, 200);
+  });
+
+  // --- RADAR CHART ---
+  new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+      labels: ['Smash Power', 'Wrist Snap', 'Footwork', 'Serve Acc', 'Reaction'],
+      datasets: [
+        {
+          label: 'You',
+          data: [78, 65, 71, 55, 80],
+          borderColor: '#00F5A0',
+          backgroundColor: 'rgba(0,245,160,0.08)',
+          borderWidth: 2,
+          pointBackgroundColor: '#00F5A0',
+          pointRadius: 4,
+        },
+        {
+          label: 'V. Axelsen',
+          data: [95, 92, 88, 85, 90],
+          borderColor: '#FF3D5A',
+          backgroundColor: 'rgba(255,61,90,0.05)',
+          borderWidth: 1.5,
+          borderDash: [4, 4],
+          pointBackgroundColor: '#FF3D5A',
+          pointRadius: 3,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        r: {
+          beginAtZero: false,
+          min: 20,
+          max: 100,
+          grid: { color: 'rgba(255,255,255,0.06)' },
+          angleLines: { color: 'rgba(255,255,255,0.06)' },
+          pointLabels: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } },
+          ticks: { display: false },
+        }
+      }
+    }
+  });
+
+  // --- INIT ANIMATIONS ---
+  window.addEventListener('load', () => {
+    animateNumbers();
+    animateRing();
+  });
+</script>
+</body>
+</html>
