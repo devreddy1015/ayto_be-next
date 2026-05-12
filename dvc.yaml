@@ -21,6 +21,17 @@ stages:
       - models/detector_metrics.json:
           cache: false
 
+  train_tracknet:
+    cmd: python packages/cv-core/src/train_tracknet.py --data TrackNetV2 --epochs 50 --batch-size 8
+    deps:
+      - TrackNetV2
+    outs:
+      - models/tracknetv2.pt
+      - models/tracknetv2_final.pt
+    metrics:
+      - models/tracknetv2_history.json:
+          cache: false
+
   train_stroke_classifier:
     cmd: python packages/ml-models/src/train.py
     deps:

@@ -19,11 +19,13 @@ build/
 *.mkv
 *.mov
 *.csv
+*.zip
 !data/.gitkeep
 
 .env
 .env.local
 *.log
+watch_*
 
 venv/
 .venv/

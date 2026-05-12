@@ -115,39 +115,9 @@ class ShuttleDetector:
         detections = self.detect(frame)
         shuttle_dets = [d for d in detections if d["class"].lower() in self.CLASSES]
         if not shuttle_dets:
-            # Fallback: smallest object is likely the shuttle
             small_dets = sorted(
                 detections,
                 key=lambda d: (d["bbox"][2] - d["bbox"][0]) * (d["bbox"][3] - d["bbox"][1]),
             )
             return small_dets[0] if small_dets else None
         return max(shuttle_dets, key=lambda d: d["confidence"])
-
-
-if __name__ == "__main__":
-    # Demo: create a dummy frame and show detection output format
-    print("ShuttleDetector Demo")
-    print("=" * 40)
-
-    # Create a synthetic frame
-    dummy_frame = np.random.randint(0, 255, (720, 1280, 3), dtype=np.uint8)
-
-    try:
-        detector = ShuttleDetector(model_path="yolov8n.pt")
-        detections = detector.detect(dummy_frame)
-        print(f"Detections on random frame: {len(detections)}")
-        for det in detections[:3]:
-            print(f"  class={det['class']}, conf={det['confidence']:.3f}, "
-                  f"center=({det['center_x']:.1f}, {det['center_y']:.1f})")
-
-        shuttle = detector.detect_shuttle(dummy_frame)
-        if shuttle:
-            print(f"\nBest shuttle: conf={shuttle['confidence']:.3f}")
-        else:
-            print("\nNo shuttle detected (expected on random noise)")
-    except Exception as e:
-        print(f"Model load skipped: {e}")
-        print("Expected output format:")
-        print("  {'class': 'shuttle', 'confidence': 0.87,")
-        print("   'bbox': [100.0, 200.0, 120.0, 220.0],")
-        print("   'center_x': 110.0, 'center_y': 210.0}")

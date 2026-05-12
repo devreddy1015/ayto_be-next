@@ -74,7 +74,6 @@ class StrokeDetector:
         right_vel = self._compute_wrist_velocities(pose_sequence, "right")
         left_vel = self._compute_wrist_velocities(pose_sequence, "left")
 
-        # Determine dominant hand per-peak by comparing velocities
         combined_vel = [max(r, l) for r, l in zip(right_vel, left_vel)]
         dominant_per_frame = [
             "right" if r >= l else "left"
@@ -158,33 +157,4 @@ class StrokeDetector:
         return peaks
 
 
-# Keep backward compatibility alias
 StrokeEventDetector = StrokeDetector
-
-
-if __name__ == "__main__":
-    print("StrokeDetector Demo")
-    print("=" * 40)
-
-    # Generate synthetic pose sequence with velocity spikes
-    np.random.seed(42)
-    n_frames = 120
-    sequence: list[np.ndarray | None] = []
-    for i in range(n_frames):
-        lm = np.random.rand(33, 4).astype(np.float32) * 0.01
-        # Add baseline position
-        lm[16, :3] = [0.5 + i * 0.001, 0.5, 0.0]
-        # Inject velocity spikes at frames 30 and 80
-        if i in (30, 31):
-            lm[16, :3] = [0.5 + i * 0.001 + 0.3, 0.5, 0.0]
-        if i in (80, 81):
-            lm[16, :3] = [0.5 + i * 0.001 + 0.25, 0.5, 0.0]
-        sequence.append(lm)
-
-    detector = StrokeDetector(fps=60.0)
-    events = detector.detect(sequence)
-
-    print(f"Detected {len(events)} stroke events:")
-    for e in events:
-        print(f"  frames [{e.start_frame}-{e.peak_frame}-{e.end_frame}], "
-              f"speed={e.peak_wrist_speed:.2f}, hand={e.dominant_hand}")

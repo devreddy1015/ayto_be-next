@@ -1,9 +1,8 @@
-"""Pose keypoint extraction using MediaPipe Holistic.
+"""Pose keypoint extraction using MediaPipe PoseLandmarker.
 
-Provides PoseExtractor class that extracts 13 key body joints from
-video frames using MediaPipe's Holistic solution, returning structured
-keypoint dictionaries with {x, y, z, visibility} for each joint.
+Supports both legacy mp.solutions API and modern mp.tasks API.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -16,22 +15,14 @@ try:
 except ImportError:
     mp = None
 
-
-# MediaPipe landmark indices for our 13 key joints
 KEY_JOINTS = {
     "nose": 0,
-    "left_shoulder": 11,
-    "right_shoulder": 12,
-    "left_elbow": 13,
-    "right_elbow": 14,
-    "left_wrist": 15,
-    "right_wrist": 16,
-    "left_hip": 23,
-    "right_hip": 24,
-    "left_knee": 25,
-    "right_knee": 26,
-    "left_ankle": 27,
-    "right_ankle": 28,
+    "left_shoulder": 11, "right_shoulder": 12,
+    "left_elbow": 13, "right_elbow": 14,
+    "left_wrist": 15, "right_wrist": 16,
+    "left_hip": 23, "right_hip": 24,
+    "left_knee": 25, "right_knee": 26,
+    "left_ankle": 27, "right_ankle": 28,
 }
 
 LANDMARK_NAMES = [
@@ -46,19 +37,15 @@ LANDMARK_NAMES = [
     "left_foot_index", "right_foot_index",
 ]
 
+_HAS_SOLUTIONS_API = False
+_HAS_TASKS_API = False
+
+if mp is not None:
+    _HAS_SOLUTIONS_API = hasattr(mp, "solutions")
+    _HAS_TASKS_API = hasattr(mp, "tasks")
+
 
 class PoseExtractor:
-    """Extracts body keypoints using MediaPipe Holistic.
-
-    Returns 13 key joints (both wrists, elbows, shoulders, hips,
-    knees, ankles, and nose), each with {x, y, z, visibility}.
-
-    Usage:
-        with PoseExtractor() as extractor:
-            keypoints = extractor.extract_from_frame(frame)
-            sequence = extractor.extract_from_video("video.mp4")
-    """
-
     NUM_LANDMARKS = 33
 
     def __init__(
@@ -67,128 +54,143 @@ class PoseExtractor:
         min_detection_confidence: float = 0.5,
         min_tracking_confidence: float = 0.5,
     ) -> None:
-        """Initialize the pose extractor.
-
-        Args:
-            static_image_mode: If True, treats each frame independently.
-            min_detection_confidence: Minimum confidence for person detection.
-            min_tracking_confidence: Minimum confidence for landmark tracking.
-
-        Raises:
-            ImportError: If mediapipe is not installed.
-        """
         if mp is None:
             raise ImportError("mediapipe is required — pip install mediapipe")
-        self.mp_holistic = mp.solutions.holistic
-        self.holistic = self.mp_holistic.Holistic(
-            static_image_mode=static_image_mode,
-            min_detection_confidence=min_detection_confidence,
-            min_tracking_confidence=min_tracking_confidence,
-        )
+
+        self._backend: str | None = None
+        self._holistic: Any = None
+        self._task_detector: Any = None
+
+        if _HAS_SOLUTIONS_API:
+            try:
+                self._holistic = mp.solutions.holistic.Holistic(
+                    static_image_mode=static_image_mode,
+                    min_detection_confidence=min_detection_confidence,
+                    min_tracking_confidence=min_tracking_confidence,
+                )
+                self._backend = "solutions"
+            except Exception:
+                pass
+
+        if self._backend is None and _HAS_TASKS_API:
+            try:
+                from mediapipe.tasks import python as mp_python
+                from mediapipe.tasks.python import vision
+
+                options = vision.PoseLandmarkerOptions(
+                    base_options=mp_python.BaseOptions(
+                        model_asset_buffer=_get_default_pose_model()
+                    ),
+                    running_mode=vision.RunningMode.IMAGE,
+                    num_poses=1,
+                    min_pose_detection_confidence=min_detection_confidence,
+                    min_tracking_confidence=min_tracking_confidence,
+                )
+                self._task_detector = vision.PoseLandmarker.create_from_options(options)
+                self._backend = "tasks"
+            except Exception:
+                pass
+
+        if self._backend is None:
+            raise RuntimeError(
+                "No MediaPipe backend available. Install mediapipe>=0.10.0 "
+                "or mediapipe<0.10.15 for solutions API support."
+            )
+
+    def _process_solutions(self, frame: np.ndarray) -> Any:
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        return self._holistic.process(rgb)
+
+    def _process_tasks(self, frame: np.ndarray) -> Any:
+        from mediapipe import Image, ImageFormat
+        mp_image = Image(image_format=ImageFormat.SRGB, data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        return self._task_detector.detect(mp_image)
 
     def extract_from_frame(self, frame: np.ndarray) -> dict[str, dict[str, float]] | None:
-        """Extract 13 key joint keypoints from a single frame.
-
-        Args:
-            frame: BGR image as numpy array (H, W, 3).
-
-        Returns:
-            Dict mapping joint names to {x, y, z, visibility} dicts,
-            or None if no pose detected. Contains all 13 key joints:
-            nose, left/right shoulder, elbow, wrist, hip, knee, ankle.
-        """
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = self.holistic.process(rgb)
-        if results.pose_landmarks is None:
-            return None
-
-        keypoints: dict[str, dict[str, float]] = {}
-        for joint_name, landmark_idx in KEY_JOINTS.items():
-            lm = results.pose_landmarks.landmark[landmark_idx]
-            keypoints[joint_name] = {
-                "x": float(lm.x),
-                "y": float(lm.y),
-                "z": float(lm.z),
-                "visibility": float(lm.visibility),
-            }
-        return keypoints
+        if self._backend == "solutions":
+            results = self._process_solutions(frame)
+            if results.pose_landmarks is None:
+                return None
+            keypoints: dict[str, dict[str, float]] = {}
+            for joint_name, idx in KEY_JOINTS.items():
+                lm = results.pose_landmarks.landmark[idx]
+                keypoints[joint_name] = {
+                    "x": float(lm.x), "y": float(lm.y),
+                    "z": float(lm.z), "visibility": float(lm.visibility),
+                }
+            return keypoints
+        elif self._backend == "tasks":
+            results = self._process_tasks(frame)
+            if not results.pose_landmarks:
+                return None
+            landmarks = results.pose_landmarks[0]
+            keypoints = {}
+            for joint_name, idx in KEY_JOINTS.items():
+                lm = landmarks[idx]
+                keypoints[joint_name] = {
+                    "x": float(lm.x), "y": float(lm.y),
+                    "z": float(lm.z), "visibility": float(lm.visibility or 0.0),
+                }
+            return keypoints
+        return None
 
     def extract_raw(self, frame: np.ndarray) -> np.ndarray | None:
-        """Extract all 33 landmarks as a raw numpy array.
-
-        Args:
-            frame: BGR image as numpy array (H, W, 3).
-
-        Returns:
-            Array of shape (33, 4) with [x, y, z, visibility] per landmark,
-            or None if no pose detected.
-        """
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = self.holistic.process(rgb)
-        if results.pose_landmarks is None:
-            return None
-        landmarks = np.array([
-            [lm.x, lm.y, lm.z, lm.visibility]
-            for lm in results.pose_landmarks.landmark
-        ])
-        return landmarks
+        if self._backend == "solutions":
+            results = self._process_solutions(frame)
+            if results.pose_landmarks is None:
+                return None
+            return np.array([
+                [lm.x, lm.y, lm.z, lm.visibility]
+                for lm in results.pose_landmarks.landmark
+            ])
+        elif self._backend == "tasks":
+            results = self._process_tasks(frame)
+            if not results.pose_landmarks:
+                return None
+            return np.array([
+                [lm.x, lm.y, lm.z, lm.visibility or 0.0]
+                for lm in results.pose_landmarks[0]
+            ])
+        return None
 
     def extract_from_video(self, video_path: str) -> list[dict[str, dict[str, float]] | None]:
-        """Extract keypoints from all frames in a video.
-
-        Args:
-            video_path: Path to the video file.
-
-        Returns:
-            List of keypoint dicts (one per frame), with None for
-            frames where no pose was detected.
-        """
         cap = cv2.VideoCapture(video_path)
-        keypoints_sequence: list[dict[str, dict[str, float]] | None] = []
+        sequence: list[dict[str, dict[str, float]] | None] = []
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
-            kps = self.extract_from_frame(frame)
-            keypoints_sequence.append(kps)
+            sequence.append(self.extract_from_frame(frame))
         cap.release()
-        return keypoints_sequence
+        return sequence
 
     def close(self) -> None:
-        """Release MediaPipe resources."""
-        self.holistic.close()
+        if self._holistic is not None:
+            self._holistic.close()
+        if self._task_detector is not None:
+            self._task_detector.close()
 
     def __enter__(self) -> "PoseExtractor":
-        """Context manager entry."""
         return self
 
     def __exit__(self, *args: Any) -> None:
-        """Context manager exit — releases resources."""
         self.close()
 
 
-if __name__ == "__main__":
-    print("PoseExtractor Demo")
-    print("=" * 40)
-    print(f"Tracking {len(KEY_JOINTS)} key joints:")
-    for name, idx in KEY_JOINTS.items():
-        print(f"  {name} (MediaPipe landmark {idx})")
+def _get_default_pose_model() -> bytes:
+    import os
+    import urllib.request
 
-    print("\nExpected output format per joint:")
-    print("  {'x': 0.52, 'y': 0.31, 'z': -0.08, 'visibility': 0.99}")
+    model_path = os.path.expanduser("~/.cache/mediapipe/pose_landmarker_lite.task")
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
 
-    # Demo with synthetic data
-    print("\nGenerating synthetic keypoints...")
-    dummy_keypoints: dict[str, dict[str, float]] = {}
-    for joint_name in KEY_JOINTS:
-        dummy_keypoints[joint_name] = {
-            "x": float(np.random.rand()),
-            "y": float(np.random.rand()),
-            "z": float(np.random.randn() * 0.1),
-            "visibility": float(np.random.uniform(0.8, 1.0)),
-        }
+    if not os.path.exists(model_path):
+        url = (
+            "https://storage.googleapis.com/mediapipe-models/"
+            "pose_landmarker/pose_landmarker_lite/float16/latest/"
+            "pose_landmarker_lite.task"
+        )
+        urllib.request.urlretrieve(url, model_path)
 
-    for name, kp in list(dummy_keypoints.items())[:5]:
-        print(f"  {name}: x={kp['x']:.3f}, y={kp['y']:.3f}, "
-              f"z={kp['z']:.3f}, vis={kp['visibility']:.3f}")
-    print(f"  ... ({len(dummy_keypoints)} joints total)")
+    with open(model_path, "rb") as f:
+        return f.read()

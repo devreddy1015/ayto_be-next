@@ -42,7 +42,6 @@ export default function HomeScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
-        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.logo}>SportIQ</Text>
@@ -55,12 +54,10 @@ export default function HomeScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Speed Gauge */}
         <SpeedGauge speed={0} maxSpeed={DUMMY_SESSION.maxSpeed} />
         <Text style={styles.gaugeLabel}>READY TO RECORD</Text>
         <View style={styles.statusDot} />
 
-        {/* Start Recording Button */}
         <Animated.View
           style={[
             styles.recordBtnWrapper,
@@ -79,7 +76,6 @@ export default function HomeScreen({ navigation }: any) {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Stat Cards Row */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, Glass.card]}>
             <Text style={styles.statValue}>3</Text>
@@ -95,7 +91,6 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* Recent Sessions */}
         <Text style={styles.sectionTitle}>Recent Sessions</Text>
         {RECENT_SESSIONS.map((session) => (
           <TouchableOpacity
@@ -123,7 +118,6 @@ export default function HomeScreen({ navigation }: any) {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Bottom Nav */}
       <View style={styles.bottomNav}>
         {[
           { label: "Home", icon: "⌂", active: true },

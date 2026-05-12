@@ -94,7 +94,6 @@ class CVPipeline:
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        # Reset pipeline components
         self.tracker = ShuttleTracker(dt=1.0 / fps)
         calibration = CourtCalibration()
         calibration.calibrate_auto(width, height)
@@ -144,7 +143,6 @@ class CVPipeline:
             computed_speed = self.speed_calc.compute_speed(tracked_pos)
             if computed_speed is not None:
                 speed = computed_speed
-                # Simple stroke detection: speed spike above threshold
                 accel = abs(speed - self._prev_speed)
                 if speed > self.STROKE_SPEED_THRESHOLD and accel > self.STROKE_ACCEL_THRESHOLD:
                     stroke_detected = True
@@ -203,7 +201,11 @@ class CVPipeline:
         """
         total_frames = len(self.results)
         detected_frames = sum(1 for r in self.results if r.confidence > 0)
-        speeds = [r.speed_kmh for r in self.results if not np.isnan(r.speed_kmh) and r.speed_kmh > 0]
+        speeds = [
+            r.speed_kmh
+            for r in self.results
+            if not np.isnan(r.speed_kmh) and r.speed_kmh > 0
+        ]
         strokes = sum(1 for r in self.results if r.stroke_detected)
         return {
             "total_frames": total_frames,
@@ -214,36 +216,3 @@ class CVPipeline:
             "min_speed_kmh": min(speeds) if speeds else 0.0,
             "strokes_detected": strokes,
         }
-
-
-if __name__ == "__main__":
-    print("CVPipeline Demo")
-    print("=" * 40)
-    print("Pipeline chains: ShuttleDetector → ShuttleTracker → SpeedCalculator")
-    print()
-
-    # Demonstrate the FrameResult structure
-    dummy_result = FrameResult(
-        frame=0,
-        shuttle_x=640.0,
-        shuttle_y=360.0,
-        speed_kmh=245.3,
-        stroke_detected=True,
-        confidence=0.87,
-    )
-    print("Example FrameResult:")
-    print(f"  frame={dummy_result.frame}")
-    print(f"  shuttle_x={dummy_result.shuttle_x}")
-    print(f"  shuttle_y={dummy_result.shuttle_y}")
-    print(f"  speed_kmh={dummy_result.speed_kmh}")
-    print(f"  stroke_detected={dummy_result.stroke_detected}")
-
-    # Show DataFrame output format
-    dummy_df = pd.DataFrame([
-        {"frame": 0, "shuttle_x": 640.0, "shuttle_y": 360.0, "speed_kmh": 0.0, "stroke_detected": False},
-        {"frame": 1, "shuttle_x": 650.0, "shuttle_y": 355.0, "speed_kmh": 198.3, "stroke_detected": False},
-        {"frame": 2, "shuttle_x": 680.0, "shuttle_y": 340.0, "speed_kmh": 287.1, "stroke_detected": True},
-    ])
-    print(f"\nDataFrame output format:")
-    print(dummy_df.to_string(index=False))
-    print(f"\nColumns: {list(dummy_df.columns)}")

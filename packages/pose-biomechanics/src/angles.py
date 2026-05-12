@@ -53,26 +53,23 @@ class JointAngleComputer:
             angles[name] = _angle_3points(landmarks[i, :3], landmarks[j, :3], landmarks[k, :3])
         return angles
 
-    def compute_angle_sequence(self, keypoints_sequence: list[np.ndarray | None]) -> list[dict[str, float] | None]:
+    def compute_angle_sequence(
+        self,
+        keypoints_sequence: list[np.ndarray | None],
+    ) -> list[dict[str, float] | None]:
         """Compute angles for a sequence of frames."""
-        return [self.compute_all_angles(kps) if kps is not None else None for kps in keypoints_sequence]
+        return [
+            self.compute_all_angles(kps) if kps is not None else None
+            for kps in keypoints_sequence
+        ]
 
     @staticmethod
-    def wrist_velocity(landmarks_prev: np.ndarray, landmarks_curr: np.ndarray, fps: float = 60.0, side: str = "right") -> float:
+    def wrist_velocity(
+        landmarks_prev: np.ndarray,
+        landmarks_curr: np.ndarray,
+        fps: float = 60.0,
+        side: str = "right",
+    ) -> float:
         """Compute wrist velocity between two consecutive frames."""
         idx = 16 if side == "right" else 15
         return float(np.linalg.norm(landmarks_curr[idx, :3] - landmarks_prev[idx, :3]) * fps)
-
-if __name__ == "__main__":
-    print("Joint Angle Demo")
-    s, e, w = np.array([0.4,0.4,0.0]), np.array([0.4,0.6,0.0]), np.array([0.5,0.7,0.0])
-    print(f"Elbow angle: {compute_elbow_angle(s, e, w):.1f}deg")
-    h = np.array([0.4,0.7,0.0])
-    print(f"Shoulder angle: {compute_shoulder_angle(h, s, e):.1f}deg")
-    k, a = np.array([0.4,0.85,0.0]), np.array([0.4,1.0,0.0])
-    print(f"Knee bend: {compute_knee_bend(h, k, a):.1f}deg")
-    sm, hm = np.array([0.5,0.4,0.0]), np.array([0.5,0.7,0.0])
-    print(f"Trunk lean: {compute_trunk_lean(sm, hm):.1f}deg")
-    landmarks = np.random.rand(33, 4)
-    for name, angle in JointAngleComputer().compute_all_angles(landmarks).items():
-        print(f"  {name}: {angle:.1f}deg")

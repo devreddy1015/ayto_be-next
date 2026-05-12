@@ -35,15 +35,11 @@ export default function SpeedGauge({ speed, maxSpeed }: SpeedGaugeProps) {
   }, [speed])
 
   const ratio = maxSpeed > 0 ? Math.min(speed / maxSpeed, 1) : 0
-  const arcDegrees = ratio * 270 // 270° arc
-
-  // SVG-style arc using nested views and rotation
   const segments = 27
   const segmentAngle = 270 / segments
 
   return (
     <View style={styles.container}>
-      {/* Background arc */}
       <View style={styles.gaugeOuter}>
         {Array.from({ length: segments }).map((_, i) => {
           const rotation = -135 + i * segmentAngle
@@ -66,7 +62,6 @@ export default function SpeedGauge({ speed, maxSpeed }: SpeedGaugeProps) {
           )
         })}
 
-        {/* Inner circle with speed display */}
         <Animated.View style={[styles.gaugeInner, { opacity: glowAnim }]}>
           <View style={styles.innerBorder} />
         </Animated.View>

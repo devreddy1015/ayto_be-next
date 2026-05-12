@@ -26,8 +26,10 @@ def export_onnx(
     input_size: int = 27,
     seq_len: int = 30,
     hidden_size: int = 128,
+    model_dim: int | None = None,
     num_layers: int = 2,
     num_classes: int = 6,
+    num_heads: int = 4,
 ) -> Path:
     """Export model to ONNX format.
 
@@ -36,18 +38,32 @@ def export_onnx(
         output_path: Destination path for the .onnx file.
         input_size: Number of input features per timestep.
         seq_len: Sequence length.
-        hidden_size: LSTM hidden size.
-        num_layers: Number of LSTM layers.
+        hidden_size: Backward-compatible model dimension fallback.
+        model_dim: Transformer embedding size.
+        num_layers: Number of Transformer encoder layers.
         num_classes: Number of output classes.
 
     Returns:
         Path to the exported ONNX model.
     """
+    state_dict, checkpoint_config = _load_state_dict(model_path)
+    input_size = int(checkpoint_config.get("input_size", input_size))
+    seq_len = int(checkpoint_config.get("seq_len", seq_len))
+    hidden_size = int(checkpoint_config.get("hidden_size", hidden_size))
+    model_dim = int(checkpoint_config.get("model_dim", model_dim or hidden_size))
+    num_layers = int(checkpoint_config.get("num_layers", num_layers))
+    num_classes = int(checkpoint_config.get("num_classes", num_classes))
+    num_heads = int(checkpoint_config.get("num_heads", num_heads))
+
     model = BadmintonStrokeClassifier(
-        input_size=input_size, hidden_size=hidden_size,
-        num_layers=num_layers, num_classes=num_classes,
+        input_size=input_size,
+        model_dim=model_dim,
+        hidden_size=hidden_size,
+        num_layers=num_layers,
+        num_classes=num_classes,
+        num_heads=num_heads,
     )
-    model.load_state_dict(torch.load(model_path, map_location="cpu", weights_only=True))
+    model.load_state_dict(state_dict)
     model.eval()
 
     dummy = torch.randn(1, seq_len, input_size)
@@ -159,8 +175,17 @@ def export_coreml(
     except ImportError:
         raise ImportError("coremltools is required — pip install coremltools")
 
-    model = BadmintonStrokeClassifier(input_size=input_size)
-    model.load_state_dict(torch.load(model_path, map_location="cpu", weights_only=True))
+    state_dict, checkpoint_config = _load_state_dict(model_path)
+    input_size = int(checkpoint_config.get("input_size", input_size))
+    seq_len = int(checkpoint_config.get("seq_len", seq_len))
+    model = BadmintonStrokeClassifier(
+        input_size=input_size,
+        model_dim=checkpoint_config.get("model_dim"),
+        hidden_size=checkpoint_config.get("hidden_size", 128),
+        num_layers=checkpoint_config.get("num_layers", 3),
+        num_heads=checkpoint_config.get("num_heads", 4),
+    )
+    model.load_state_dict(state_dict)
     model.eval()
 
     dummy = torch.randn(1, seq_len, input_size)
@@ -177,6 +202,15 @@ def export_coreml(
     mlmodel.save(str(output))
     print(f"Exported CoreML model to {output}")
     return output
+
+
+def _load_state_dict(model_path: str | Path) -> tuple[dict, dict]:
+    checkpoint = torch.load(model_path, map_location="cpu", weights_only=True)
+    if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+        return checkpoint["model_state_dict"], checkpoint.get("config", {})
+    if isinstance(checkpoint, dict):
+        return checkpoint, {}
+    raise ValueError(f"Unsupported checkpoint format: {model_path}")
 
 
 if __name__ == "__main__":

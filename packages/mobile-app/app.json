@@ -2,6 +2,7 @@
   "expo": {
     "name": "SportIQ",
     "slug": "sportiq",
+    "owner": "notesetnonematch",
     "plugins": [
       [
         "expo-camera",
@@ -30,15 +31,26 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "ai.sportiq.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5906928b-b55b-46c4-80d8-ba3af8240fef"
+      }
     }
   }
 }

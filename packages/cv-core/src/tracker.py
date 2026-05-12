@@ -123,7 +123,6 @@ class ShuttleTracker:
             self.age += 1
             self.consecutive_misses += 1
 
-        # If too many consecutive misses, track is lost
         if self.consecutive_misses > self.MAX_OCCLUSION_FRAMES:
             return None
 
@@ -175,38 +174,3 @@ class ShuttleTracker:
         self.consecutive_misses = 0
         self.history.clear()
         self._initialized = False
-
-
-if __name__ == "__main__":
-    print("ShuttleTracker Demo")
-    print("=" * 40)
-
-    tracker = ShuttleTracker(dt=1 / 60)
-
-    # Simulate a shuttle moving diagonally
-    positions = [(100 + i * 5, 200 + i * 3) for i in range(20)]
-
-    # Feed detections
-    for i, pos in enumerate(positions):
-        tracked = tracker.update(pos)
-        if tracked:
-            print(f"Frame {i:3d}: detected={pos}, tracked=({tracked[0]:.1f}, {tracked[1]:.1f})")
-
-    # Simulate 5 frames of occlusion
-    print("\n--- Occlusion (5 frames) ---")
-    for i in range(5):
-        tracked = tracker.update(None)
-        if tracked:
-            print(f"Occluded {i+1}: predicted=({tracked[0]:.1f}, {tracked[1]:.1f})")
-        else:
-            print(f"Occluded {i+1}: track lost")
-
-    # Try 6th frame of occlusion (should lose track)
-    tracked = tracker.update(None)
-    print(f"\nOccluded 6: {'track lost' if tracked is None else f'({tracked[0]:.1f}, {tracked[1]:.1f})'}")
-
-    print(f"\nTrack history length: {len(tracker.get_track_history())} (max {tracker.MAX_HISTORY})")
-    print(f"Track valid: {tracker.is_valid()}")
-    velocity = tracker.get_velocity()
-    if velocity:
-        print(f"Velocity: ({velocity[0]:.2f}, {velocity[1]:.2f}) px/frame")

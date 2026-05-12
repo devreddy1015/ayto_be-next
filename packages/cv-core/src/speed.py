@@ -151,7 +151,6 @@ class SpeedCalculator:
         speed_ms = meters / seconds
         speed_kmh = speed_ms * self.KMH_FACTOR
 
-        # Kalman-style exponential smoothing
         self._smoothed_speed = (
             self.smooth_alpha * speed_kmh
             + (1 - self.smooth_alpha) * self._smoothed_speed
@@ -211,28 +210,3 @@ class SpeedCalculator:
         self._prev_pos = None
         self._speeds.clear()
         self._smoothed_speed = 0.0
-
-
-if __name__ == "__main__":
-    print("SpeedCalculator Demo")
-    print("=" * 40)
-
-    # Calibrate from court width
-    cal = CourtCalibration()
-    cal.calibrate_from_court_width(pixel_width=610.0, real_width_meters=6.1)
-    print(f"Pixels per meter: {cal.pixels_per_meter:.1f}")
-
-    calc = SpeedCalculator(fps=60.0, calibration=cal)
-
-    # Simulate shuttle moving at ~200 km/h
-    # 200 km/h = 55.6 m/s → at 100 px/m and 60fps = 92.6 px/frame
-    positions = [(100 + i * 92.6, 200) for i in range(10)]
-
-    for i, pos in enumerate(positions):
-        speed = calc.compute_speed(pos)
-        if speed is not None:
-            print(f"Frame {i}: pos=({pos[0]:.1f}, {pos[1]:.1f}) → {speed:.1f} km/h")
-
-    print(f"\nMax speed: {calc.get_max_speed():.1f} km/h")
-    print(f"Avg speed: {calc.get_average_speed():.1f} km/h")
-    print(f"History: {len(calc.get_speed_history())} measurements")
