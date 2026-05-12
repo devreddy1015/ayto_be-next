@@ -1,0 +1,33 @@
+stages:
+  download_videos:
+    cmd: python packages/data-research/scripts/download_videos.py
+    outs:
+      - data/raw/videos
+
+  preprocess_frames:
+    cmd: python packages/data-research/scripts/preprocess.py
+    deps:
+      - data/raw/videos
+    outs:
+      - data/processed/frames
+
+  train_detector:
+    cmd: python packages/cv-core/src/train_detector.py
+    deps:
+      - data/processed/frames
+    outs:
+      - models/shuttle_detector.pt
+    metrics:
+      - models/detector_metrics.json:
+          cache: false
+
+  train_stroke_classifier:
+    cmd: python packages/ml-models/src/train.py
+    deps:
+      - data/processed/frames
+    outs:
+      - models/stroke_classifier.pt
+      - models/stroke_classifier.tflite
+    metrics:
+      - models/classifier_metrics.json:
+          cache: false
