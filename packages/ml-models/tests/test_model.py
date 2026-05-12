@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from src.model import StrokeClassifier
+from model import StrokeClassifier
 
 
 class TestStrokeClassifier:

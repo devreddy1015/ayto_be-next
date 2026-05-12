@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from src.angles import JointAngleComputer
-from src.normalizer import PoseNormalizer
+from angles import JointAngleComputer
+from normalizer import PoseNormalizer
 
 
 class TestJointAngleComputer:

@@ -3,8 +3,8 @@ import math
 import numpy as np
 import pytest
 
-from src.speed import CourtCalibration, SpeedCalculator
-from src.tracker import ShuttleTracker
+from speed import CourtCalibration, SpeedCalculator
+from tracker import ShuttleTracker
 
 
 class TestCourtCalibration:
