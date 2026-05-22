@@ -19,8 +19,8 @@ _root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_root / "cv-core" / "src"))
 sys.path.insert(0, str(_root / "pose-biomechanics" / "src"))
 
-from angles import JointAngleComputer, compute_trunk_lean
-from normalize import normalize_keypoints
+from angles import JointAngleComputer, compute_trunk_lean  # noqa: E402
+from normalize import normalize_keypoints  # noqa: E402
 
 try:
     from keypoints import PoseExtractor

@@ -2,11 +2,9 @@
 
 Tests use dummy data — no YOLO model or video files required.
 """
-import math
 
 import numpy as np
 import pytest
-
 from speed import CourtCalibration, SpeedCalculator
 from tracker import ShuttleTracker
 

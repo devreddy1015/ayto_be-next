@@ -54,7 +54,7 @@ class ShuttleTracker:
         self._initialized = False
 
     @staticmethod
-    def _init_kalman(dt: float) -> "KalmanFilter":
+    def _init_kalman(dt: float) -> KalmanFilter:
         """Create and configure a 4-state Kalman filter.
 
         State vector: [x, y, vx, vy]

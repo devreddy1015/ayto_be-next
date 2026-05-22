@@ -5,11 +5,11 @@ import json
 import time
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-
 from sportformer import SportFormer
+from torch.utils.data import DataLoader
 
 
 class SportFormerDataset(torch.utils.data.Dataset):
@@ -53,7 +53,9 @@ class SportFormerDataset(torch.utils.data.Dataset):
                 label = i % 6
                 self.samples.append((poses, shuttle, label))
 
-    def _pad_or_crop(self, arr: "np.ndarray", target_len: int) -> "np.ndarray":
+    def _pad_or_crop(
+        self, arr: np.ndarray, target_len: int,
+    ) -> np.ndarray:
         if len(arr) < target_len:
             pad = np.zeros((target_len - len(arr), arr.shape[1]), dtype=arr.dtype)
             return np.concatenate([arr, pad], axis=0)

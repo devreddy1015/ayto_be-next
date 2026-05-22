@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-
 STROKE_LABELS = ["smash", "drop", "clear", "net", "serve", "defensive"]
 
 COMPARABLE_JOINTS = [

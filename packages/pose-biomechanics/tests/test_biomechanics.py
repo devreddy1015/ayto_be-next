@@ -1,7 +1,6 @@
 """Unit tests for pose-biomechanics: angles, normalizer, stroke detection."""
 import numpy as np
 import pytest
-
 from angles import (
     JointAngleComputer,
     compute_elbow_angle,

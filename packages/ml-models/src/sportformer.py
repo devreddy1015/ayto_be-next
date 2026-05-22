@@ -4,7 +4,7 @@ import math
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa: N812
 
 
 class PositionalEncoding(nn.Module):
@@ -25,7 +25,13 @@ class PositionalEncoding(nn.Module):
 
 
 class TemporalAttentionBlock(nn.Module):
-    def __init__(self, dim: int, num_heads: int = 8, mlp_ratio: float = 4.0, dropout: float = 0.1) -> None:
+    def __init__(
+        self,
+        dim: int,
+        num_heads: int = 8,
+        mlp_ratio: float = 4.0,
+        dropout: float = 0.1,
+    ) -> None:
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
         self.attn = nn.MultiheadAttention(
@@ -51,7 +57,13 @@ class TemporalAttentionBlock(nn.Module):
 class CrossModalFusion(nn.Module):
     """Fuses pose keypoints with shuttle velocity using cross-attention (MotionFormer-inspired)."""
 
-    def __init__(self, pose_dim: int, shuttle_dim: int, fusion_dim: int, num_heads: int = 4) -> None:
+    def __init__(
+        self,
+        pose_dim: int,
+        shuttle_dim: int,
+        fusion_dim: int,
+        num_heads: int = 4,
+    ) -> None:
         super().__init__()
         self.pose_proj = nn.Linear(pose_dim, fusion_dim)
         self.shuttle_proj = nn.Linear(shuttle_dim, fusion_dim)
@@ -157,7 +169,7 @@ class SportFormer(nn.Module):
         pose_sequence: torch.Tensor,
         shuttle_features: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        B, T, _ = pose_sequence.shape
+        B, T, _ = pose_sequence.shape  # noqa: N806
 
         x = self.input_proj(pose_sequence)
 
@@ -194,7 +206,7 @@ class SportFormer(nn.Module):
         self, pose_sequence: torch.Tensor, mask_ratio: float = 0.75
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """VideoMAE-style masked pretraining: reconstruct masked frames."""
-        B, T, D = pose_sequence.shape
+        B, T, D = pose_sequence.shape  # noqa: N806
         mask = torch.rand(B, T, 1, device=pose_sequence.device) > mask_ratio
         mask = mask.float()
 

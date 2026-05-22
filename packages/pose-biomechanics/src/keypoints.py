@@ -170,7 +170,7 @@ class PoseExtractor:
         if self._task_detector is not None:
             self._task_detector.close()
 
-    def __enter__(self) -> "PoseExtractor":
+    def __enter__(self) -> PoseExtractor:
         return self
 
     def __exit__(self, *args: Any) -> None:

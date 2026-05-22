@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 from typing import Any
 
 import numpy as np
-
-from schemas import FrameData, ProComparison, SessionOutput, ShuttleFrame
+from schemas import SessionOutput
 from session_builder import SessionBuilder
 
 
@@ -89,9 +87,9 @@ def _run_real_pipeline(
         cv_results = []
 
     try:
-        from keypoints import KeypointExtractor
         from angles import JointAngleComputer
-        from normalizer import PoseNormalizer
+        from keypoints import KeypointExtractor
+        from normalize import PoseNormalizer
         from stroke_events import StrokeEventDetector
 
         angle_comp = JointAngleComputer()
@@ -118,12 +116,21 @@ def _run_real_pipeline(
         for ev in stroke_events[:10]:
             if ev.frame_peak < len(kps_seq) and kps_seq[ev.frame_peak] is not None:
                 angles = angle_comp.compute_all_angles(kps_seq[ev.frame_peak])
-                from integration import generate_mock_comparison
                 label = getattr(ev, "stroke_label", "smash")
-                comp = generate_mock_comparison(angles, stroke_type=label)
+                comp = engine.compare(angles, stroke_type=label)
                 comparisons.append(comp)
     except ImportError:
-        comparisons = []
+        try:
+            from integration import generate_mock_comparison
+            comparisons: list[Any] = []
+            for ev in stroke_events[:10]:
+                if ev.frame_peak < len(kps_seq) and kps_seq[ev.frame_peak] is not None:
+                    angles = angle_comp.compute_all_angles(kps_seq[ev.frame_peak])
+                    label = getattr(ev, "stroke_label", "smash")
+                    comp = generate_mock_comparison(angles, stroke_type=label)
+                    comparisons.append(comp)
+        except ImportError:
+            comparisons = []
 
     return cv_results, kps_seq, angles_seq, stroke_events, comparisons
 
@@ -146,7 +153,10 @@ def _generate_mock_data(
             base_x = 320 + np.sin(i * 0.05) * 200
             base_y = 180 + np.cos(i * 0.05) * 100 + i * 0.02
             self.raw_position = (base_x, base_y) if detected else None
-            self.tracked_position = (base_x + random.uniform(-5, 5), base_y + random.uniform(-5, 5)) if detected else None
+            self.tracked_position = (
+                (base_x + random.uniform(-5, 5), base_y + random.uniform(-5, 5))
+                if detected else None
+            )
             speed = np.abs(np.sin(i * 0.05)) * 250 + random.uniform(20, 60) if detected else None
             self.speed_kmh = round(speed, 1) if speed else None
             self.confidence = 0.75 + random.uniform(0, 0.2) if detected else 0.0
@@ -191,7 +201,10 @@ def _generate_mock_data(
 
     stroke_types = ["smash", "clear", "drop", "net", "serve", "defensive"]
     strokes = [
-        MockStrokeEvent(int(total_frames * 0.1 + i * total_frames * 0.08), random.choice(stroke_types))
+        MockStrokeEvent(
+            int(total_frames * 0.1 + i * total_frames * 0.08),
+            random.choice(stroke_types),
+        )
         for i in range(12)
     ]
 
@@ -212,7 +225,11 @@ def _generate_mock_data(
     return cv_results, kps_seq, angles_seq, strokes, comparisons
 
 
-def pipeline_to_json(video_path: str, output_path: str | None = None, use_real_inference: bool = False) -> str:
+def pipeline_to_json(
+    video_path: str,
+    output_path: str | None = None,
+    use_real_inference: bool = False,
+) -> str:
     session = run_full_pipeline(video_path, use_real_inference=use_real_inference)
     json_str = session.to_json()
 

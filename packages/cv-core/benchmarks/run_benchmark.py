@@ -5,9 +5,6 @@ import json
 import time
 from pathlib import Path
 
-import cv2
-import numpy as np
-
 
 def benchmark_detection_rate(
     pipeline,
@@ -59,7 +56,7 @@ def main() -> None:
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2)
 
-    print(f"\nBenchmark Results:")
+    print("\nBenchmark Results:")
     print(f"  Videos:         {results['total_videos']}")
     print(f"  Total frames:   {results['total_frames']}")
     print(f"  Detection rate: {results['detection_rate']:.2%}")

@@ -6,9 +6,7 @@ import time
 from pathlib import Path
 
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
-
 from tracknet_dataset import TrackNetDataset
 from tracknet_model import TrackNetV2
 

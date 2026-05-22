@@ -6,7 +6,6 @@ from typing import Any
 import cv2
 import numpy as np
 import torch
-
 from tracknet_model import TrackNetV2
 
 

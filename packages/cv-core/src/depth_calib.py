@@ -61,8 +61,8 @@ class DepthCalibrator:
         if len(horizontals) < 2 or len(verticals) < 2:
             return self._fallback_calibrate(frame)
 
-        h_lengths = [self._line_length(l) for l in horizontals]
-        v_lengths = [self._line_length(l) for l in verticals]
+        h_lengths = [self._line_length(ln) for ln in horizontals]
+        v_lengths = [self._line_length(ln) for ln in verticals]
 
         avg_h = sum(h_lengths) / len(h_lengths)
         avg_v = sum(v_lengths) / len(v_lengths)

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 import numpy as np
-
-from schemas import COMPARABLE_JOINTS, PoseFrame, ProComparison, ShuttleFrame, StrokeEvent
+from schemas import PoseFrame, ProComparison, ShuttleFrame, StrokeEvent
 
 
 def merge_pipeline_outputs(
@@ -15,13 +13,11 @@ def merge_pipeline_outputs(
     stroke_events: list[Any],
     comparisons: list[ProComparison],
     fps: float = 60.0,
-) -> tuple[list[tuple], list[tuple], list[Any], list[ProComparison]]:
+) -> tuple[list[tuple[ShuttleFrame, PoseFrame]], list[StrokeEvent], list[ProComparison]]:
     max_len = max(len(cv_results), len(keypoints_sequence), len(angle_sequence))
     frames: list[tuple[ShuttleFrame, PoseFrame]] = []
 
     for i in range(max_len):
-        timestamp = i / fps
-
         shuttle = ShuttleFrame(detected=False)
         if i < len(cv_results):
             r = cv_results[i]
@@ -89,7 +85,7 @@ def generate_mock_comparison(
     pro_name: str = "Viktor Axelsen",
     stroke_type: str = "smash",
 ) -> ProComparison:
-    PRO_ANGLES = {
+    _pro_angles = {
         "smash": {
             "left_elbow": 165.0, "right_elbow": 168.0,
             "left_shoulder": 145.0, "right_shoulder": 150.0,
@@ -104,7 +100,7 @@ def generate_mock_comparison(
         },
     }
 
-    pro = PRO_ANGLES.get(stroke_type, PRO_ANGLES["smash"])
+    pro = _pro_angles.get(stroke_type, _pro_angles["smash"])
     common = set(player_angles.keys()) & set(pro.keys())
     differences: dict[str, float] = {}
     total_diff = 0.0

@@ -10,7 +10,6 @@ import json
 import subprocess
 from pathlib import Path
 
-
 SEARCH_QUERIES = [
     "Viktor Axelsen smash slow motion",
     "BWF World Tour 2023 singles rally",
@@ -26,7 +25,10 @@ SEARCH_QUERIES = [
 def download_videos(
     output_dir: str | Path,
     max_per_query: int = 10,
-    format_code: str = "bestvideo[height<=1080][fps>=60]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]",
+    format_code: str = (
+        "bestvideo[height<=1080][fps>=60]+bestaudio/"
+        "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
+    ),
 ) -> list[dict]:
     """Download badminton videos using yt-dlp.
 

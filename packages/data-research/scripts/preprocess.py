@@ -11,11 +11,10 @@ import subprocess
 from pathlib import Path
 
 import cv2
-import numpy as np
 from tqdm import tqdm
 
 try:
-    from scenedetect import detect, ContentDetector
+    from scenedetect import ContentDetector, detect
 except ImportError:
     detect = None
     ContentDetector = None

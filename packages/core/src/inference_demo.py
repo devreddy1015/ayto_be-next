@@ -54,7 +54,9 @@ def run_real_yolo(frame: np.ndarray) -> InferenceResult:
                 "top_confidence": round(top["confidence"], 3) if top else 0,
                 "native_inference": True,
             },
-            accuracy_estimate="Base COCO model — fine-tuning on shuttle data needed for >85% detection"
+            accuracy_estimate=(
+                "Base COCO model — fine-tuning on shuttle data needed for >85% detection"
+            )
         )
     except ImportError as e:
         return InferenceResult(
@@ -69,9 +71,9 @@ def run_real_yolo(frame: np.ndarray) -> InferenceResult:
 def run_real_pose(frame: np.ndarray) -> InferenceResult:
     t0 = time.time()
     try:
+        from angles import JointAngleComputer
         from keypoints import PoseExtractor
         from normalize import PoseNormalizer
-        from angles import JointAngleComputer
 
         extractor = PoseExtractor(
             static_image_mode=True,
@@ -93,7 +95,7 @@ def run_real_pose(frame: np.ndarray) -> InferenceResult:
                 status="REAL",
                 latency_ms=elapsed,
                 output={
-                    "landmarks_detected": len([l for l in landmarks if l[3] > 0.5]),
+                    "landmarks_detected": len([lm for lm in landmarks if lm[3] > 0.5]),
                     "key_joints": {
                         "left_elbow": round(angles.get("left_elbow", 0), 1),
                         "right_elbow": round(angles.get("right_elbow", 0), 1),
@@ -137,7 +139,10 @@ def run_ml_classifier(keypoints_sequence: list[np.ndarray]) -> InferenceResult:
                 status="NOT_READY",
                 latency_ms=0,
                 output={"error": f"Need 30 frames, got {len(keypoints_sequence)}"},
-                accuracy_estimate="Untrained model — weights are random. Needs annotated dataset for training."
+                accuracy_estimate=(
+                    "Untrained model — weights are random. "
+                    "Needs annotated dataset for training."
+                )
             )
 
         model = StrokeClassifier(input_size=132, num_classes=6)
@@ -174,7 +179,10 @@ def run_ml_classifier(keypoints_sequence: list[np.ndarray]) -> InferenceResult:
                 "all_probs": {c: round(float(probs[0, i]), 3) for i, c in enumerate(classes)},
                 "warning": "MODEL IS UNTRAINED — predictions are random",
             },
-            accuracy_estimate="Random guessing (~17% accuracy). Target: >88% after training on 50K annotated strokes."
+            accuracy_estimate=(
+                "Random guessing (~17% accuracy). "
+                "Target: >88% after training on 50K annotated strokes."
+            )
         )
     except ImportError as e:
         return InferenceResult(
@@ -192,7 +200,9 @@ def generate_comparison_report(report: PipelineReport) -> str:
     lines.append("  SPORTIQ — INFERENCE PIPELINE AUDIT REPORT")
     lines.append("=" * 72)
     lines.append(f"  Video:       {report.video_info.get('file', 'N/A')}")
-    lines.append(f"  Resolution:  {report.video_info.get('width', '?')}x{report.video_info.get('height', '?')}")
+    res_text = f"{report.video_info.get('width', '?')}x"
+    res_text += f"{report.video_info.get('height', '?')}"
+    lines.append(f"  Resolution:  {res_text}")
     lines.append(f"  Frames:      {report.video_info.get('frames', '?')}")
     lines.append(f"  Total latency: {report.total_latency_ms:.1f}ms")
     lines.append(f"  Production ready: {'✅ YES' if report.ready_for_production else '❌ NO'}")
@@ -240,18 +250,55 @@ def generate_comparison_report(report: PipelineReport) -> str:
     lines.append("=" * 72)
 
     gaps = []
-    yolo_real = any(r.status in ("REAL", "REAL (untrained)") and "YOLO" in r.component for r in report.results)
-    pose_real = any(r.status in ("REAL", "REAL (untrained)") and "Pose" in r.component for r in report.results)
-    ml_real = any(r.status in ("REAL", "REAL (untrained)") and "Classifier" in r.component for r in report.results)
+    status_terms = ("REAL", "REAL (untrained)")
+    yolo_real = any(
+        r.status in status_terms and "YOLO" in r.component
+        for r in report.results
+    )
+    pose_real = any(
+        r.status in status_terms and "Pose" in r.component
+        for r in report.results
+    )
+    ml_real = any(
+        r.status in status_terms and "Classifier" in r.component
+        for r in report.results
+    )
 
-    gaps.append(f"  YOLO Shuttle Detection:     {'🟢 WORKING' if yolo_real else '🔴 MISSING'} — fine-tuning needed for >85% accuracy")
-    gaps.append(f"  MediaPipe Pose:             {'🟢 WORKING' if pose_real else '🔴 MISSING'} — already production-grade")
-    gaps.append(f"  BiLSTM Classifier:          {'🟡 UNTRAINED' if ml_real else '⚫ NO INFRA'} — needs annotated dataset")
-    gaps.append(f"  Court Calibration:          🔴 MOCK — auto-calibrate is a heuristic, needs court line detection")
-    gaps.append(f"  Speed Computation:          🟢 WORKING — physics correct, depends on calibration")
-    gaps.append(f"  Pro Comparison:             🟡 MOCK — hardcoded angles, needs real pro database")
-    gaps.append(f"  Drill Recommendations:      🟡 MOCK — rule-based, needs LLM integration")
-    gaps.append(f"  On-device TFLite:           🔴 MISSING — mobile app uses Math.sin()")
+    yolo_ico = "🟢 WORKING" if yolo_real else "🔴 MISSING"
+    pose_ico = "🟢 WORKING" if pose_real else "🔴 MISSING"
+    ml_ico = "🟡 UNTRAINED" if ml_real else "⚫ NO INFRA"
+    gaps.append(
+        f"  YOLO Shuttle Detection:     {yolo_ico}"
+        f" — fine-tuning needed for >85% accuracy"
+    )
+    gaps.append(
+        f"  MediaPipe Pose:             {pose_ico}"
+        f" — already production-grade"
+    )
+    gaps.append(
+        f"  BiLSTM Classifier:          {ml_ico}"
+        f" — needs annotated dataset"
+    )
+    gaps.append(
+        "  Court Calibration:          🔴 MOCK"
+        " — auto-calibrate is a heuristic, needs court line detection"
+    )
+    gaps.append(
+        "  Speed Computation:          🟢 WORKING"
+        " — physics correct, depends on calibration"
+    )
+    gaps.append(
+        "  Pro Comparison:             🟡 MOCK"
+        " — hardcoded angles, needs real pro database"
+    )
+    gaps.append(
+        "  Drill Recommendations:      🟡 MOCK"
+        " — rule-based, needs LLM integration"
+    )
+    gaps.append(
+        "  On-device TFLite:           🔴 MISSING"
+        " — mobile app uses Math.sin()"
+    )
 
     lines.extend(gaps)
     lines.append("=" * 72)
@@ -264,12 +311,17 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="SportIQ Inference Pipeline Audit")
     parser.add_argument("--video", help="Path to video file for inference test")
-    parser.add_argument("--output", default="output/inference_report.txt", help="Report output path")
+    parser.add_argument(
+        "--output", default="output/inference_report.txt", help="Report output path",
+    )
     parser.add_argument("--json", action="store_true", help="Also output as JSON")
     args = parser.parse_args()
 
     frame = np.zeros((720, 1280, 3), dtype=np.uint8)
-    video_info = {"file": args.video or "generated_test_frame", "width": 1280, "height": 720, "frames": 1}
+    video_info = {
+        "file": args.video or "generated_test_frame",
+        "width": 1280, "height": 720, "frames": 1,
+    }
 
     if args.video:
         cap = cv2.VideoCapture(args.video)
@@ -293,7 +345,10 @@ def main() -> None:
     pose_result = run_real_pose(frame)
     results.append(pose_result)
 
-    if pose_result.output.get("landmarks_detected", 0) > 0 and "keypoints" not in pose_result.output:
+    if (
+        pose_result.output.get("landmarks_detected", 0) > 0
+        and "keypoints" not in pose_result.output
+    ):
         dummy_kps = [np.random.randn(33, 4).astype(np.float32) for _ in range(30)]
     else:
         dummy_kps = [np.random.randn(33, 4).astype(np.float32) for _ in range(30)]
@@ -336,7 +391,11 @@ def main() -> None:
                 for r in results
             ],
         }
-        json_path = Path(args.output).with_suffix(".json") if args.output else Path("output/inference_report.json")
+        json_path = (
+            Path(args.output).with_suffix(".json")
+            if args.output
+            else Path("output/inference_report.json")
+        )
         json_path.parent.mkdir(parents=True, exist_ok=True)
         json_path.write_text(json.dumps(json_out, indent=2))
         print(f"JSON report saved to {json_path}")

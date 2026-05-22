@@ -3,9 +3,8 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from orchestrator import pipeline_to_json, run_full_pipeline
-from schemas import SessionOutput, SessionMetrics, FrameData, ShuttleFrame, StrokeEvent
+from schemas import SessionOutput, ShuttleFrame, StrokeEvent
 from session_builder import SessionBuilder
 
 
@@ -119,7 +118,6 @@ class TestSessionBuilder:
         json_str = output.to_json()
         data = json.loads(json_str)
 
-        from schemas import SessionOutput
         loaded = data
         assert loaded["session_id"] == output.session_id
         assert loaded["metrics"]["total_frames"] == 3
@@ -154,7 +152,7 @@ class TestOrchestrator:
             tmp = f.name
 
         try:
-            json_str = pipeline_to_json(
+            pipeline_to_json(
                 "/nonexistent/video.mp4",
                 output_path=tmp,
                 use_real_inference=False,

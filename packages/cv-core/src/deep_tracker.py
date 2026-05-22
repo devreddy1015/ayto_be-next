@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import math
 from typing import Any
 
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa: N812
 
 
 class CorrelationVolume(nn.Module):
@@ -19,7 +18,7 @@ class CorrelationVolume(nn.Module):
     def forward(
         self, fmap1: torch.Tensor, fmap2: torch.Tensor
     ) -> torch.Tensor:
-        B, C, H, W = fmap1.shape
+        B, C, H, W = fmap1.shape  # noqa: N806
         corr_pyramid: list[torch.Tensor] = []
 
         fmap2_padded = F.pad(fmap2, [self.radius] * 4)
@@ -52,7 +51,7 @@ class IterativeRefiner(nn.Module):
     def forward(
         self, corr_volume: torch.Tensor, coords: torch.Tensor, h: torch.Tensor | None = None
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        B, _, H, W = corr_volume.shape
+        B, _, H, W = corr_volume.shape  # noqa: N806
 
         cx = (coords[:, 0] * (W - 1)).long().clamp(0, W - 1)
         cy = (coords[:, 1] * (H - 1)).long().clamp(0, H - 1)
@@ -131,7 +130,7 @@ class DeepTracker(nn.Module):
         frames: torch.Tensor,
         init_position: torch.Tensor,
     ) -> torch.Tensor:
-        B, T, C, H, W = frames.shape
+        B, T, C, H, W = frames.shape  # noqa: N806
 
         coords = init_position.clone()  # (B, 2) in [0,1] normalized coords
         h_state: torch.Tensor | None = None
@@ -241,7 +240,7 @@ class LightweightDeepTracker:
     ) -> tuple[float, float] | None:
         if self._kalman is None:
             try:
-                from filterpy.kalman import KalmanFilter
+                from filterpy.kalman import KalmanFilter  # noqa: F401
                 self._kalman = _init_kf()
             except ImportError:
                 return detection

@@ -1,7 +1,6 @@
 """Unit tests for ml-models: BadmintonStrokeClassifier."""
 import pytest
 import torch
-
 from dataset import normalize_label
 from model import BadmintonStrokeClassifier, temporal_difference
 

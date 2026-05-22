@@ -151,11 +151,6 @@ class SessionBuilder:
             for pf in pose_frames
             if pf.left_elbow and 30 < pf.left_elbow < 180
         ]
-        knee_values = [
-            pf.left_knee
-            for pf in pose_frames
-            if pf.left_knee and 30 < pf.left_knee < 180
-        ]
 
         angle_stability = 1.0
         if len(elbow_values) > 5:
