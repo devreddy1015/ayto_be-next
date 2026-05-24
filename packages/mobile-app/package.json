@@ -1,28 +1,40 @@
 {
-  "name": "mobile-app",
+  "name": "sportiq",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
+    "@expo/vector-icons": "^14.0.2",
     "@react-navigation/native": "^7.2.4",
     "@react-navigation/native-stack": "^7.15.0",
     "@supabase/supabase-js": "^2.105.4",
+    "@tanstack/react-query": "^5.60.5",
     "expo": "~54.0.33",
     "expo-av": "^16.0.8",
     "expo-camera": "~17.0.10",
+    "expo-haptics": "~14.0.1",
+    "expo-linear-gradient": "~14.0.2",
+    "expo-linking": "~7.0.5",
+    "expo-router": "~4.0.19",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-mmkv": "^3.1.0",
+    "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
-    "react-native-web": "^0.21.2"
+    "react-native-web": "^0.21.2",
+    "zustand": "^5.0.1"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",

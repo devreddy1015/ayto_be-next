@@ -1,58 +1,82 @@
+import { TextStyle } from "react-native"
+
 export const Colors = {
-  bg: "#0A0A0F",
-  surface: "rgba(255,255,255,0.04)",
-  surfaceHover: "rgba(255,255,255,0.06)",
+  bg_primary: "#0A0A0F",
+  bg_surface: "#13131A",
+  bg_elevated: "#1C1C27",
+  accent_green: "#00FF87",
+  accent_amber: "#FFB300",
+  accent_blue: "#4A9EFF",
+  accent_coral: "#FF6B6B",
+  text_primary: "#FFFFFF",
+  text_secondary: "#8E8EA0",
   border: "rgba(255,255,255,0.08)",
-  borderActive: "rgba(0,245,160,0.25)",
-  primary: "#00F5A0",
-  primaryDim: "rgba(0,245,160,0.12)",
-  accent: "#FF3D5A",
-  accentDim: "rgba(255,61,90,0.15)",
-  text: "#FFFFFF",
-  textSecondary: "rgba(255,255,255,0.6)",
-  textTertiary: "rgba(255,255,255,0.35)",
-  cardBg: "rgba(255,255,255,0.04)",
-  cardBorder: "rgba(255,255,255,0.06)",
-  overlay: "rgba(0,0,0,0.6)",
-  navBg: "rgba(10,10,15,0.85)",
-  success: "#00F5A0",
-  warning: "#FFB800",
-  error: "#FF3D5A",
-  gradientStart: "#00F5A0",
-  gradientEnd: "#00C876",
+  gradient_hero_start: "#00FF87",
+  gradient_hero_end: "#4A9EFF",
+} as const
+
+export const StrokeColors: Record<string, string> = {
+  smash: Colors.accent_amber,
+  drop: Colors.accent_coral,
+  clear: Colors.accent_blue,
+  net: "#4A9EFF",
+  serve: Colors.accent_green,
+  defensive: "#8E8EA0",
 }
 
-export const Typography = {
-  hero: { fontSize: 64, fontWeight: "800" as const, color: Colors.primary },
-  h1: { fontSize: 32, fontWeight: "800" as const, color: Colors.text },
-  h2: { fontSize: 22, fontWeight: "700" as const, color: Colors.text },
-  h3: { fontSize: 16, fontWeight: "700" as const, color: Colors.text },
-  body: { fontSize: 14, fontWeight: "500" as const, color: Colors.textSecondary },
-  caption: { fontSize: 11, fontWeight: "600" as const, color: Colors.textTertiary },
-  label: { fontSize: 10, fontWeight: "700" as const, letterSpacing: 1.5, color: Colors.textTertiary, textTransform: "uppercase" as const },
-  stat: { fontSize: 28, fontWeight: "800" as const, color: Colors.text },
-  metric: { fontSize: 42, fontWeight: "800" as const, color: Colors.primary },
-}
-
-export const Glass = {
-  card: {
-    backgroundColor: Colors.cardBg,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    padding: 20,
+export const Typography: Record<string, TextStyle> = {
+  h1: {
+    fontFamily: "Inter-Bold",
+    fontSize: 32,
+    fontWeight: "700",
+    color: Colors.text_primary,
   },
-  cardElevated: {
-    backgroundColor: Colors.surfaceHover,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 24,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 8,
+  h2: {
+    fontFamily: "Inter-Bold",
+    fontSize: 22,
+    fontWeight: "700",
+    color: Colors.text_primary,
+  },
+  h3: {
+    fontFamily: "Inter-Bold",
+    fontSize: 16,
+    fontWeight: "700",
+    color: Colors.text_primary,
+  },
+  body: {
+    fontFamily: "Inter-Regular",
+    fontSize: 14,
+    fontWeight: "400",
+    color: Colors.text_secondary,
+  },
+  caption: {
+    fontFamily: "Inter-Regular",
+    fontSize: 11,
+    fontWeight: "600",
+    color: Colors.text_secondary,
+  },
+  label: {
+    fontFamily: "Inter-Bold",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    color: Colors.text_secondary,
+    textTransform: "uppercase",
+  },
+  stat: {
+    fontFamily: "JetBrainsMono-Regular",
+    fontSize: 28,
+    fontWeight: "800",
+    color: Colors.text_primary,
+  },
+  metric: {
+    fontFamily: "JetBrainsMono-Regular",
+    fontSize: 42,
+    fontWeight: "800",
+    color: Colors.accent_green,
+  },
+  numbered: {
+    fontFamily: "JetBrainsMono-Regular",
   },
 }
 
@@ -65,9 +89,46 @@ export const Spacing = {
   xxl: 48,
 }
 
-export const AnimatedNumber = {
-  height: 72,
-  fontSize: 64,
-  fontWeight: "800" as const,
-  color: Colors.primary,
+export const Radius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  full: 9999,
+}
+
+export const Glass = {
+  card: {
+    backgroundColor: Colors.bg_surface,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.lg,
+  },
+  elevated: {
+    backgroundColor: Colors.bg_elevated,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.lg,
+    shadowColor: Colors.accent_green,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+}
+
+export const Motion = {
+  enterDuration: 300,
+  staggerDelay: 60,
+  springConfig: {
+    damping: 15,
+    stiffness: 150,
+  },
+  sheetConfig: {
+    damping: 20,
+    stiffness: 200,
+  },
+  pressScale: 0.97,
 }
