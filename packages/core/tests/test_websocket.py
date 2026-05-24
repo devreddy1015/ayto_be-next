@@ -4,13 +4,13 @@ import struct
 
 import numpy as np
 import pytest
-from streaming_pipeline import (
+from src.streaming_pipeline import (
     EventType,
     MetricsSnapshot,
     StreamingEvent,
     StreamingPipeline,
 )
-from websocket_server import (
+from src.websocket_server import (
     BinaryFrameType,
     RealtimeServer,
     _complete_msg,

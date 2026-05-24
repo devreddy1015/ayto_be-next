@@ -3,9 +3,9 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from orchestrator import pipeline_to_json, run_full_pipeline
-from schemas import SessionOutput, ShuttleFrame, StrokeEvent
-from session_builder import SessionBuilder
+from src.orchestrator import pipeline_to_json, run_full_pipeline
+from src.schemas import SessionOutput, ShuttleFrame, StrokeEvent
+from src.session_builder import SessionBuilder
 
 
 class TestSessionBuilder:
@@ -19,7 +19,7 @@ class TestSessionBuilder:
 
     def test_add_frames_computes_metrics(self):
         builder = SessionBuilder(fps=60.0)
-        from schemas import PoseFrame
+        from src.schemas import PoseFrame
 
         for i in range(10):
             builder.add_frame(

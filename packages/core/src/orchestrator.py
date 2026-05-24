@@ -5,8 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from schemas import SessionOutput
-from session_builder import SessionBuilder
+
+from .schemas import SessionOutput
+from .session_builder import SessionBuilder
 
 
 def _ensure_paths() -> None:
@@ -51,7 +52,7 @@ def run_full_pipeline(
             total_frames, fps
         )
 
-    from integration import merge_pipeline_outputs
+    from .integration import merge_pipeline_outputs
     frames, strokes_mapped, comparisons_mapped = merge_pipeline_outputs(
         cv_results, kps_seq, angles_seq, strokes, comparisons, fps
     )
@@ -110,7 +111,7 @@ def _run_real_pipeline(
         stroke_events = []
 
     try:
-        from comparison import ProComparisonEngine
+        from .comparison import ProComparisonEngine
         engine = ProComparisonEngine()
         comparisons: list[Any] = []
         for ev in stroke_events[:10]:
@@ -121,7 +122,7 @@ def _run_real_pipeline(
                 comparisons.append(comp)
     except ImportError:
         try:
-            from integration import generate_mock_comparison
+            from .integration import generate_mock_comparison
             comparisons: list[Any] = []
             for ev in stroke_events[:10]:
                 if ev.frame_peak < len(kps_seq) and kps_seq[ev.frame_peak] is not None:
@@ -208,7 +209,7 @@ def _generate_mock_data(
         for i in range(12)
     ]
 
-    from integration import generate_mock_comparison
+    from .integration import generate_mock_comparison
     comparisons = [
         generate_mock_comparison(
             {"left_elbow": 152, "right_elbow": 155, "left_knee": 130, "right_knee": 135},

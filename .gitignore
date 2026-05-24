@@ -54,3 +54,5 @@ runs/
 
 .DS_Store
 Thumbs.db
+
+/generated/prisma

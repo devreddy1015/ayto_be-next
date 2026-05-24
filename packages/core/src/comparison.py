@@ -13,7 +13,7 @@ References:
 
 from __future__ import annotations
 
-from schemas import ProComparison
+from .schemas import ProComparison
 
 # ---------------------------------------------------------------------------
 # Pro athlete database — values from published kinematics literature

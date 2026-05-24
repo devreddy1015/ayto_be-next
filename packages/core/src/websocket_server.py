@@ -35,7 +35,8 @@ from enum import IntEnum
 from typing import Any
 
 import numpy as np
-from streaming_pipeline import (
+
+from .streaming_pipeline import (
     EventType,
     MetricsSnapshot,
     StreamingEvent,

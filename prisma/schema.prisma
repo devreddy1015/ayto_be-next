@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Profiles — linked to Supabase auth.users
+// RLS enabled in Supabase dashboard
+model Profile {
+  id             String    @id @db.Uuid
+  name           String    @default("")
+  avatarUrl      String?   @map("avatar_url") @db.Text
+  sports         String[]  @default(["badminton"])
+  unitPreference String    @default("kmh") @map("unit_preference") @db.Text
+  totalSessions  Int       @default(0) @map("total_sessions")
+  totalHours     Float     @default(0) @map("total_hours")
+  bestSpeedKmh   Float     @default(0) @map("best_speed_kmh")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  sessions       Session[]
+
+  @@map("profiles")
+}
+
+model Session {
+  id              String           @id @default(uuid()) @db.Uuid
+  userId          String           @map("user_id") @db.Uuid
+  sport           String           @default("badminton") @db.Text
+  durationSeconds Int              @map("duration_seconds")
+  totalFrames     Int?             @map("total_frames")
+  modelVersion    String?          @map("model_version") @db.Text
+  avgSpeedKmh     Float?           @map("avg_speed_kmh")
+  maxSpeedKmh     Float?           @map("max_speed_kmh")
+  strokesCount    Int              @default(0) @map("strokes_count")
+  dominantStroke  String?          @map("dominant_stroke") @db.Text
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  profile         Profile          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  metrics         SessionMetrics?
+  strokeEvents    StrokeEvent[]
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("sessions")
+}
+
+model SessionMetrics {
+  id                   String   @id @default(uuid()) @db.Uuid
+  sessionId            String   @unique @map("session_id") @db.Uuid
+  avgSpeedKmh          Float?   @map("avg_speed_kmh")
+  maxSpeedKmh          Float?   @map("max_speed_kmh")
+  shuttleDetectionRate Float?   @map("shuttle_detection_rate")
+  strokeDistribution   Json?    @map("stroke_distribution") @db.JsonB
+  dominantStroke       String?  @map("dominant_stroke") @db.Text
+  courtCoverageScore   Float?   @map("court_coverage_score")
+  consistencyScore     Float?   @map("consistency_score")
+  speedTimeline        Json?    @map("speed_timeline") @db.JsonB
+  session              Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("session_metrics")
+}
+
+model StrokeEvent {
+  id              String  @id @default(uuid()) @db.Uuid
+  sessionId       String  @map("session_id") @db.Uuid
+  frameStart      Int?    @map("frame_start")
+  framePeak       Int?    @map("frame_peak")
+  frameEnd        Int?    @map("frame_end")
+  strokeType      String  @map("stroke_type") @db.Text
+  confidence      Float?
+  speedKmh        Float?  @map("speed_kmh")
+  elbowAngle      Float?  @map("elbow_angle")
+  wristVelocity   Float?  @map("wrist_velocity")
+  courtX          Float?  @map("court_x")
+  courtY          Float?  @map("court_y")
+  angleAtContact  Float?  @map("angle_at_contact")
+  session         Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("stroke_events")
+}
+
+model ProBenchmark {
+  id              String  @id @default(uuid()) @db.Uuid
+  playerName      String  @map("player_name") @db.Text
+  sport           String  @default("badminton") @db.Text
+  smashSpeedKmh   Float?  @map("smash_speed_kmh")
+  avgElbowAngle   Float?  @map("avg_elbow_angle")
+  avgWristVelocity Float? @map("avg_wrist_velocity")
+  footworkScore   Float?  @map("footwork_score")
+  serveSpeedKmh   Float?  @map("serve_speed_kmh")
+  dropAccuracy    Float?  @map("drop_accuracy")
+  consistencyScore Float? @map("consistency_score")
+  country         String? @db.Text
+  dominantHand    String? @default("right") @map("dominant_hand") @db.Text
+
+  @@map("pro_benchmarks")
+}

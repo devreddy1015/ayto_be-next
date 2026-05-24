@@ -4,7 +4,7 @@ import time
 
 import numpy as np
 import pytest
-from streaming_pipeline import (
+from src.streaming_pipeline import (
     CVFrameOutput,
     DeviceCapability,
     EventType,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from schemas import (
+from .schemas import (
     STROKE_LABELS,
     FrameData,
     PoseFrame,

@@ -53,7 +53,7 @@ def main() -> None:
         output_dir.mkdir(exist_ok=True)
         output_path = str(output_dir / f"{video_path.stem}_session.json")
 
-    from orchestrator import pipeline_to_json
+    from .orchestrator import pipeline_to_json
 
     json_str = pipeline_to_json(
         str(video_path),
