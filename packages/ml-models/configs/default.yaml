@@ -2,27 +2,48 @@
 #  Ayto Stroke Classifier — Production Config
 #
 #  Every value is justified by published research or BWF tournament data.
-#  See implementation_plan.md for full citations per parameter.
+#  See ../RESEARCH_NOTES.md for the papers behind the architecture choices.
 # ============================================================================
 
 # === Data Paths ===
 data_dir: data/processed/strokes
 save_dir: models
 
-# === Architecture ===
-# Badminton stroke cycle (backswing → contact → follow-through) spans
-# 300–600 ms (Phomsoupha & Lam 2015). At 30 fps capture that is 9–18
-# frames for the stroke itself, plus ~15 pre-frames for preparation and
-# ~12 post-frames for follow-through.  45 frames @ 30 fps = 1.5 s and
-# comfortably covers the full biomechanical window.
+# === Sport ===
+# Selects the class taxonomy in src/stroke_taxonomy.py (badminton, tennis,
+# table_tennis, pickleball, squash).  num_classes is derived from it.
+sport: badminton
+
+# === Clip Window ===
+# Strokes are cut around hit frames (dataset.clip_around_hits): ±0.5 s
+# (round(fps/2) frames) each side, capped at the neighbouring hits, max
+# 1.5 s — the BST (arXiv 2502.21085) protocol.  45 frames @ 30 fps = 1.5 s,
+# so the ±15-frame window is edge-padded with the hit at index 22.
 seq_len: 45
 
-# 9 key joints × 3 coordinates (x, y, z).
-# Upgrade path: 27 pose + 6 velocity + 4 shuttle + 4 court = 41.
-input_size: 27
+# Frame rate clips are cut at.  Decimate 60 fps captures to 30 fps first so
+# per-frame velocities keep the scale the model was trained on.
+fps: 30
 
-# 168 = 8 heads × 21 dim/head.  Stays under 1.5 M params for mobile
-# TFLite while matching ViT-Tiny head dimensionality.
+# === Input Layout ===
+# One tensor per frame: [pose | shuttle | position]; input_size is derived
+# (27 + 5 + 4 = 36).  Keeping a single input keeps the TFLite graph simple.
+#
+# 9 key joints × 3 coordinates (x, y, z).
+pose_dim: 27
+
+# Shuttle [x, y, visibility, dx, dy] (dataset.shuttle_features).  BST's main
+# gain over pose-only models came from the shuttle trajectory.  0 = pose-only.
+shuttle_dim: 5
+shuttle_conf_index: 2   # visibility channel; frames with 0 use a learned "missing" token
+
+# Hitter + opponent court (x, y), normalised.  Fused with the shuttle stream,
+# not concatenated raw into pose — BST found raw concatenation hurt.
+position_dim: 4
+
+# === Architecture ===
+# 168 = 8 heads × 21 dim/head.  ≈1.67 M params with the trajectory stream
+# (≈1.79 M with ASF), inside the 2 M budget for Snapdragon 680 TFLite.
 model_dim: 168
 hidden_size: 168
 
@@ -30,14 +51,11 @@ hidden_size: 168
 # and reduce FLOPs by 25 % vs 4 layers.
 num_layers: 3
 
-num_classes: 6  # smash · drop · clear · net · serve · defensive
-
 # Increased from 0.25 → 0.30 for our small-data regime (<5 k clips).
 # Higher regularisation prevents overfitting (Srivastava et al. 2014).
 dropout: 0.30
 
-# 8 heads allow joint-group specialisation: 2 arm, 2 leg, 2 velocity,
-# 2 positional context.  168 / 8 = 21 dim/head.
+# 168 / 8 = 21 dim/head, shared by self-, cross- and pooling attention.
 num_heads: 8
 
 # Up to 5 s of video at 30 fps for rally-context analysis.
@@ -45,6 +63,15 @@ max_seq_len: 150
 
 # Kernel 9 captures full backswing (~300 ms @ 30 fps ≈ 9 frames).
 temporal_kernels: [3, 5, 9]
+
+# Adjacent-Stroke Fusion (TemPose-TF-ASF, arXiv 2605.02558): condition on the
+# neighbouring strokes' predicted classes via two-stage inference.  Improved
+# every model it was added to; needs rally archives (hit_frames + labels).
+# Off by default so the exported graph keeps a single input.
+asf: false
+# Share of training clips whose neighbour context is zeroed, so the model
+# also learns the stage-1 (no context) regime.
+asf_context_dropout: 0.5
 
 # === Training ===
 # Effective batch = 24 × 2 (grad_accum) = 48.  Smaller micro-batch
@@ -87,7 +114,8 @@ grad_accum_steps: 2
 augment: true
 
 # MediaPipe keypoint noise ≈ 0.5–1 % of frame dimensions.
-# 0.008 adds noise at sensor noise floor without corrupting topology.
+# 0.008 adds noise at sensor noise floor without corrupting topology
+# (applied to the pose block only).
 noise_std: 0.008
 
 # 15 % masking to simulate camera occlusion (player body blocking arm).
@@ -96,6 +124,11 @@ temporal_mask_prob: 0.15
 
 # Drop individual joint coordinates → forces body-topology inference.
 feature_dropout_prob: 0.03
+
+# Blank the shuttle over a random 30–100 % span on 30 % of clips: phone
+# shuttle tracks drop out under occlusion and motion blur, so the fusion
+# gate must learn to fall back on pose.
+shuttle_dropout_prob: 0.3
 
 # Stronger mixup for 6-class with imbalance (Zhang et al. 2018).
 mixup_alpha: 0.3
@@ -116,8 +149,32 @@ num_workers: 2     # Async data loading for GPU training.
 use_wandb: false
 wandb_project: ayto-stroke-classifier
 
-# === Real-Time Inference (new) ===
-inference_batch_size: 1       # Single-clip inference for real-time
-onnx_opset: 17                # Latest operator support
-quantize_to_int8: true         # INT8 for mobile deployment
-target_latency_ms: 12          # Budget on Snapdragon 680
+# === Export / Real-Time Inference ===
+onnx_opset: 18                # Native opset of the dynamo ONNX exporter
+target_latency_ms: 12          # Per-clip budget on Snapdragon 680 (not read by code)
+
+# === Hit Detection (python src/train.py --task hitnet) ===
+# MonoTrack-style HitNet (arXiv 2204.01899): ~16 K params + sequence
+# decoding reached hit F1 0.946 vs 0.699 for velocity-peak detection.
+hitnet:
+  data_dir: data/processed/rallies
+  save_dir: models
+  fps: 30
+  # Per-frame input: shuttle [x, y, visibility, dx, dy] + pose + position.
+  pose_dim: 4          # both wrists (x, y)
+  position_dim: 4      # hitter + opponent court (x, y)
+  conv_channels: 32
+  hidden_size: 32      # ≈17 K params with the inputs above
+  dropout: 0.1
+  window: 90           # 3 s training windows; evaluation runs on full rallies
+  label_radius: 1      # ±1-frame hit targets absorb annotation jitter
+  min_gap_s: 0.3       # decoder minimum hit spacing
+  tolerance_frames: 2  # hit-F1 matching tolerance
+  epochs: 60
+  batch_size: 32
+  lr: 0.001
+  weight_decay: 0.01
+  warmup_epochs: 3
+  min_lr_ratio: 0.05
+  grad_clip: 1.0
+  seed: 2024

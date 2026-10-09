@@ -23,6 +23,7 @@ def run_full_pipeline(
     model_path: str = "yolov8n.pt",
     sport: str = "badminton",
     use_real_inference: bool = False,
+    corners_px: list[tuple[float, float]] | None = None,
 ) -> SessionOutput:
     _ensure_paths()
 
@@ -45,7 +46,7 @@ def run_full_pipeline(
 
     if use_real_inference:
         cv_results, kps_seq, angles_seq, strokes, comparisons = _run_real_pipeline(
-            video_path, model_path, fps
+            video_path, model_path, fps, sport, corners_px
         )
     else:
         cv_results, kps_seq, angles_seq, strokes, comparisons = _generate_mock_data(
@@ -78,62 +79,114 @@ def _run_real_pipeline(
     video_path: Path,
     model_path: str,
     fps: float,
+    sport: str = "badminton",
+    corners_px: list[tuple[float, float]] | None = None,
 ) -> tuple:
-    try:
-        from pipeline import CVPipeline
-        cv_pipe = CVPipeline(model_path=model_path)
-        cv_results = cv_pipe.process_video(video_path)
-    except ImportError as e:
-        print(f"CV pipeline unavailable: {e}")
-        cv_results = []
+    """Pose -> fused hits -> CV flights -> technique, on a real video.
 
+    Order matters: pose gives swing peaks and the hitter's feet; the CV pass
+    gives shuttle turns; the fused hits then segment the shuttle track into
+    flights anchored at the hitter's ground position.
+    """
+    from types import SimpleNamespace
+
+    kps_seq: list[np.ndarray | None] = []
+    angles_seq: list[dict[str, float] | None] = []
+    pose_events: list[Any] = []
     try:
         from angles import JointAngleComputer
-        from keypoints import KeypointExtractor
-        from normalize import PoseNormalizer
-        from stroke_events import StrokeEventDetector
+        from keypoints import PoseExtractor
+        from normalize import normalize_and_smooth
+        from stroke_events import StrokeDetector
 
-        angle_comp = JointAngleComputer()
-        normalizer = PoseNormalizer()
-
-        with KeypointExtractor() as extractor:
-            kps_seq = extractor.extract_from_video(str(video_path))
-
-        kps_seq = normalizer.normalize_sequence(kps_seq)
-        angles_seq = angle_comp.compute_angle_sequence(kps_seq)
-
-        detector = StrokeEventDetector(fps=fps)
-        stroke_events = detector.detect(kps_seq)
-    except ImportError as e:
+        with PoseExtractor() as extractor:
+            raw_kps = extractor.extract_from_video(str(video_path))
+        kps_seq = normalize_and_smooth(raw_kps, fps=fps)
+        angles_seq = JointAngleComputer().compute_angle_sequence(kps_seq)
+        pose_events = StrokeDetector(fps=fps).detect(kps_seq)
+    except (ImportError, RuntimeError) as e:
         print(f"Pose pipeline unavailable: {e}")
-        kps_seq = []
-        angles_seq = []
-        stroke_events = []
+        raw_kps = []
 
+    cv_results: list[Any] = []
+    hits: list[Any] = []
     try:
-        from .comparison import ProComparisonEngine
-        engine = ProComparisonEngine()
-        comparisons: list[Any] = []
-        for ev in stroke_events[:10]:
-            if ev.frame_peak < len(kps_seq) and kps_seq[ev.frame_peak] is not None:
-                angles = angle_comp.compute_all_angles(kps_seq[ev.frame_peak])
-                label = getattr(ev, "stroke_label", "smash")
-                comp = engine.compare(angles, stroke_type=label)
-                comparisons.append(comp)
-    except ImportError:
-        try:
-            from .integration import generate_mock_comparison
-            comparisons: list[Any] = []
-            for ev in stroke_events[:10]:
-                if ev.frame_peak < len(kps_seq) and kps_seq[ev.frame_peak] is not None:
-                    angles = angle_comp.compute_all_angles(kps_seq[ev.frame_peak])
-                    label = getattr(ev, "stroke_label", "smash")
-                    comp = generate_mock_comparison(angles, stroke_type=label)
-                    comparisons.append(comp)
-        except ImportError:
-            comparisons = []
+        from pipeline import CVPipeline
+        from stroke_events import fuse_hits
+
+        cv_pipe = CVPipeline(model_path=model_path, sport=sport)
+        cv_pipe.process_video(video_path, corners_px=corners_px)
+        frames = cv_pipe.results
+        turns = [r.frame for r in frames if r.stroke_detected]
+        visible = np.array([r.confidence > 0 for r in frames])
+        hits = fuse_hits(pose_events, turns, fps, shuttle_visible=visible)
+
+        anchors: dict[int, tuple[float, float]] = {}
+        if cv_pipe.camera is not None and cv_pipe.frame_size is not None:
+            w, h = cv_pipe.frame_size
+            for hit in hits:
+                kp = raw_kps[hit.frame] if hit.frame < len(raw_kps) else None
+                if hit.hitter == "player" and kp is not None and kp[[27, 28], 3].min() > 0.3:
+                    feet = kp[[27, 28], :2].mean(axis=0) * (w, h)
+                    anchors[hit.frame] = tuple(cv_pipe.camera.image_to_ground(feet[None])[0])
+        cv_pipe.reanalyse(hit_frames=[hit.frame for hit in hits], anchors=anchors)
+        cv_results = [
+            SimpleNamespace(
+                shuttle_detected=bool(np.isfinite(r.shuttle_x)),
+                tracked_position=(r.shuttle_x, r.shuttle_y),
+                speed_kmh=None if not np.isfinite(r.speed_kmh) else round(r.speed_kmh, 1),
+                confidence=r.confidence,
+            )
+            for r in cv_pipe.results
+        ]
+        launch = {f.start_frame: f.launch_speed_kmh for f in cv_pipe.flights}
+    except ImportError as e:
+        print(f"CV pipeline unavailable: {e}")
+        launch = {}
+        if not hits:
+            hits = [SimpleNamespace(frame=ev.peak_frame, hitter="player", confidence=ev.confidence)
+                    for ev in pose_events]
+
+    window = round(0.25 * fps)
+    stroke_events = []
+    for hit in hits:
+        if hit.hitter != "player":
+            continue
+        angles = angles_seq[hit.frame] if hit.frame < len(angles_seq) else None
+        elbow = None
+        if angles:
+            elbow = angles.get("right_elbow") or angles.get("left_elbow")
+        stroke_events.append(SimpleNamespace(
+            frame_start=max(0, hit.frame - window),
+            frame_peak=hit.frame,
+            frame_end=hit.frame + window,
+            stroke_label="unknown",  # set by a trained classifier (ml-models)
+            confidence=hit.confidence,
+            peak_wrist_velocity=_wrist_speed(kps_seq, hit.frame, fps),
+            peak_elbow_angle=elbow,
+            side="right",
+            launch_speed_kmh=launch.get(hit.frame),
+        ))
+
+    comparisons: list[Any] = []
+    from .comparison import ProComparisonEngine
+
+    engine = ProComparisonEngine()
+    for ev in stroke_events[:10]:
+        angles = angles_seq[ev.frame_peak] if ev.frame_peak < len(angles_seq) else None
+        # Pro references are per stroke type: comparing an unclassified
+        # stroke against, say, a smash profile would be misleading.
+        if angles and ev.stroke_label != "unknown":
+            comparisons.append(engine.best_match(angles, stroke_type=ev.stroke_label))
 
     return cv_results, kps_seq, angles_seq, stroke_events, comparisons
+
+
+def _wrist_speed(kps_seq: list[np.ndarray | None], frame: int, fps: float) -> float:
+    if 0 < frame < len(kps_seq) and kps_seq[frame] is not None and kps_seq[frame - 1] is not None:
+        cur, prev = kps_seq[frame], kps_seq[frame - 1]
+        return float(max(np.linalg.norm(cur[i, :3] - prev[i, :3]) for i in (15, 16)) * fps)
+    return 0.0
 
 
 def _generate_mock_data(
@@ -230,8 +283,12 @@ def pipeline_to_json(
     video_path: str,
     output_path: str | None = None,
     use_real_inference: bool = False,
+    sport: str = "badminton",
+    corners_px: list[tuple[float, float]] | None = None,
 ) -> str:
-    session = run_full_pipeline(video_path, use_real_inference=use_real_inference)
+    session = run_full_pipeline(
+        video_path, sport=sport, use_real_inference=use_real_inference, corners_px=corners_px,
+    )
     json_str = session.to_json()
 
     if output_path:

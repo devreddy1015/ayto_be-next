@@ -1,12 +1,24 @@
-"""Computer vision pipeline for shuttlecock analysis.
+"""Shuttle/ball analysis pipeline: detect -> track -> rectify -> calibrate -> speed.
 
-Chains ShuttleDetector → ShuttleTracker → SpeedCalculator into a
-unified pipeline that can process videos or individual frames and
-return structured results as DataFrames.
+Live (``process_frame``): detector -> constant-acceleration Kalman tracker ->
+EMA speed preview, plus a 3-frame-delayed trajectory-turn hit cue.
+
+Offline (``process_video``):
+
+1. Detect in every frame. TrackNet is used when trained weights exist; YOLO
+   is only a fallback, since generic box detectors miss most shuttle frames.
+2. Find hits: frames passed in by the caller (fused with pose), else
+   trajectory turns.
+3. Rectify each flight: outlier rejection + gap inpainting.
+4. Calibrate: given court keypoints, else auto-detected court lines, else a
+   rough frame-size scale (flagged in the summary).
+5. With a calibrated camera, lift each flight onto its motion plane and fit
+   the launch speed with the quadratic-drag model; also report the
+   net-crossing speed.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -14,22 +26,45 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from .detector import ShuttleDetector
-from .speed import CourtCalibration, SpeedCalculator
-from .tracker import ShuttleTracker
+try:
+    from .court import CourtCamera, detect_court_corners, motion_plane
+    from .speed import (
+        KMH_PER_MS,
+        CourtCalibration,
+        SpeedCalculator,
+        fit_flight_physics,
+        fit_launch_speed,
+        speed_at_net,
+    )
+    from .sports import get_sport
+    from .tracker import ShuttleTracker
+    from .trajectory import OBSERVED, find_trajectory_turns, rectify_trajectory
+except ImportError:  # imported as a top-level module (src/ on sys.path)
+    from court import CourtCamera, detect_court_corners, motion_plane
+    from speed import (
+        KMH_PER_MS,
+        CourtCalibration,
+        SpeedCalculator,
+        fit_flight_physics,
+        fit_launch_speed,
+        speed_at_net,
+    )
+    from sports import get_sport
+    from tracker import ShuttleTracker
+    from trajectory import OBSERVED, find_trajectory_turns, rectify_trajectory
 
 
 @dataclass
 class FrameResult:
-    """Result of processing a single frame through the CV pipeline.
+    """Per-frame output.
 
     Attributes:
         frame: Frame index (0-based).
-        shuttle_x: Tracked x-coordinate of the shuttle (or NaN).
-        shuttle_y: Tracked y-coordinate of the shuttle (or NaN).
-        speed_kmh: Computed speed in km/h (or NaN).
-        stroke_detected: Whether a potential stroke was detected this frame.
-        confidence: Detection confidence score (0.0 if undetected).
+        shuttle_x: Object x in pixels (NaN if unknown).
+        shuttle_y: Object y in pixels (NaN if unknown).
+        speed_kmh: Speed in km/h (NaN if unknown).
+        stroke_detected: Whether a hit happened at this frame.
+        confidence: Detector confidence (0.0 when not detected).
     """
 
     frame: int
@@ -40,179 +75,433 @@ class FrameResult:
     confidence: float
 
 
-class CVPipeline:
-    """End-to-end computer vision pipeline for shuttle analysis.
+@dataclass
+class FlightResult:
+    """One flight between consecutive hits (offline, calibrated only).
 
-    Chains together detection, tracking, and speed estimation to
-    process video files or individual frames. Includes simple
-    stroke detection based on speed spikes.
+    ``method`` says how the 3D flight was obtained:
 
-    Usage:
-        pipeline = CVPipeline()
-        df = pipeline.process_video("match.mp4")
-        result = pipeline.process_frame(frame, fps=60.0)
+    * ``"physics"``: gravity + drag fit to the pixels (MonoTrack-style),
+      seeded from motion-plane lifts. Most accurate.
+    * ``"plane-anchored"``: FreeTrack motion plane from the hitter to the
+      next anchor, with the drag fit on the lifted points.
+    * ``"plane-estimated"``: as above, but with the plane azimuth searched
+      from the track. Least reliable; show its speeds as approximate.
     """
 
-    STROKE_SPEED_THRESHOLD = 150.0  # km/h — speed spike for stroke detection
-    STROKE_ACCEL_THRESHOLD = 50.0   # km/h per frame — acceleration threshold
+    start_frame: int
+    end_frame: int
+    launch_speed_kmh: float | None
+    net_speed_kmh: float | None
+    method: str
+    reprojection_rms_px: float | None = None
+
+
+class CVPipeline:
+    """End-to-end object analysis for one camera.
+
+    Usage::
+
+        pipe = CVPipeline(sport="badminton")
+        df = pipe.process_video("rally.mp4", corners_px=[...])  # 4 taps
+        pipe.get_summary()["max_launch_speed_kmh"]
+    """
+
+    TURN_ANGLE_DEG = 100.0
+    MIN_HIT_GAP_S = 0.4  # fastest rally tempo (~400 ms between strokes)
+    MAX_REPROJ_PX = 12.0  # physics fits worse than this fall back to plane lifting
 
     def __init__(
         self,
         model_path: str | Path = "yolov8n.pt",
         conf_threshold: float = 0.35,
+        tracknet_path: str | Path = "models/tracknet.pt",
+        sport: str = "badminton",
+        camera: CourtCamera | None = None,
+        device: str = "cpu",
     ) -> None:
-        """Initialize the CV pipeline.
-
-        Args:
-            model_path: Path to YOLOv8 model weights.
-            conf_threshold: Minimum detection confidence threshold.
-        """
-        self.detector = ShuttleDetector(model_path=model_path, conf_threshold=conf_threshold)
-        self.tracker = ShuttleTracker()
-        self.speed_calc = SpeedCalculator()
+        self.sport = get_sport(sport)
+        self.camera = camera
+        self.calibration_source = "keypoints" if camera else "none"
+        self.detector = self._load_detector(model_path, conf_threshold, tracknet_path, device)
+        self.fps = 60.0
         self.results: list[FrameResult] = []
-        self._prev_speed: float = 0.0
+        self.flights: list[FlightResult] = []
+        self.frame_size: tuple[int, int] | None = None
+        self._raw: np.ndarray | None = None
+        self._confs: list[float] = []
+        self._reset_live(self.fps)
 
-    def process_video(self, video_path: str | Path) -> pd.DataFrame:
-        """Process an entire video and return results as a DataFrame.
+    # ------------------------------------------------------------------
+    # Setup
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _load_detector(
+        model_path: str | Path, conf: float, tracknet_path: str | Path, device: str,
+    ) -> Any:
+        try:
+            try:
+                from .tracknet_detector import TrackNetDetector
+            except ImportError:
+                from tracknet_detector import TrackNetDetector
+            tracknet = TrackNetDetector(tracknet_path, device=device)
+            if tracknet.is_trained():
+                return tracknet
+        except ImportError:  # torch not installed
+            pass
+        try:
+            try:
+                from .detector import ShuttleDetector
+            except ImportError:
+                from detector import ShuttleDetector
+            return ShuttleDetector(model_path=model_path, conf_threshold=conf)
+        except ImportError:  # ultralytics not installed
+            return None
+
+    def _reset_live(self, fps: float) -> None:
+        self.fps = fps
+        self.tracker = ShuttleTracker(dt=1.0 / fps)
+        if self.camera is not None:
+            self.speed_calc = SpeedCalculator.metric(
+                fps=fps, max_speed_kmh=self.sport.max_speed_kmh,
+            )
+            # Live preview: a vertical plane through the net centre facing the
+            # camera. It never contains the camera (unlike a down-the-line
+            # plane for a centred camera), so it acts like a metric scale at
+            # net depth. Per-flight analysis replaces it with the physics fit.
+            net_centre = np.array([self.sport.court_width_m / 2, self.sport.net_y_m])
+            facing = net_centre - self.camera.camera_center[:2]
+            normal = np.array([*facing / np.linalg.norm(facing), 0.0])
+            self._live_plane = (normal, float(normal[:2] @ net_centre))
+        else:
+            self.speed_calc = SpeedCalculator(fps=fps, max_speed_kmh=self.sport.max_speed_kmh)
+        self._live_track: list[tuple[float, float]] = []
+        self._last_live_hit = -10**9
+
+    def calibrate(
+        self,
+        image_size: tuple[int, int],
+        corners_px: list[tuple[float, float]] | None = None,
+        keypoints_px: dict[str, tuple[float, float]] | None = None,
+        frame: np.ndarray | None = None,
+    ) -> str:
+        """Set up the camera model. Returns the calibration source used."""
+        if keypoints_px:
+            self.camera = CourtCamera.from_keypoints(keypoints_px, image_size, self.sport)
+            self.calibration_source = "keypoints"
+        elif corners_px:
+            self.camera = CourtCamera.from_corners(corners_px, image_size, self.sport)
+            self.calibration_source = "keypoints"
+        elif frame is not None and (auto := detect_court_corners(frame)) is not None:
+            self.camera = CourtCamera.from_corners(auto, image_size, self.sport)
+            self.calibration_source = "auto-lines"
+        elif self.camera is None:
+            self.calibration_source = "rough"
+        return self.calibration_source
+
+    def _detect(self, frame: np.ndarray) -> tuple[tuple[float, float] | None, float]:
+        if self.detector is None:
+            return None, 0.0
+        if hasattr(self.detector, "detect_shuttle"):
+            det = self.detector.detect_shuttle(frame)
+            return ((det["center_x"], det["center_y"]), det["confidence"]) if det else (None, 0.0)
+        det = self.detector.detect(frame)
+        return (det["center"], det["confidence"]) if det else (None, 0.0)
+
+    # ------------------------------------------------------------------
+    # Live
+    # ------------------------------------------------------------------
+    def process_frame(
+        self, frame: np.ndarray, fps: float = 60.0, frame_idx: int = 0,
+    ) -> FrameResult:
+        """Process one frame for real-time feedback."""
+        if fps != self.fps:
+            self._reset_live(fps)
+        if self.camera is None and self.speed_calc.calibration.pixels_per_meter <= 0:
+            h, w = frame.shape[:2]
+            self.speed_calc.calibration.calibrate_auto(w, h)
+
+        raw, conf = self._detect(frame)
+        tracked = self.tracker.update(raw)
+        speed = float("nan")
+        hit = False
+        if tracked is not None:
+            point: tuple[float, ...] = tracked
+            if self.camera is not None:
+                point = tuple(self.camera.lift_to_plane(np.array([tracked]), *self._live_plane)[0])
+            if np.all(np.isfinite(point)):  # a NaN would poison the EMA for good
+                computed = self.speed_calc.compute_speed(point)
+                if computed is not None:
+                    speed = computed
+            self._live_track.append(tracked)
+            del self._live_track[:-7]
+            hit = self._live_turn(frame_idx)
+        else:
+            self._live_track.clear()
+
+        return FrameResult(
+            frame=frame_idx,
+            shuttle_x=tracked[0] if tracked else float("nan"),
+            shuttle_y=tracked[1] if tracked else float("nan"),
+            speed_kmh=speed,
+            stroke_detected=hit,
+            confidence=conf,
+        )
+
+    def _live_turn(self, frame_idx: int) -> bool:
+        if len(self._live_track) < 7:
+            return False
+        turns = find_trajectory_turns(np.array(self._live_track), self.TURN_ANGLE_DEG)
+        if 3 in turns and frame_idx - self._last_live_hit >= self.MIN_HIT_GAP_S * self.fps:
+            self._last_live_hit = frame_idx
+            return True
+        return False
+
+    # ------------------------------------------------------------------
+    # Offline
+    # ------------------------------------------------------------------
+    def process_video(
+        self,
+        video_path: str | Path,
+        hit_frames: list[int] | None = None,
+        anchors: dict[int, tuple[float, float]] | None = None,
+        corners_px: list[tuple[float, float]] | None = None,
+        keypoints_px: dict[str, tuple[float, float]] | None = None,
+    ) -> pd.DataFrame:
+        """Analyse a whole video.
 
         Args:
-            video_path: Path to the video file to process.
+            video_path: Video file.
+            hit_frames: Hit frames from pose/shuttle fusion; if None,
+                trajectory turns are used.
+            anchors: Ground point (court metres) of whoever hits at each hit
+                frame, e.g. the ankle midpoint mapped through
+                ``camera.image_to_ground``. Key the landing point by the
+                flight's end frame for the rally's last shot. Each flight's
+                motion plane runs from its hitter to the next anchor. Without
+                anchors the azimuth is estimated, which is less reliable.
+            corners_px: The 4 court corners (near-left, near-right,
+                far-right, far-left), if the user tapped them.
+            keypoints_px: Named calibration keypoints (adds net-post tops).
 
         Returns:
-            DataFrame with columns: frame, shuttle_x, shuttle_y,
-            speed_kmh, stroke_detected.
-
-        Raises:
-            FileNotFoundError: If the video file cannot be opened.
+            DataFrame with columns frame, shuttle_x, shuttle_y, speed_kmh,
+            stroke_detected.
         """
         cap = cv2.VideoCapture(str(video_path))
         if not cap.isOpened():
             raise FileNotFoundError(f"Cannot open video: {video_path}")
-
         fps = cap.get(cv2.CAP_PROP_FPS) or 60.0
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        self._reset_live(fps)
+        if hasattr(self.detector, "reset"):
+            self.detector.reset()
 
-        self.tracker = ShuttleTracker(dt=1.0 / fps)
-        calibration = CourtCalibration()
-        calibration.calibrate_auto(width, height)
-        self.speed_calc = SpeedCalculator(fps=fps, calibration=calibration)
-        self.results.clear()
-        self._prev_speed = 0.0
-
-        frame_idx = 0
+        raw: list[tuple[float, float]] = []
+        confs: list[float] = []
+        first_frame = None
         while True:
-            ret, frame = cap.read()
-            if not ret:
+            ok, frame = cap.read()
+            if not ok:
                 break
-
-            result = self.process_frame(frame, fps, frame_idx)
-            self.results.append(result)
-            frame_idx += 1
-
+            if first_frame is None:
+                first_frame = frame
+            pos, conf = self._detect(frame)
+            raw.append(pos if pos is not None else (np.nan, np.nan))
+            confs.append(conf)
         cap.release()
 
+        self.calibrate(size, corners_px, keypoints_px, first_frame)
+        self.frame_size = size
+        self._raw, self._confs = np.array(raw, dtype=float).reshape(-1, 2), confs
+        return self.analyse_track(self._raw, confs, fps, size, hit_frames, anchors)
+
+    def reanalyse(
+        self,
+        hit_frames: list[int] | None = None,
+        anchors: dict[int, tuple[float, float]] | None = None,
+    ) -> pd.DataFrame:
+        """Re-run the offline analysis of the last video with better hits/anchors.
+
+        Detection is the expensive part and isn't repeated. Typical use: run
+        ``process_video``, fuse its trajectory turns with pose swing peaks,
+        then call this with the fused hits and the hitters' feet.
+        """
+        if self._raw is None or self.frame_size is None:
+            raise RuntimeError("process_video() must run first")
+        return self.analyse_track(self._raw, self._confs, self.fps, self.frame_size,
+                                  hit_frames, anchors)
+
+    def analyse_track(
+        self,
+        raw: np.ndarray,
+        confidences: list[float],
+        fps: float,
+        image_size: tuple[int, int],
+        hit_frames: list[int] | None = None,
+        anchors: dict[int, tuple[float, float]] | None = None,
+    ) -> pd.DataFrame:
+        """Offline analysis of an already-detected (N, 2) track (NaN = missing)."""
+        self.fps = fps
+        min_gap = max(1, int(self.MIN_HIT_GAP_S * fps))
+        if hit_frames is None:
+            coarse = rectify_trajectory(raw, max_gap=4)
+            hit_frames = find_trajectory_turns(
+                coarse.positions, self.TURN_ANGLE_DEG, min_gap=min_gap,
+            )
+        hits = sorted(h for h in hit_frames if 0 <= h < len(raw))
+        track = rectify_trajectory(raw, hit_frames=hits)
+        pos = track.positions
+        times = np.arange(len(pos)) / fps
+
+        self.flights = []
+        if self.camera is not None:
+            bounds = [0, *hits, len(pos)]
+            metric = np.full((len(pos), 3), np.nan)
+            for i, (a, b) in enumerate(zip(bounds[:-1], bounds[1:])):
+                seg, seg_t = pos[a:b], times[a:b]
+                ok = np.isfinite(seg).all(axis=1)
+                if ok.sum() < 3:
+                    continue
+                anchor = (anchors or {}).get(a, (self.sport.court_width_m / 2, 0.0))
+                toward = (anchors or {}).get(b)
+                if toward is not None:
+                    planes, source = [motion_plane(anchor, toward)], "anchored"
+                else:
+                    planes = [self._estimate_plane(seg[ok], seg_t[ok], anchor)] + [
+                        motion_plane(anchor, np.asarray(anchor) + [np.sin(az), np.cos(az)])
+                        for az in (-0.35, 0.35)
+                    ]
+                    source = "estimated"
+                lifted = [self.camera.lift_to_plane(seg[ok], *plane) for plane in planes]
+                metric[a:b][ok] = lifted[0]
+                if i == 0 and a not in hits:
+                    continue  # partial flight before the first hit: no launch
+
+                seeds = [self._seed(seg_t[ok], pts, times[a]) for pts in lifted]
+                physics = fit_flight_physics(
+                    self.camera.projection, seg_t, seg, [sd for sd in seeds if sd],
+                    self.sport.drag_k, hit_time_s=times[a],
+                )
+                if physics is not None and physics.reprojection_rms_px < self.MAX_REPROJ_PX:
+                    metric[a:b] = physics.positions_m
+                    launch, method = physics.speed_kmh, "physics"
+                    rms = physics.reprojection_rms_px
+                else:
+                    fit = fit_launch_speed(seg_t, metric[a:b], self.sport.drag_k,
+                                           self.sport.max_speed_kmh, hit_time_s=times[a])
+                    launch = fit.speed_kmh if fit else None
+                    method, rms = f"plane-{source}", None
+                net = (speed_at_net(seg_t, metric[a:b], self.sport.net_y_m)
+                       if self.sport.has_net else None)
+                self.flights.append(FlightResult(
+                    start_frame=a, end_frame=b - 1,
+                    launch_speed_kmh=min(launch, self.sport.max_speed_kmh) if launch else None,
+                    net_speed_kmh=net * KMH_PER_MS if net is not None else None,
+                    method=method, reprojection_rms_px=rms,
+                ))
+            scale = 1.0
+            series = metric
+        else:
+            calib = CourtCalibration(court_length_m=self.sport.court_length_m)
+            calib.calibrate_auto(*image_size)
+            scale = calib.pixels_per_meter
+            series = pos
+        # Central differences on the rectified track, never across a hit.
+        diff = np.full(len(pos), np.nan)
+        diff[1:-1] = np.linalg.norm(series[2:] - series[:-2], axis=1) / (2 / fps) / scale
+        for h in hits:
+            diff[max(h - 1, 0):h + 2] = np.nan
+        speeds = np.minimum(diff * KMH_PER_MS, self.sport.max_speed_kmh)
+
+        hit_set = set(hits)
+        self.results = [
+            FrameResult(
+                frame=i,
+                shuttle_x=float(pos[i, 0]),
+                shuttle_y=float(pos[i, 1]),
+                speed_kmh=float(speeds[i]),
+                stroke_detected=i in hit_set,
+                confidence=float(confidences[i]) if track.status[i] == OBSERVED else 0.0,
+            )
+            for i in range(len(pos))
+        ]
         return self._results_to_dataframe()
 
-    def process_frame(
-        self,
-        frame: np.ndarray,
-        fps: float = 60.0,
-        frame_idx: int = 0,
-    ) -> FrameResult:
-        """Process a single frame for real-time use.
+    def _seed(
+        self, times: np.ndarray, lifted: np.ndarray, hit_time: float,
+    ) -> tuple[np.ndarray, np.ndarray] | None:
+        """Initial (position, velocity) at the hit from a plane-lifted track."""
+        ok = np.isfinite(lifted).all(axis=1)
+        if ok.sum() < 3:
+            return None
+        pts, ts = lifted[ok], times[ok]
+        fit = fit_launch_speed(ts, pts, self.sport.drag_k, self.sport.max_speed_kmh,
+                               hit_time_s=hit_time)
+        j = min(3, len(pts) - 1)
+        direction = pts[j] - pts[0]
+        norm = float(np.linalg.norm(direction))
+        if fit is None or norm < 1e-6:
+            return None
+        return pts[0], direction / norm * fit.speed_ms
 
-        Args:
-            frame: BGR image as numpy array.
-            fps: Current video frame rate.
-            frame_idx: Current frame index.
+    def _estimate_plane(
+        self, pixels: np.ndarray, times: np.ndarray, anchor: tuple[float, float],
+    ) -> tuple[np.ndarray, float]:
+        """Choose the plane azimuth whose lifted track best fits the drag model.
 
-        Returns:
-            FrameResult dict with shuttle position, speed, and stroke detection.
+        A wrong azimuth warps the lifted flight (depth gets compressed or
+        stretched non-linearly), which raises the drag-fit residual. On
+        simulated flights the median azimuth error is ~1°, but the tail is
+        heavy, so anchored planes are always preferred.
         """
-        detection = self.detector.detect_shuttle(frame)
-        raw_pos = (detection["center_x"], detection["center_y"]) if detection else None
-        conf = detection["confidence"] if detection else 0.0
-        tracked_pos = self.tracker.update(raw_pos)
+        best, best_rms = 0.0, np.inf
+        for theta in np.radians(np.arange(-70.0, 70.1, 2.0)):
+            direction = np.array([np.sin(theta), np.cos(theta)])
+            normal, offset = motion_plane(anchor, np.asarray(anchor) + direction)
+            lifted = self.camera.lift_to_plane(pixels, normal, offset)
+            ok = np.isfinite(lifted).all(axis=1)
+            if ok.sum() < 5:
+                continue
+            fit = fit_launch_speed(times[ok], lifted[ok], self.sport.drag_k,
+                                   self.sport.max_speed_kmh, window_s=0.3)
+            span = float(np.linalg.norm(lifted[ok][-1] - lifted[ok][0]))
+            # Relative residual: a plane that squashes the flight would
+            # otherwise win just by shrinking every distance.
+            if fit is not None and span > 0.1 and fit.rms_m / span < best_rms:
+                best, best_rms = theta, fit.rms_m / span
+        return motion_plane(anchor, np.asarray(anchor) + [np.sin(best), np.cos(best)])
 
-        speed = float("nan")
-        stroke_detected = False
-
-        if tracked_pos is not None:
-            computed_speed = self.speed_calc.compute_speed(tracked_pos)
-            if computed_speed is not None:
-                speed = computed_speed
-                accel = abs(speed - self._prev_speed)
-                if speed > self.STROKE_SPEED_THRESHOLD and accel > self.STROKE_ACCEL_THRESHOLD:
-                    stroke_detected = True
-                self._prev_speed = speed
-
-        result = FrameResult(
-            frame=frame_idx,
-            shuttle_x=tracked_pos[0] if tracked_pos else float("nan"),
-            shuttle_y=tracked_pos[1] if tracked_pos else float("nan"),
-            speed_kmh=speed,
-            stroke_detected=stroke_detected,
-            confidence=conf,
-        )
-        return result
-
+    # ------------------------------------------------------------------
+    # Output
+    # ------------------------------------------------------------------
     def _results_to_dataframe(self) -> pd.DataFrame:
-        """Convert internal results list to a pandas DataFrame.
-
-        Returns:
-            DataFrame with columns: frame, shuttle_x, shuttle_y,
-            speed_kmh, stroke_detected.
-        """
-        records = [
-            {
-                "frame": r.frame,
-                "shuttle_x": r.shuttle_x,
-                "shuttle_y": r.shuttle_y,
-                "speed_kmh": r.speed_kmh,
-                "stroke_detected": r.stroke_detected,
-            }
-            for r in self.results
-        ]
-        return pd.DataFrame(records)
+        cols = ["frame", "shuttle_x", "shuttle_y", "speed_kmh", "stroke_detected"]
+        return pd.DataFrame([{c: getattr(r, c) for c in cols} for r in self.results], columns=cols)
 
     def export_csv(self, output_path: str | Path) -> Path:
-        """Export results to a CSV file.
-
-        Args:
-            output_path: Destination path for the CSV file.
-
-        Returns:
-            Path to the written CSV file.
-        """
+        """Write the per-frame results to CSV and return the path."""
         output = Path(output_path)
         output.parent.mkdir(parents=True, exist_ok=True)
-        df = self._results_to_dataframe()
-        df.to_csv(output, index=False)
+        self._results_to_dataframe().to_csv(output, index=False)
         return output
 
     def get_summary(self) -> dict[str, Any]:
-        """Generate a summary of the pipeline results.
-
-        Returns:
-            Dict with total_frames, detected_frames, detection_rate,
-            avg_speed_kmh, max_speed_kmh, min_speed_kmh, strokes_detected.
-        """
-        total_frames = len(self.results)
-        detected_frames = sum(1 for r in self.results if r.confidence > 0)
-        speeds = [
-            r.speed_kmh
-            for r in self.results
-            if not np.isnan(r.speed_kmh) and r.speed_kmh > 0
-        ]
-        strokes = sum(1 for r in self.results if r.stroke_detected)
+        """Detection rate, speed statistics, hits and per-flight speeds."""
+        total = len(self.results)
+        detected = sum(1 for r in self.results if r.confidence > 0)
+        speeds = [r.speed_kmh for r in self.results if np.isfinite(r.speed_kmh) and r.speed_kmh > 0]
+        launches = [f.launch_speed_kmh for f in self.flights if f.launch_speed_kmh is not None]
         return {
-            "total_frames": total_frames,
-            "detected_frames": detected_frames,
-            "detection_rate": detected_frames / total_frames if total_frames > 0 else 0.0,
-            "avg_speed_kmh": sum(speeds) / len(speeds) if speeds else 0.0,
+            "sport": self.sport.name,
+            "calibration": self.calibration_source,
+            "total_frames": total,
+            "detected_frames": detected,
+            "detection_rate": detected / total if total else 0.0,
+            "avg_speed_kmh": float(np.mean(speeds)) if speeds else 0.0,
             "max_speed_kmh": max(speeds) if speeds else 0.0,
             "min_speed_kmh": min(speeds) if speeds else 0.0,
-            "strokes_detected": strokes,
+            "strokes_detected": sum(1 for r in self.results if r.stroke_detected),
+            "max_launch_speed_kmh": max(launches) if launches else None,
+            "flights": [asdict(f) for f in self.flights],
         }

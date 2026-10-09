@@ -1,218 +1,139 @@
-import React, { useState, useMemo } from "react"
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native"
+import { useCallback, useMemo, useState } from "react"
+import { FlatList, ScrollView, StyleSheet, Text, View } from "react-native"
 import { router } from "expo-router"
-import { Colors, Spacing, Radius } from "../../src/theme"
-import SessionCard from "../../src/components/session/SessionCard"
-import Skeleton from "../../src/components/ui/Skeleton"
-import type { StrokeType, SessionSummary } from "../../src/types"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { Screen } from "../../src/components/riso/RisoSurface"
+import { SweepHeading } from "../../src/components/riso/SweepHeading"
+import { SessionCard } from "../../src/components/session/SessionCard"
+import { Chip } from "../../src/components/ui/Chip"
+import { Stat } from "../../src/components/ui/Stat"
+import { ALL_SESSIONS } from "../../src/data/demo"
+import { useSpeed, useSport } from "../../src/hooks/useSport"
+import { getSport, SPORTS, STATUS_LABEL, type SportId } from "../../src/sports"
+import type { SessionSummary } from "../../src/types"
+import { Paper, Space, Type } from "../../src/theme"
 
-const MOCK_SESSIONS: SessionSummary[] = [
-  { id: "1", user_id: "", sport: "badminton", duration_seconds: 1680, total_frames: 42000, model_version: "v1", created_at: "2025-05-25", max_speed_kmh: 287, avg_speed_kmh: 198, strokes_count: 47, dominant_stroke: "smash", metrics: null },
-  { id: "2", user_id: "", sport: "badminton", duration_seconds: 2100, total_frames: 52500, model_version: "v1", created_at: "2025-05-24", max_speed_kmh: 264, avg_speed_kmh: 185, strokes_count: 36, dominant_stroke: "clear", metrics: null },
-  { id: "3", user_id: "", sport: "badminton", duration_seconds: 1080, total_frames: 27000, model_version: "v1", created_at: "2025-05-23", max_speed_kmh: 251, avg_speed_kmh: 172, strokes_count: 28, dominant_stroke: "drop", metrics: null },
-  { id: "4", user_id: "", sport: "badminton", duration_seconds: 2400, total_frames: 60000, model_version: "v1", created_at: "2025-05-20", max_speed_kmh: 238, avg_speed_kmh: 165, strokes_count: 52, dominant_stroke: "smash", metrics: null },
-  { id: "5", user_id: "", sport: "badminton", duration_seconds: 900, total_frames: 22500, model_version: "v1", created_at: "2025-05-18", max_speed_kmh: 221, avg_speed_kmh: 155, strokes_count: 22, dominant_stroke: "defensive", metrics: null },
+type SportFilter = "all" | SportId
+type Sort = "recent" | "fastest" | "longest"
+
+const SORTS: readonly { id: Sort; label: string }[] = [
+  { id: "recent", label: "Recent" },
+  { id: "fastest", label: "Fastest" },
+  { id: "longest", label: "Longest" },
 ]
 
-const SPORTS = ["All", "Badminton", "Tennis", "Table Tennis"]
-const SORT_OPTIONS = ["Recent", "Highest Speed", "Longest"]
+const SORTERS: Record<Sort, (a: SessionSummary, b: SessionSummary) => number> = {
+  recent: (a, b) => b.created_at.localeCompare(a.created_at),
+  fastest: (a, b) => b.max_speed_kmh - a.max_speed_kmh,
+  longest: (a, b) => b.duration_seconds - a.duration_seconds,
+}
+
+const openSession = (id: string) => router.push({ pathname: "/session/[id]", params: { id } })
+const keyExtractor = (item: SessionSummary) => item.id
 
 export default function HistoryScreen() {
-  const [selectedSport, setSelectedSport] = useState("All")
-  const [selectedSort, setSelectedSort] = useState("Recent")
-  const [loading, setLoading] = useState(true)
+  const insets = useSafeAreaInsets()
+  const sport = useSport()
+  const { format, unit } = useSpeed()
+  const [filter, setFilter] = useState<SportFilter>("all")
+  const [sort, setSort] = useState<Sort>("recent")
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000)
-    return () => clearTimeout(timer)
-  }, [])
+  const sessions = useMemo(
+    () => ALL_SESSIONS.filter((s) => filter === "all" || s.sport === filter).sort(SORTERS[sort]),
+    [filter, sort],
+  )
 
-  const totalSessions = MOCK_SESSIONS.length
-  const avgSpeed = Math.round(MOCK_SESSIONS.reduce((s, ss) => s + ss.avg_speed_kmh, 0) / totalSessions)
-  const bestSpeed = Math.max(...MOCK_SESSIONS.map((s) => s.max_speed_kmh))
-  const totalStrokes = MOCK_SESSIONS.reduce((s, ss) => s + ss.strokes_count, 0)
+  const totals = useMemo(() => {
+    if (sessions.length === 0) return null
+    return {
+      count: sessions.length,
+      avg: Math.round(sessions.reduce((sum, s) => sum + s.avg_speed_kmh, 0) / sessions.length),
+      best: Math.max(...sessions.map((s) => s.max_speed_kmh)),
+      strokes: sessions.reduce((sum, s) => sum + s.strokes_count, 0),
+    }
+  }, [sessions])
 
-  const formatDuration = (s: number) => {
-    const m = Math.floor(s / 60)
-    const sec = s % 60
-    return `${m}:${sec.toString().padStart(2, "0")}`
-  }
+  const renderItem = useCallback(
+    ({ item }: { item: SessionSummary }) => <SessionCard session={item} onPress={openSession} showSport={filter === "all"} />,
+    [filter],
+  )
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>History</Text>
-        <Text style={styles.subtitle}>Your training archive</Text>
-      </View>
+  const filtered = filter === "all" ? null : getSport(filter)
+  const palette = (filtered ?? sport).palette
 
-      {/* Aggregate Stats */}
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{totalSessions}</Text>
-          <Text style={styles.statLabel}>Sessions</Text>
+  const header = (
+    <View>
+      <Text style={Type.kicker}>Archive · {ALL_SESSIONS.length} sessions on file</Text>
+      <SweepHeading lines={["The", "archive."]} palette={palette} size="hero" style={styles.hero} />
+
+      {totals ? (
+        <View style={styles.stats}>
+          <Stat label="Sessions" value={totals.count} size="sm" style={styles.stat} />
+          <Stat label={`Avg ${unit}`} value={format(totals.avg)} size="sm" style={styles.stat} />
+          <Stat label="Best" value={format(totals.best)} size="sm" color={palette.ink} style={styles.stat} />
+          <Stat label="Strokes" value={totals.strokes} size="sm" style={styles.stat} />
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{avgSpeed}</Text>
-          <Text style={styles.statLabel}>Avg km/h</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statValue, { color: Colors.accent_amber }]}>{bestSpeed}</Text>
-          <Text style={styles.statLabel}>Best</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{totalStrokes}</Text>
-          <Text style={styles.statLabel}>Strokes</Text>
-        </View>
-      </View>
+      ) : null}
 
-      {/* Filters */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={{ gap: 8 }}>
-        {SPORTS.map((sport) => (
-          <TouchableOpacity
-            key={sport}
-            style={[styles.filterPill, selectedSport === sport && styles.filterPillActive]}
-            onPress={() => setSelectedSport(sport)}
-          >
-            <Text style={[styles.filterText, selectedSport === sport && styles.filterTextActive]}>
-              {sport}
-            </Text>
-          </TouchableOpacity>
-        ))}
-        <View style={styles.filterDivider} />
-        {SORT_OPTIONS.map((sort) => (
-          <TouchableOpacity
-            key={sort}
-            style={[styles.filterPill, selectedSort === sort && styles.filterPillActive]}
-            onPress={() => setSelectedSort(sort)}
-          >
-            <Text style={[styles.filterText, selectedSort === sort && styles.filterTextActive]}>
-              {sort}
-            </Text>
-          </TouchableOpacity>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroller} contentContainerStyle={styles.chips}>
+        <Chip value="all" label="All" active={filter === "all"} palette={palette} onSelect={setFilter} />
+        {SPORTS.map((s) => (
+          <Chip key={s.id} value={s.id} label={s.name} active={filter === s.id} palette={palette} onSelect={setFilter} />
         ))}
       </ScrollView>
-
-      {/* Session List */}
-      {loading ? (
-        <View style={{ paddingHorizontal: Spacing.lg }}>
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} height={90} borderRadius={16} style={{ marginBottom: 10 }} />
-          ))}
-        </View>
-      ) : (
-        <FlatList
-          data={MOCK_SESSIONS}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <SessionCard
-              id={item.id}
-              date={new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-              duration={formatDuration(item.duration_seconds)}
-              strokes={item.strokes_count}
-              maxSpeed={item.max_speed_kmh}
-              sport={item.sport}
-              dominantStroke={item.dominant_stroke}
-              onPress={() => router.push(`/session/${item.id}`)}
-            />
-          )}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <View style={styles.sorts}>
+        <Text style={[Type.kicker, styles.sortLabel]}>Sort</Text>
+        {SORTS.map((s) => (
+          <Chip key={s.id} value={s.id} label={s.label} active={sort === s.id} palette={palette} onSelect={setSort} />
+        ))}
+      </View>
     </View>
+  )
+
+  return (
+    <Screen palette={palette}>
+      <FlatList
+        data={sessions}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ListHeaderComponent={header}
+        ListEmptyComponent={
+          filtered ? (
+            <View style={styles.empty}>
+              <Text style={Type.heading}>No {filtered.name.toLowerCase()} sessions yet.</Text>
+              <Text style={[Type.small, styles.emptyNote]}>
+                {filtered.status === "live"
+                  ? "Record one from Home and it will be filed here."
+                  : `${filtered.name} analysis: ${STATUS_LABEL[filtered.status].toLowerCase()}. ${filtered.statusNote}`}
+              </Text>
+            </View>
+          ) : null
+        }
+        initialNumToRender={8}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + Space.lg }]}
+      />
+    </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg_primary,
-  },
-  header: {
-    paddingTop: 60,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: Colors.text_primary,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: Colors.text_secondary,
-    marginTop: 2,
-    fontWeight: "500",
-  },
-  statsRow: {
+  content: { paddingHorizontal: Space.gutter, paddingBottom: Space.xxxl, maxWidth: 720, width: "100%", alignSelf: "center" },
+  hero: { marginTop: Space.lg, marginBottom: Space.xl },
+  stats: {
     flexDirection: "row",
-    paddingHorizontal: Spacing.lg,
-    gap: 8,
-    marginBottom: Spacing.lg,
+    gap: Space.sm,
+    paddingVertical: Space.md,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: Paper.rule,
+    marginBottom: Space.lg,
   },
-  statCard: {
-    flex: 1,
-    backgroundColor: Colors.bg_surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 12,
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: Colors.text_primary,
-    fontVariant: ["tabular-nums"],
-  },
-  statLabel: {
-    fontSize: 9,
-    fontWeight: "600",
-    color: Colors.text_secondary,
-    marginTop: 2,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  filterRow: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-    maxHeight: 40,
-  },
-  filterPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.bg_surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  filterPillActive: {
-    backgroundColor: Colors.accent_green,
-    borderColor: Colors.accent_green,
-  },
-  filterText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: Colors.text_secondary,
-  },
-  filterTextActive: {
-    color: Colors.bg_primary,
-  },
-  filterDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: Colors.border,
-    alignSelf: "center",
-  },
-  listContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: 120,
-  },
+  stat: { flex: 1 },
+  chipScroller: { marginHorizontal: -Space.gutter, flexGrow: 0 },
+  chips: { paddingHorizontal: Space.gutter, gap: Space.sm },
+  sorts: { flexDirection: "row", alignItems: "center", gap: Space.sm, marginTop: Space.md, marginBottom: Space.xl },
+  sortLabel: { marginRight: Space.xs },
+  empty: { paddingVertical: Space.xxl, gap: Space.sm },
+  emptyNote: { maxWidth: 420 },
 })

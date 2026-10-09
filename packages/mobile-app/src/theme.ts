@@ -1,134 +1,65 @@
-import { TextStyle } from "react-native"
+import type { TextStyle } from "react-native"
 
-export const Colors = {
-  bg_primary: "#0A0A0F",
-  bg_surface: "#13131A",
-  bg_elevated: "#1C1C27",
-  accent_green: "#00FF87",
-  accent_amber: "#FFB300",
-  accent_blue: "#4A9EFF",
-  accent_coral: "#FF6B6B",
-  text_primary: "#FFFFFF",
-  text_secondary: "#8E8EA0",
-  border: "rgba(255,255,255,0.08)",
-  gradient_hero_start: "#00FF87",
-  gradient_hero_end: "#4A9EFF",
+/**
+ * Riso Sweep design tokens.
+ *
+ * The app is printed on black stock: one warm near-black paper plus a cream
+ * "paper" ink for text. Every sport then adds its own three riso inks
+ * (see `RisoPalette` in sports.ts); nothing here is sport-specific.
+ */
+export const Paper = {
+  bg: "#121011",
+  stock: "#1C1819",
+  raised: "#262122",
+  rule: "rgba(244,236,224,0.14)",
+  ruleStrong: "rgba(244,236,224,0.32)",
+  text: "#F4ECE0",
+  muted: "#B4AA9C", // 8.3:1 on bg
+  faint: "#8A8176", // 4.9:1 on bg
+  danger: "#FF665E", // riso Red, 6.6:1 on bg
 } as const
 
-export const StrokeColors: Record<string, string> = {
-  smash: Colors.accent_amber,
-  drop: Colors.accent_coral,
-  clear: Colors.accent_blue,
-  net: "#4A9EFF",
-  serve: Colors.accent_green,
-  defensive: "#8E8EA0",
-}
+/** Font family names as registered by `useFonts` in app/_layout.tsx. */
+export const Fonts = {
+  display: "Fraunces_700Bold",
+  italic: "Fraunces_400Regular_Italic",
+  mono: "JetBrainsMono_500Medium",
+  monoBold: "JetBrainsMono_700Bold",
+} as const
 
-export const Typography: Record<string, TextStyle> = {
-  h1: {
-    fontFamily: "Inter-Bold",
-    fontSize: 32,
-    fontWeight: "700",
-    color: Colors.text_primary,
-  },
-  h2: {
-    fontFamily: "Inter-Bold",
-    fontSize: 22,
-    fontWeight: "700",
-    color: Colors.text_primary,
-  },
-  h3: {
-    fontFamily: "Inter-Bold",
-    fontSize: 16,
-    fontWeight: "700",
-    color: Colors.text_primary,
-  },
-  body: {
-    fontFamily: "Inter-Regular",
-    fontSize: 14,
-    fontWeight: "400",
-    color: Colors.text_secondary,
-  },
-  caption: {
-    fontFamily: "Inter-Regular",
+// Custom families carry their own weight: never pair them with fontWeight
+// (Android silently falls back to the system font when you do).
+export const Type = {
+  display: { fontFamily: Fonts.display, fontSize: 46, lineHeight: 50, letterSpacing: -1.2, color: Paper.text },
+  title: { fontFamily: Fonts.display, fontSize: 34, lineHeight: 38, letterSpacing: -0.8, color: Paper.text },
+  heading: { fontFamily: Fonts.display, fontSize: 22, lineHeight: 27, letterSpacing: -0.3, color: Paper.text },
+  deck: { fontFamily: Fonts.italic, fontSize: 17, lineHeight: 24, color: Paper.muted },
+  body: { fontSize: 15, lineHeight: 22, color: Paper.text },
+  small: { fontSize: 13, lineHeight: 19, color: Paper.muted },
+  kicker: {
+    fontFamily: Fonts.mono,
     fontSize: 11,
-    fontWeight: "600",
-    color: Colors.text_secondary,
-  },
-  label: {
-    fontFamily: "Inter-Bold",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    color: Colors.text_secondary,
+    lineHeight: 15,
+    letterSpacing: 1.6,
     textTransform: "uppercase",
+    color: Paper.muted,
   },
-  stat: {
-    fontFamily: "JetBrainsMono-Regular",
-    fontSize: 28,
-    fontWeight: "800",
-    color: Colors.text_primary,
-  },
-  metric: {
-    fontFamily: "JetBrainsMono-Regular",
-    fontSize: 42,
-    fontWeight: "800",
-    color: Colors.accent_green,
-  },
-  numbered: {
-    fontFamily: "JetBrainsMono-Regular",
-  },
-}
+  metricXL: { fontFamily: Fonts.monoBold, fontSize: 64, lineHeight: 70, letterSpacing: -2.5, color: Paper.text },
+  metric: { fontFamily: Fonts.monoBold, fontSize: 26, lineHeight: 31, letterSpacing: -0.8, color: Paper.text },
+  metricSm: { fontFamily: Fonts.monoBold, fontSize: 16, lineHeight: 20, color: Paper.text },
+  unit: { fontFamily: Fonts.mono, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: Paper.muted },
+} satisfies Record<string, TextStyle>
 
-export const Spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
-}
+export const Space = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48, gutter: 20 } as const
 
-export const Radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  full: 9999,
-}
+/** Print has hard corners; keep radii tiny. */
+export const Radius = { sm: 2, md: 4, pill: 999 } as const
 
-export const Glass = {
-  card: {
-    backgroundColor: Colors.bg_surface,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.lg,
-  },
-  elevated: {
-    backgroundColor: Colors.bg_elevated,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.lg,
-    shadowColor: Colors.accent_green,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-}
+/** Hard offset-plate distances (no blur shadows anywhere). */
+export const Offset = { sm: 3, md: 5, lg: 7 } as const
 
 export const Motion = {
-  enterDuration: 300,
-  staggerDelay: 60,
-  springConfig: {
-    damping: 15,
-    stiffness: 150,
-  },
-  sheetConfig: {
-    damping: 20,
-    stiffness: 200,
-  },
-  pressScale: 0.97,
-}
+  sweepMs: 900, // band in + band out, eased cubic-bezier(0.65, 0, 0.35, 1)
+  staggerMs: 110, // per line
+  litMs: 650, // the bright pass over the finished heading
+} as const

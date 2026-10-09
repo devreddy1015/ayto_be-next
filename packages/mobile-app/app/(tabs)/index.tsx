@@ -1,475 +1,254 @@
-import React, { useEffect, useRef, useState } from "react"
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  Dimensions,
-  RefreshControl,
-} from "react-native"
+import { useCallback } from "react"
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { router } from "expo-router"
-import { Colors, Typography, Spacing } from "../../src/theme"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { Bars } from "../../src/components/data/Bars"
+import { Screen } from "../../src/components/riso/RisoSurface"
+import { SweepHeading } from "../../src/components/riso/SweepHeading"
+import { SessionCard } from "../../src/components/session/SessionCard"
+import { SportSwitcher } from "../../src/components/sport/SportSwitcher"
+import Button from "../../src/components/ui/Button"
+import Card from "../../src/components/ui/Card"
+import { SectionHead } from "../../src/components/ui/SectionHead"
+import { Stat } from "../../src/components/ui/Stat"
+import { StatusTag, Tag } from "../../src/components/ui/Tag"
+import { getDemo, type DemoBook } from "../../src/data/demo"
+import { drillsFor } from "../../src/data/drills"
+import { useSpeed, useSport } from "../../src/hooks/useSport"
+import { capitalize, dateline, greeting, shortDate } from "../../src/lib/format"
+import { LIVE_SPORT, STATUS_LABEL, strokeColor, strokeLabel, type Sport } from "../../src/sports"
 import { useUserStore } from "../../src/store/userStore"
-import { RECENT_SESSIONS, WEEKLY_SPEEDS, DUMMY_SESSION } from "../../src/data/dummyData"
-import SessionCard from "../../src/components/session/SessionCard"
-import MetricCard from "../../src/components/session/MetricCard"
-import Badge from "../../src/components/ui/Badge"
-import Skeleton from "../../src/components/ui/Skeleton"
-import type { StrokeType } from "../../src/types"
+import { Fonts, Paper, Radius, Space, Type } from "../../src/theme"
 
-const { width } = Dimensions.get("window")
+const openSession = (id: string) => router.push({ pathname: "/session/[id]", params: { id } })
 
 export default function HomeScreen() {
-  const { profile } = useUserStore()
-  const firstName = profile?.name?.split(" ")[0] || "Athlete"
-  const pulseAnim = useRef(new Animated.Value(1)).current
-  const [refreshing, setRefreshing] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.04, duration: 1200, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
-      ]),
-    ).start()
-
-    const timer = setTimeout(() => setLoading(false), 800)
-    return () => clearTimeout(timer)
-  }, [])
-
-  const onRefresh = () => {
-    setRefreshing(true)
-    setTimeout(() => setRefreshing(false), 1500)
-  }
-
-  const getGreeting = () => {
-    const hour = new Date().getHours()
-    if (hour < 12) return "Good morning"
-    if (hour < 17) return "Good afternoon"
-    return "Good evening"
-  }
+  const insets = useSafeAreaInsets()
+  const sport = useSport()
+  const profile = useUserStore((s) => s.profile)
+  const setSport = useUserStore((s) => s.setSportPreference)
+  const demo = sport.status === "live" ? getDemo(sport.id) : null
+  const name = profile?.name.split(" ")[0]
 
   return (
-    <View style={styles.container}>
+    <Screen palette={sport.palette}>
       <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + Space.md }]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors.accent_green}
-            colors={[Colors.accent_green]}
-          />
-        }
       >
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Masthead */}
+        <View style={styles.masthead}>
           <View>
-            <Text style={styles.greeting}>
-              {getGreeting()}, {firstName}
+            <Text style={styles.wordmark}>
+              Ayto <Text style={[Type.kicker, { color: sport.palette.ink }]}>SportIQ</Text>
             </Text>
-            <Text style={styles.subtitle}>Ready to train?</Text>
-          </View>
-          <TouchableOpacity style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {firstName.charAt(0).toUpperCase()}
+            <Text style={Type.kicker}>
+              {dateline()} · {greeting()}
+              {name ? `, ${name}` : ""}
             </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Hero Stat */}
-        {loading ? (
-          <View style={styles.skeletonHero}>
-            <Skeleton height={120} borderRadius={16} />
           </View>
-        ) : (
-          <View style={styles.heroCard}>
-            <View style={styles.heroGradient}>
-              <View>
-                <Text style={styles.heroLabel}>LAST SESSION MAX</Text>
-                <Text style={styles.heroValue}>{DUMMY_SESSION.maxSpeed}</Text>
-                <Text style={styles.heroUnit}>km/h</Text>
-              </View>
-              <View style={styles.heroRight}>
-                <Text style={styles.heroAvg}>Avg {DUMMY_SESSION.avgSpeed}</Text>
-                <View style={styles.comparisonBadge}>
-                  <Text style={styles.comparisonArrow}>▲</Text>
-                  <Text style={styles.comparisonText}>12% vs prev</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Quick Actions */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.quickActions}
-          contentContainerStyle={styles.quickActionsContent}
-        >
-          <TouchableOpacity
-            style={styles.quickAction}
-            onPress={() => router.push("/record")}
-            activeOpacity={0.8}
+          <Pressable
+            onPress={() => router.push("/profile")}
+            accessibilityRole="button"
+            accessibilityLabel="Profile"
+            style={[styles.avatar, { borderColor: sport.palette.plate }]}
           >
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <View style={styles.quickActionIcon}>
-                <Text style={styles.quickActionEmoji}>⦿</Text>
-              </View>
-            </Animated.View>
-            <Text style={styles.quickActionLabel}>Record Now</Text>
-          </TouchableOpacity>
-
-          {["Upload Video", "Compare Pro", "Drills"].map((action) => (
-            <TouchableOpacity
-              key={action}
-              style={styles.quickAction}
-              onPress={() => {
-                if (action === "Compare Pro") router.push("/compare")
-                else if (action === "Drills") router.push("/drills")
-              }}
-              activeOpacity={0.8}
-            >
-              <View style={styles.quickActionIconSecondary}>
-                <Text style={styles.quickActionEmoji}>
-                  {action === "Upload Video" ? "↑" : action === "Compare Pro" ? "◈" : "◎"}
-                </Text>
-              </View>
-              <Text style={styles.quickActionLabel}>{action}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Progress Section */}
-        <Text style={styles.sectionTitle}>YOUR PROGRESS</Text>
-        <View style={styles.chartPlaceholder}>
-          {WEEKLY_SPEEDS.map((item, i) => {
-            const maxSpeed = 300
-            const barHeight = (item.speed / maxSpeed) * 100
-            return (
-              <View key={item.day} style={styles.barContainer}>
-                <View style={styles.barWrapper}>
-                  {loading ? (
-                    <Skeleton width={22} height={barHeight} style={styles.bar} />
-                  ) : (
-                    <View
-                      style={[
-                        styles.bar,
-                        {
-                          height: barHeight,
-                          backgroundColor: item.speed > 270 ? Colors.accent_amber : Colors.accent_green,
-                          opacity: item.speed > 270 ? 1 : 0.7,
-                        },
-                      ]}
-                    />
-                  )}
-                </View>
-                <Text style={styles.dayLabel}>{item.day}</Text>
-              </View>
-            )
-          })}
+            <Text style={[styles.avatarText, { color: sport.palette.ink }]}>{(name ?? "A").charAt(0).toUpperCase()}</Text>
+          </Pressable>
         </View>
 
-        {/* Recent Sessions */}
-        <Text style={styles.sectionTitle}>RECENT SESSIONS</Text>
-        {loading
-          ? [1, 2, 3].map((i) => (
-              <Skeleton key={i} height={80} style={{ marginBottom: 10 }} borderRadius={16} />
-            ))
-          : RECENT_SESSIONS.map((session, idx) => (
-              <SessionCard
-                key={session.id}
-                id={session.id}
-                date={session.date}
-                duration={session.duration}
-                strokes={session.strokes}
-                maxSpeed={session.maxSpeed}
-                sport="badminton"
-                dominantStroke={idx === 0 ? "smash" : idx === 1 ? "clear" : "drop"}
-                onPress={() => router.push(`/session/${session.id}`)}
-              />
-            ))}
+        <SportSwitcher activeId={sport.id} onSelect={setSport} />
 
-        {/* Drill Recommendation */}
-        <View style={[styles.drillCard]}>
-          <View style={styles.drillGlow}>
-            <View style={styles.drillContent}>
-              <Text style={styles.drillEmoji}>🏸</Text>
-              <View style={styles.drillInfo}>
-                <Text style={styles.drillTitle}>Recommended Drill</Text>
-                <Text style={styles.drillDesc}>
-                  Smash Accuracy: Target practice with precision cones
-                </Text>
-                <View style={styles.drillMeta}>
-                  <Badge label="Smash" type="smash" size="sm" />
-                  <Text style={styles.drillDuration}>15 min</Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={styles.drillButton}
-                onPress={() => router.push("/drills")}
-              >
-                <Text style={styles.drillButtonText}>→</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        {/* Hero */}
+        <View style={styles.hero}>
+          <Text style={[Type.kicker, styles.heroKicker, { color: sport.palette.ink }]}>
+            {sport.name} · {sport.code}
+          </Text>
+          <SweepHeading key={sport.id} lines={sport.heading} palette={sport.palette} size="hero" />
+          <Text style={[Type.deck, styles.deck]}>{sport.tagline}</Text>
+          <StatusTag status={sport.status} palette={sport.palette} />
         </View>
 
-        <View style={{ height: 120 }} />
+        {demo ? <LiveEdition sport={sport} demo={demo} /> : <LabEdition sport={sport} onSwitch={setSport} />}
+
+        <DrillOfTheDay sport={sport} />
       </ScrollView>
-    </View>
+    </Screen>
+  )
+}
+
+/** Live sports: real numbers from the latest session. */
+function LiveEdition({ sport, demo }: { sport: Sport; demo: DemoBook }) {
+  const { format, unit } = useSpeed()
+  const { palette } = sport
+  const [last, prev] = demo.sessions
+  const change = prev ? ((last.max_speed_kmh - prev.max_speed_kmh) / prev.max_speed_kmh) * 100 : null
+  const weekly = demo.weekly.map((d) => format(d.kmh))
+  const best = Math.max(...weekly)
+
+  return (
+    <>
+      <Card accent={palette.plate} style={styles.lastCard}>
+        <Text style={Type.kicker}>Last session · {shortDate(last.created_at)}</Text>
+        <Stat
+          label={sport.metrics[0].label}
+          value={format(last.max_speed_kmh)}
+          unit={unit}
+          size="xl"
+          color={palette.ink}
+          delta={
+            change === null
+              ? undefined
+              : { text: `${Math.abs(change).toFixed(1)}% vs previous`, up: change >= 0, color: change >= 0 ? palette.ink3 : Paper.danger }
+          }
+          style={styles.lastStat}
+        />
+        <View style={styles.row3}>
+          <Stat label="Average" value={format(last.avg_speed_kmh)} unit={unit} size="sm" style={styles.flex} />
+          <Stat label={`${sport.strokeNoun}s`} value={last.strokes_count} size="sm" style={styles.flex} />
+          <Stat label="Form" value={demo.report.form} unit="/100" size="sm" style={styles.flex} />
+        </View>
+        <Button
+          label="Record a session"
+          trailing="●"
+          palette={palette}
+          size="lg"
+          full
+          onPress={() => router.push("/record")}
+          accessibilityHint="Opens the camera"
+          style={styles.record}
+        />
+        <View style={styles.row2}>
+          <Button label="Drills" palette={palette} variant="outline" size="sm" full style={styles.flex} onPress={() => router.push("/drills")} />
+          <Button label="Vs pro" palette={palette} variant="outline" size="sm" full style={styles.flex} onPress={() => router.push("/compare")} />
+        </View>
+      </Card>
+
+      <SectionHead
+        kicker={`02 / ${sport.metrics[0].label}`}
+        title="This week"
+        palette={palette}
+        right={<Text style={[Type.kicker, { color: palette.ink3 }]}>Best {best}</Text>}
+      />
+      <Bars
+        values={weekly}
+        labels={demo.weekly.map((d) => d.day)}
+        max={best * 1.1}
+        color={palette.plate}
+        highlight={{ threshold: best, color: palette.ink3 }}
+        accessibilityLabel={`Top ${sport.metrics[0].label.toLowerCase()} per day this week, best ${best} ${unit}`}
+      />
+
+      <SectionHead
+        kicker="03 / Archive"
+        title="Recent sessions"
+        palette={palette}
+        right={
+          <Pressable onPress={() => router.push("/history")} accessibilityRole="link" hitSlop={10}>
+            <Text style={[Type.kicker, { color: palette.ink }]}>All →</Text>
+          </Pressable>
+        }
+      />
+      {demo.sessions.slice(0, 3).map((session) => (
+        <SessionCard key={session.id} session={session} onPress={openSession} />
+      ))}
+    </>
+  )
+}
+
+/** Sports in training or on the roadmap: say so plainly, show what's coming, no numbers. */
+function LabEdition({ sport, onSwitch }: { sport: Sport; onSwitch: (id: Sport["id"]) => void }) {
+  const { palette } = sport
+  const switchToLive = useCallback(() => onSwitch(LIVE_SPORT.id), [onSwitch])
+  return (
+    <>
+      <Card accent={palette.plate} style={styles.lastCard}>
+        <Text style={Type.kicker}>Status · {STATUS_LABEL[sport.status]}</Text>
+        <Text style={[Type.heading, styles.labTitle]}>{sport.name} analysis isn't live yet.</Text>
+        <Text style={Type.small}>{sport.statusNote}</Text>
+        <Button
+          label={`Switch to ${LIVE_SPORT.name}`}
+          trailing="→"
+          palette={palette}
+          full
+          onPress={switchToLive}
+          accessibilityHint={`${LIVE_SPORT.name} has full analysis today`}
+          style={styles.record}
+        />
+        <Button label="All sports" palette={palette} variant="outline" size="sm" full onPress={() => router.push("/sports")} />
+      </Card>
+
+      <SectionHead kicker="02 / Planned" title="What we'll measure" palette={palette} />
+      <View style={styles.planned}>
+        {sport.metrics.map((metric, i) => (
+          <View key={metric.id} style={[styles.plannedRow, i > 0 && styles.plannedRule]}>
+            <Text style={[Type.body, styles.flex]}>{metric.label}</Text>
+            <Text style={styles.plannedValue}>— {metric.unit}</Text>
+          </View>
+        ))}
+      </View>
+
+      <SectionHead kicker={`03 / ${sport.strokes.length} classes`} title={`${capitalize(sport.strokeNoun)}s we'll read`} palette={palette} />
+      <View style={styles.tags}>
+        {sport.strokes.map((stroke) => (
+          <Tag key={stroke.id} label={stroke.label} color={strokeColor(sport, stroke.id)} variant="outline" />
+        ))}
+      </View>
+    </>
+  )
+}
+
+function DrillOfTheDay({ sport }: { sport: Sport }) {
+  const drills = drillsFor(sport.id)
+  if (drills.length === 0) return null
+  const drill = drills[new Date().getDate() % drills.length]
+  const { palette } = sport
+  return (
+    <>
+      <SectionHead kicker="04 / Practice" title="Drill of the day" palette={palette} />
+      <Pressable
+        onPress={() => router.push("/drills")}
+        accessibilityRole="button"
+        accessibilityHint="Opens the drill book"
+        style={({ pressed }) => [styles.drill, pressed && { backgroundColor: Paper.raised }]}
+      >
+        <View style={styles.drillTop}>
+          <Tag label={strokeLabel(sport, drill.stroke)} color={strokeColor(sport, drill.stroke)} />
+          <Text style={Type.kicker}>
+            {drill.minutes} min · {drill.level}
+          </Text>
+        </View>
+        <Text style={[Type.heading, styles.drillTitle]}>{drill.title}</Text>
+        <Text style={Type.small}>{drill.description}</Text>
+        <Text style={[Type.kicker, styles.drillLink, { color: palette.ink }]}>Open the drill book →</Text>
+      </Pressable>
+    </>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg_primary,
-  },
-  scroll: {
-    paddingTop: 60,
-    paddingHorizontal: Spacing.lg,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: Spacing.lg,
-  },
-  greeting: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: Colors.text_secondary,
-  },
-  subtitle: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: Colors.text_primary,
-    marginTop: 2,
-  },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(0,255,135,0.12)",
-    borderWidth: 1.5,
-    borderColor: Colors.accent_green,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: Colors.accent_green,
-  },
-  skeletonHero: {
-    marginBottom: Spacing.lg,
-  },
-  heroCard: {
-    borderRadius: 20,
-    overflow: "hidden",
-    marginBottom: Spacing.lg,
-  },
-  heroGradient: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    padding: 24,
-    backgroundColor: Colors.bg_elevated,
-    borderWidth: 1,
-    borderColor: "rgba(0,255,135,0.12)",
-  },
-  heroLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: Colors.text_secondary,
-    letterSpacing: 2,
-    marginBottom: 4,
-  },
-  heroValue: {
-    fontSize: 56,
-    fontWeight: "800",
-    color: Colors.accent_green,
-    fontVariant: ["tabular-nums"],
-    lineHeight: 60,
-  },
-  heroUnit: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Colors.text_secondary,
-    letterSpacing: 2,
-    marginTop: -2,
-  },
-  heroRight: {
-    alignItems: "flex-end",
-    gap: 8,
-  },
-  heroAvg: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.text_secondary,
-  },
-  comparisonBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(0,255,135,0.1)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  comparisonArrow: {
-    fontSize: 10,
-    color: Colors.accent_green,
-  },
-  comparisonText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: Colors.accent_green,
-  },
-  quickActions: {
-    marginBottom: Spacing.xl,
-  },
-  quickActionsContent: {
-    gap: 12,
-    paddingRight: Spacing.lg,
-  },
-  quickAction: {
-    alignItems: "center",
-    gap: 8,
-    width: 80,
-  },
-  quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 20,
-    backgroundColor: Colors.accent_green,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  quickActionIconSecondary: {
-    width: 56,
-    height: 56,
-    borderRadius: 20,
-    backgroundColor: Colors.bg_surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  quickActionEmoji: {
-    fontSize: 22,
-    color: Colors.bg_primary,
-  },
-  quickActionLabel: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: Colors.text_secondary,
-    textAlign: "center",
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: Colors.text_secondary,
-    letterSpacing: 2,
-    marginBottom: Spacing.md,
-    textTransform: "uppercase",
-  },
-  chartPlaceholder: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    height: 120,
-    backgroundColor: Colors.bg_surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 16,
-    marginBottom: Spacing.xl,
-  },
-  barContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-end",
-    height: "100%",
-  },
-  barWrapper: {
-    justifyContent: "flex-end",
-    height: "90%",
-    alignItems: "center",
-  },
-  bar: {
-    width: 22,
-    borderRadius: 6,
-  },
-  dayLabel: {
-    fontSize: 8,
-    fontWeight: "600",
-    color: Colors.text_secondary,
-    marginTop: 6,
-    textTransform: "uppercase",
-  },
-  drillCard: {
-    marginTop: Spacing.md,
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  drillGlow: {
-    backgroundColor: Colors.bg_surface,
-    borderWidth: 1,
-    borderColor: "rgba(0,255,135,0.12)",
-    borderRadius: 16,
-  },
-  drillContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    gap: 12,
-  },
-  drillEmoji: {
-    fontSize: 28,
-  },
-  drillInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  drillTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: Colors.text_primary,
-  },
-  drillDesc: {
-    fontSize: 12,
-    color: Colors.text_secondary,
-    lineHeight: 18,
-  },
-  drillMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 4,
-  },
-  drillDuration: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: Colors.text_secondary,
-  },
-  drillButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.accent_green,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  drillButtonText: {
-    fontSize: 16,
-    color: Colors.bg_primary,
-    fontWeight: "700",
-  },
+  scroll: { paddingHorizontal: Space.gutter, paddingBottom: Space.xxxl, maxWidth: 720, width: "100%", alignSelf: "center" },
+  flex: { flex: 1 },
+  masthead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: Space.lg },
+  wordmark: { fontFamily: Fonts.display, fontSize: 24, lineHeight: 28, color: Paper.text },
+  avatar: { width: 40, height: 40, borderWidth: 1.5, alignItems: "center", justifyContent: "center", borderRadius: Radius.sm },
+  avatarText: { fontFamily: Fonts.monoBold, fontSize: 16 },
+  hero: { marginTop: Space.xxl, marginBottom: Space.xl, gap: Space.md },
+  heroKicker: { marginBottom: Space.xs },
+  deck: { maxWidth: 460 },
+  lastCard: { gap: Space.sm },
+  lastStat: { marginTop: Space.sm },
+  row3: { flexDirection: "row", gap: Space.md, marginTop: Space.md, paddingTop: Space.md, borderTopWidth: 1, borderTopColor: Paper.rule },
+  row2: { flexDirection: "row", gap: Space.md, marginTop: Space.xs },
+  record: { marginTop: Space.lg },
+  labTitle: { marginTop: Space.xs },
+  planned: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: Paper.rule },
+  plannedRow: { flexDirection: "row", alignItems: "center", paddingVertical: Space.md },
+  plannedRule: { borderTopWidth: 1, borderTopColor: Paper.rule },
+  plannedValue: { fontFamily: Fonts.mono, fontSize: 12, color: Paper.faint },
+  tags: { flexDirection: "row", flexWrap: "wrap", gap: Space.sm },
+  drill: { backgroundColor: Paper.stock, borderWidth: 1, borderColor: Paper.rule, borderRadius: Radius.sm, padding: Space.lg, gap: Space.sm },
+  drillTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  drillTitle: { marginTop: Space.xs },
+  drillLink: { marginTop: Space.sm },
 })

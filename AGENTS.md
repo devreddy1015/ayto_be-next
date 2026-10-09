@@ -11,6 +11,7 @@ ruff check packages/
 pytest packages/cv-core/tests/ -v
 pytest packages/pose-biomechanics/tests/ -v
 pytest packages/ml-models/tests/ -v
+pytest packages/core/tests/ -v
 ```
 
 ## All tests

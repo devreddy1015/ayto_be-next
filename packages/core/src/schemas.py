@@ -65,6 +65,7 @@ class ProComparison:
     player_angles: dict[str, float] = field(default_factory=dict)
     pro_angles: dict[str, float] = field(default_factory=dict)
     differences: dict[str, float] = field(default_factory=dict)
+    timing_offsets_ms: dict[str, float] = field(default_factory=dict)  # + = late
     similarity_score: float = 0.0
     feedback: list[str] = field(default_factory=list)
 
@@ -161,6 +162,9 @@ class SessionOutput:
                     "player_angles": {k: round(v, 1) for k, v in c.player_angles.items()},
                     "pro_angles": {k: round(v, 1) for k, v in c.pro_angles.items()},
                     "differences": {k: round(v, 1) for k, v in c.differences.items()},
+                    "timing_offsets_ms": {
+                        k: round(v, 1) for k, v in c.timing_offsets_ms.items()
+                    },
                     "similarity_score": round(c.similarity_score, 3),
                     "feedback": c.feedback,
                 }

@@ -1,60 +1,65 @@
-import { Tabs } from "expo-router"
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
-import { Colors, Radius } from "../../src/theme"
+import { memo, type ComponentProps } from "react"
+import { Pressable, StyleSheet, Text, View } from "react-native"
+import { Redirect, Tabs } from "expo-router"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { useSport } from "../../src/hooks/useSport"
+import { useUserStore } from "../../src/store/userStore"
+import { Fonts, Paper, Space } from "../../src/theme"
 
-function TabBarIcon({ label, active }: { label: string; active: boolean }) {
-  const icons: Record<string, string> = {
-    Home: "⌂",
-    History: "☰",
-    Compare: "◈",
-    Profile: "◉",
-  }
+type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0]
 
-  return (
-    <View style={styles.tabIconContainer}>
-      <Text style={[styles.tabIcon, active && styles.tabIconActive]}>
-        {icons[label] || "○"}
-      </Text>
-      <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
-        {label}
-      </Text>
-      {active && <View style={styles.tabIndicator} />}
-    </View>
-  )
+const LABELS: Record<string, string> = {
+  index: "Home",
+  sports: "Sports",
+  history: "History",
+  compare: "Compare",
+  profile: "Profile",
 }
 
-export default function TabLayout() {
+/** Masthead-style tab bar: mono labels, the active one printed on an ink plate. */
+const RisoTabBar = memo(function RisoTabBar({ state, navigation }: TabBarProps) {
+  const insets = useSafeAreaInsets()
+  const { palette } = useSport()
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarShowLabel: false,
-      }}
-      tabBar={(props) => {
-        const { state, navigation } = props
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, Space.sm) }]} accessibilityRole="tablist">
+      {state.routes.map((route, index) => {
+        const focused = state.index === index
+        const label = LABELS[route.name] ?? route.name
+        const onPress = () => {
+          const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true })
+          if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params)
+        }
         return (
-          <View style={styles.tabBar}>
-            {state.routes.map((route, index) => {
-              const isActive = state.index === index
-              const label = route.name === "index" ? "Home" : route.name.charAt(0).toUpperCase() + route.name.slice(1)
-
-              return (
-                <TouchableOpacity
-                  key={route.key}
-                  style={styles.tabItem}
-                  onPress={() => navigation.navigate(route.name)}
-                  activeOpacity={0.7}
-                >
-                  <TabBarIcon label={label} active={isActive} />
-                </TouchableOpacity>
-              )
-            })}
-          </View>
+          <Pressable
+            key={route.key}
+            onPress={onPress}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: focused }}
+            accessibilityLabel={label}
+            style={styles.item}
+          >
+            <View style={[styles.plate, focused && { backgroundColor: palette.plate }]}>
+              <Text style={[styles.label, { color: focused ? palette.onPlate : Paper.muted }]} numberOfLines={1}>
+                {label}
+              </Text>
+            </View>
+          </Pressable>
         )
-      }}
-    >
+      })}
+    </View>
+  )
+})
+
+const renderTabBar = (props: TabBarProps) => <RisoTabBar {...props} />
+
+export default function TabLayout() {
+  const onboarded = useUserStore((s) => s.isOnboardingDone)
+  if (!onboarded) return <Redirect href="/splash" />
+
+  return (
+    <Tabs tabBar={renderTabBar} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: Paper.bg } }}>
       <Tabs.Screen name="index" />
+      <Tabs.Screen name="sports" />
       <Tabs.Screen name="history" />
       <Tabs.Screen name="compare" />
       <Tabs.Screen name="profile" />
@@ -63,52 +68,15 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+  bar: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    backgroundColor: "rgba(10,10,15,0.95)",
+    paddingTop: Space.sm,
+    paddingHorizontal: Space.xs,
+    backgroundColor: Paper.bg,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    paddingBottom: 28,
-    paddingTop: 8,
-    paddingHorizontal: 16,
+    borderTopColor: Paper.ruleStrong,
   },
-  tabItem: {
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-    paddingVertical: 4,
-  },
-  tabIconContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-  },
-  tabIcon: {
-    fontSize: 20,
-    color: Colors.text_secondary,
-  },
-  tabIconActive: {
-    color: Colors.accent_green,
-  },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: Colors.text_secondary,
-    letterSpacing: 0.3,
-  },
-  tabLabelActive: {
-    color: Colors.accent_green,
-  },
-  tabIndicator: {
-    width: 20,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: Colors.accent_green,
-    marginTop: 2,
-  },
+  item: { flex: 1, alignItems: "center", minHeight: 44, justifyContent: "center" },
+  plate: { paddingHorizontal: 6, paddingVertical: 6 },
+  label: { fontFamily: Fonts.mono, fontSize: 10, letterSpacing: 0.8, textTransform: "uppercase" },
 })

@@ -27,12 +27,18 @@ def main() -> None:
     parser.add_argument(
         "--sport",
         default="badminton",
-        choices=["badminton", "cricket", "table-tennis", "football"],
+        choices=["badminton", "tennis", "table_tennis", "pickleball", "padel", "squash"],
+    )
+    parser.add_argument(
+        "--corners",
+        default=None,
+        help="Court corners in pixels: 'x,y;x,y;x,y;x,y' (near-left, near-right, "
+             "far-right, far-left). Enables metric 3D speeds.",
     )
     parser.add_argument(
         "--real",
         action="store_true",
-        help="Use real YOLO + MediaPipe inference (requires models installed)",
+        help="Run real inference (TrackNet/YOLO + RTMPose/BlazePose; models must be installed)",
     )
     parser.add_argument(
         "--summary",
@@ -55,10 +61,19 @@ def main() -> None:
 
     from .orchestrator import pipeline_to_json
 
+    corners = None
+    if args.corners:
+        corners = [tuple(float(v) for v in pt.split(",")) for pt in args.corners.split(";")]
+        if len(corners) != 4:
+            print("--corners needs exactly 4 points")
+            sys.exit(1)
+
     json_str = pipeline_to_json(
         str(video_path),
         output_path=output_path,
         use_real_inference=args.real,
+        sport=args.sport,
+        corners_px=corners,
     )
 
     if args.summary:

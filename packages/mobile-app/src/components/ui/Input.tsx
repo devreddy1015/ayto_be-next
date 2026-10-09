@@ -1,103 +1,54 @@
-import React, { useState } from "react"
-import {
-  View,
-  TextInput,
-  Text,
-  StyleSheet,
-  TextInputProps,
-  Animated,
-} from "react-native"
-import { Colors, Radius, Spacing } from "../../theme"
+import { useState } from "react"
+import { StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native"
+import { Fonts, Paper, Radius, Space, Type } from "../../theme"
 
 interface InputProps extends TextInputProps {
-  label?: string
+  label: string
   error?: string
-  hint?: string
+  /** Focus rule colour (the sport's ink). */
+  accent: string
 }
 
-export default function Input({ label, error, hint, style, ...props }: InputProps) {
+/** Form field: mono kicker label over a hairline box that inks on focus. */
+export default function Input({ label, error, accent, style, onFocus, onBlur, ...props }: InputProps) {
   const [focused, setFocused] = useState(false)
+  const borderColor = error ? Paper.danger : focused ? accent : Paper.ruleStrong
 
   return (
     <View style={styles.container}>
-      {label && (
-        <Text style={styles.label}>{label}</Text>
-      )}
-      <View
-        style={[
-          styles.inputWrapper,
-          focused && styles.inputFocused,
-          error ? styles.inputError : null,
-        ]}
-      >
-        <TextInput
-          style={[styles.input, style]}
-          placeholderTextColor="rgba(255,255,255,0.2)"
-          onFocus={(e) => {
-            setFocused(true)
-            props.onFocus?.(e)
-          }}
-          onBlur={(e) => {
-            setFocused(false)
-            props.onBlur?.(e)
-          }}
-          {...props}
-        />
-      </View>
-      {error && (
-        <Text style={styles.error}>{error}</Text>
-      )}
-      {hint && !error && (
-        <Text style={styles.hint}>{hint}</Text>
-      )}
+      <Text style={[Type.kicker, styles.label]}>{label}</Text>
+      <TextInput
+        {...props}
+        accessibilityLabel={label}
+        placeholderTextColor={Paper.faint}
+        selectionColor={accent}
+        style={[styles.input, { borderColor }, focused && { borderBottomWidth: 3 }, style]}
+        onFocus={(e) => {
+          setFocused(true)
+          onFocus?.(e)
+        }}
+        onBlur={(e) => {
+          setFocused(false)
+          onBlur?.(e)
+        }}
+      />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: Spacing.md,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: Colors.text_secondary,
-    letterSpacing: 2,
-    marginBottom: Spacing.sm,
-    marginLeft: 4,
-    textTransform: "uppercase",
-  },
-  inputWrapper: {
-    backgroundColor: Colors.bg_surface,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    overflow: "hidden",
-  },
-  inputFocused: {
-    borderColor: Colors.accent_green,
-  },
-  inputError: {
-    borderColor: Colors.accent_coral,
-  },
+  container: { marginBottom: Space.lg },
+  label: { marginBottom: Space.sm },
   input: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 16,
-    fontSize: 15,
-    fontWeight: "500",
-    color: Colors.text_primary,
+    minHeight: 50,
+    paddingHorizontal: Space.md,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: Paper.text,
+    backgroundColor: Paper.stock,
+    borderWidth: 1,
+    borderRadius: Radius.sm,
   },
-  error: {
-    fontSize: 11,
-    color: Colors.accent_coral,
-    marginTop: Spacing.xs,
-    marginLeft: 4,
-    fontWeight: "500",
-  },
-  hint: {
-    fontSize: 11,
-    color: Colors.text_secondary,
-    marginTop: Spacing.xs,
-    marginLeft: 4,
-  },
+  error: { fontFamily: Fonts.mono, fontSize: 11, color: Paper.danger, marginTop: Space.xs },
 })

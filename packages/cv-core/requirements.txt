@@ -1,7 +1,7 @@
-ultralytics>=8.1.0
+ultralytics>=8.1.0  # YOLO fallback detector only
 opencv-python>=4.8.0
 numpy>=1.24.0
 pandas>=2.0.0
 scipy>=1.10.0
-filterpy>=1.4.5
 pytest>=7.0.0
+# optional: torch>=2.1 for the TrackNet detector / training

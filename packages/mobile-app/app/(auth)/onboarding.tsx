@@ -1,212 +1,216 @@
-import React, { useRef, useState } from "react"
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  FlatList,
-} from "react-native"
+import { memo, useCallback, useState } from "react"
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { router } from "expo-router"
-import { Colors, Spacing, Radius } from "../../src/theme"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { Bars, Meter } from "../../src/components/data/Bars"
+import { RisoSurface, Screen } from "../../src/components/riso/RisoSurface"
+import { SweepHeading } from "../../src/components/riso/SweepHeading"
+import Button, { tapHaptic } from "../../src/components/ui/Button"
+import { Stat } from "../../src/components/ui/Stat"
+import { getDemo } from "../../src/data/demo"
+import { useSport } from "../../src/hooks/useSport"
+import { pad2 } from "../../src/lib/format"
+import { LIVE_SPORT, SPORTS, STATUS_LABEL, type RisoPalette, type Sport, type SportId } from "../../src/sports"
 import { useUserStore } from "../../src/store/userStore"
+import { Fonts, Paper, Radius, Space, Type } from "../../src/theme"
 
-const { width } = Dimensions.get("window")
-
-const slides = [
+const STEPS = [
   {
-    id: "1",
-    title: "Track Every Shot",
-    description: "Real-time shuttle tracking with advanced computer vision. See your speed, trajectory, and shot placement instantly.",
-    icon: "◎",
-    color: Colors.accent_green,
+    kicker: "01 — Track",
+    lines: ["Every shot,", "measured."],
+    deck: "Prop your phone behind the baseline. Ayto follows the shuttle or ball frame by frame and turns it into speed you can trust.",
   },
   {
-    id: "2",
-    title: "Analyze Your Form",
-    description: "AI-powered pose estimation breaks down your biomechanics. Compare your technique to professional players.",
-    icon: "◈",
-    color: Colors.accent_blue,
+    kicker: "02 — Form",
+    lines: ["Read your", "form."],
+    deck: "Pose estimation reads your elbow, wrist and knees, then sets them beside the pros.",
   },
   {
-    id: "3",
-    title: "Improve Fast",
-    description: "Get personalized drills and training plans based on your weaknesses. Smash harder, move smarter.",
-    icon: "◆",
-    color: Colors.accent_amber,
+    kicker: "03 — Sport",
+    lines: ["Pick your", "sport."],
+    deck: "Badminton is fully live. Every other sport is labelled with exactly what's ready.",
   },
-]
+] as const
 
-export default function OnboardingScreen() {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const flatListRef = useRef<FlatList>(null)
-  const { setOnboardingDone } = useUserStore()
-
-  const handleNext = () => {
-    if (currentIndex < slides.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true })
-    } else {
-      handleFinish()
-    }
-  }
-
-  const handleFinish = () => {
-    setOnboardingDone(true)
-    router.replace("/(auth)/login")
-  }
-
-  const handleSkip = () => {
-    setOnboardingDone(true)
-    router.replace("/(auth)/login")
-  }
-
+const SportTile = memo(function SportTile({
+  sport,
+  selected,
+  onSelect,
+}: {
+  sport: Sport
+  selected: boolean
+  onSelect: (id: SportId) => void
+}) {
+  const press = useCallback(() => {
+    tapHaptic()
+    onSelect(sport.id)
+  }, [onSelect, sport.id])
+  const { palette } = sport
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-        <Text style={styles.skipText}>Skip</Text>
-      </TouchableOpacity>
+    <Pressable
+      onPress={press}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      accessibilityLabel={`${sport.name}, ${STATUS_LABEL[sport.status]}`}
+      style={[styles.tile, selected && { borderColor: palette.plate, backgroundColor: Paper.stock }]}
+    >
+      <View style={[styles.code, { backgroundColor: palette.plate }]}>
+        <Text style={[styles.codeText, { color: palette.onPlate }]}>{sport.code}</Text>
+      </View>
+      <View style={styles.tileText}>
+        <Text style={styles.tileName} numberOfLines={1}>
+          {sport.name}
+        </Text>
+        <Text style={[styles.tileStatus, { color: sport.status === "live" ? palette.ink : Paper.faint }]}>
+          {STATUS_LABEL[sport.status]}
+        </Text>
+      </View>
+    </Pressable>
+  )
+})
 
-      <FlatList
-        ref={flatListRef}
-        data={slides}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={(e) => {
-          const idx = Math.round(e.nativeEvent.contentOffset.x / width)
-          setCurrentIndex(idx)
-        }}
-        renderItem={({ item, index }) => (
-          <View style={styles.slide}>
-            <View style={styles.iconContainer}>
-              <View style={[styles.iconRing, { borderColor: item.color }]}>
-                <Text style={[styles.icon, { color: item.color }]}>{item.icon}</Text>
-              </View>
-            </View>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.description}>{item.description}</Text>
-          </View>
-        )}
-        keyExtractor={(item) => item.id}
-      />
+const SAMPLE = getDemo(LIVE_SPORT.id)
 
-      <View style={styles.footer}>
-        <View style={styles.dots}>
-          {slides.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.dot,
-                currentIndex === index && { backgroundColor: Colors.accent_green, width: 24 },
-              ]}
-            />
+/** A printed specimen of what the step describes, from labelled sample data. */
+const Specimen = memo(function Specimen({ step, palette }: { step: number; palette: RisoPalette }) {
+  if (!SAMPLE) return null
+  return (
+    <RisoSurface palette={palette} color={Paper.stock} glow={0.35} glowSize={360} grain={0.4} style={styles.specimen}>
+      <Text style={Type.kicker}>Specimen · sample {LIVE_SPORT.name.toLowerCase()} session</Text>
+      {step === 0 ? (
+        <>
+          <Stat label={LIVE_SPORT.metrics[0].label} value={SAMPLE.sessions[0].max_speed_kmh} unit="km/h" size="xl" color={palette.ink} style={styles.specimenStat} />
+          <Bars
+            values={SAMPLE.report.timeline}
+            max={Math.max(...SAMPLE.report.timeline) * 1.1}
+            height={56}
+            color={palette.plate}
+            highlight={{ threshold: Math.max(...SAMPLE.report.timeline), color: palette.ink3 }}
+            accessibilityLabel="Sample speed timeline"
+          />
+        </>
+      ) : (
+        <View style={styles.specimenStat}>
+          {SAMPLE.report.body.map((row) => (
+            <Meter key={row.id} label={row.label} you={row.you} pro={row.pro} unit={row.unit} youColor={palette.plate} proColor={palette.ink3} />
           ))}
         </View>
+      )}
+    </RisoSurface>
+  )
+})
 
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext} activeOpacity={0.8}>
-          <Text style={styles.nextButtonText}>
-            {currentIndex === slides.length - 1 ? "Get Started" : "Next"}
+export default function OnboardingScreen() {
+  const insets = useSafeAreaInsets()
+  const [step, setStep] = useState(0)
+  const sport = useSport()
+  const setSportPreference = useUserStore((s) => s.setSportPreference)
+  const setOnboardingDone = useUserStore((s) => s.setOnboardingDone)
+
+  const finish = useCallback(() => {
+    setOnboardingDone(true)
+    router.replace("/login")
+  }, [setOnboardingDone])
+
+  const next = useCallback(() => {
+    if (step < STEPS.length - 1) setStep(step + 1)
+    else finish()
+  }, [step, finish])
+
+  const current = STEPS[step]
+  const last = step === STEPS.length - 1
+
+  return (
+    <Screen palette={sport.palette}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + Space.lg }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.topRow}>
+          <Text style={Type.kicker}>Ayto · SportIQ</Text>
+          <Pressable onPress={finish} accessibilityRole="button" hitSlop={10}>
+            <Text style={[Type.kicker, styles.skip]}>Skip</Text>
+          </Pressable>
+        </View>
+
+        <Text style={[Type.kicker, styles.stepKicker, { color: sport.palette.ink }]}>{current.kicker}</Text>
+        <SweepHeading key={step} lines={current.lines} palette={sport.palette} size="hero" />
+        <Text style={[Type.deck, styles.deck]}>{current.deck}</Text>
+
+        {last ? (
+          <View style={styles.grid} accessibilityRole="radiogroup">
+            {SPORTS.map((s) => (
+              <SportTile key={s.id} sport={s} selected={s.id === sport.id} onSelect={setSportPreference} />
+            ))}
+          </View>
+        ) : (
+          <Specimen step={step} palette={sport.palette} />
+        )}
+      </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom + Space.lg }]}>
+        <View>
+          <Text style={[Type.kicker, styles.count]}>
+            {pad2(step + 1)} / {pad2(STEPS.length)}
           </Text>
-          <Text style={styles.nextArrow}>→</Text>
-        </TouchableOpacity>
+          <View style={styles.progress}>
+            {STEPS.map((_, i) => (
+              <View
+                key={i}
+                style={[styles.segment, { backgroundColor: i <= step ? sport.palette.plate : Paper.rule }]}
+              />
+            ))}
+          </View>
+        </View>
+        <Button
+          label={last ? `Start with ${sport.name}` : "Next"}
+          trailing="→"
+          palette={sport.palette}
+          onPress={next}
+          style={styles.next}
+        />
       </View>
-    </View>
+    </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg_primary,
-  },
-  skipButton: {
-    position: "absolute",
-    top: 60,
-    right: 24,
-    zIndex: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.bg_surface,
+  scroll: { paddingHorizontal: Space.gutter, paddingBottom: Space.xl },
+  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: Space.xxxl },
+  skip: { color: Paper.text, textDecorationLine: "underline" },
+  stepKicker: { marginBottom: Space.md },
+  deck: { marginTop: Space.xl, maxWidth: 420 },
+  specimen: { marginTop: Space.xl, padding: Space.lg, borderWidth: 1, borderColor: Paper.rule, borderRadius: Radius.sm },
+  specimenStat: { marginTop: Space.md, marginBottom: Space.md },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: Space.sm, marginTop: Space.xl },
+  tile: {
+    flexBasis: "48%",
+    flexGrow: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.sm,
+    padding: Space.sm,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Paper.rule,
+    borderRadius: Radius.sm,
   },
-  skipText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: Colors.text_secondary,
-  },
-  slide: {
-    width,
-    paddingHorizontal: Spacing.xl,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  iconContainer: {
-    marginBottom: 48,
-  },
-  iconRing: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 3,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.02)",
-  },
-  icon: {
-    fontSize: 48,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: Colors.text_primary,
-    textAlign: "center",
-    marginBottom: 16,
-    letterSpacing: -0.5,
-  },
-  description: {
-    fontSize: 15,
-    fontWeight: "400",
-    color: Colors.text_secondary,
-    textAlign: "center",
-    lineHeight: 24,
-    paddingHorizontal: 12,
-  },
+  code: { width: 34, height: 34, alignItems: "center", justifyContent: "center" },
+  codeText: { fontFamily: Fonts.monoBold, fontSize: 13 },
+  tileText: { flex: 1 },
+  tileName: { fontFamily: Fonts.display, fontSize: 16, lineHeight: 20, color: Paper.text },
+  tileStatus: { fontFamily: Fonts.mono, fontSize: 9, letterSpacing: 1, textTransform: "uppercase", marginTop: 2 },
   footer: {
     flexDirection: "row",
+    alignItems: "flex-end",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: 50,
+    paddingHorizontal: Space.gutter,
+    paddingTop: Space.lg,
+    borderTopWidth: 1,
+    borderTopColor: Paper.rule,
+    backgroundColor: Paper.bg,
   },
-  dots: {
-    flexDirection: "row",
-    gap: 6,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.12)",
-  },
-  nextButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: Colors.accent_green,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: Radius.full,
-  },
-  nextButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: Colors.bg_primary,
-  },
-  nextArrow: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: Colors.bg_primary,
-  },
+  count: { marginBottom: Space.sm },
+  next: { flexShrink: 1, marginLeft: Space.md },
+  progress: { flexDirection: "row", gap: 4 },
+  segment: { width: 22, height: 4 },
 })

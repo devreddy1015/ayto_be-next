@@ -13,6 +13,8 @@ References:
 
 from __future__ import annotations
 
+import numpy as np
+
 from .schemas import ProComparison
 
 # ---------------------------------------------------------------------------
@@ -219,6 +221,47 @@ class ProComparisonEngine:
             pro_name="Unknown",
             stroke_type=stroke_type,
             similarity_score=0.0,
+        )
+
+    @staticmethod
+    def compare_sequence(
+        player_angles: list[dict[str, float] | None],
+        reference_angles: list[dict[str, float] | None],
+        fps: float,
+        player_hit: int | None = None,
+        reference_hit: int | None = None,
+        reference_fps: float | None = None,
+        reference_name: str = "Reference",
+        stroke_type: str = "unknown",
+    ) -> ProComparison:
+        """Compare whole strokes (angle trajectories) with two-level DTW.
+
+        This is the research-backed comparison (see pose-biomechanics
+        ``technique.py``): it aligns the strokes in time, crops to ±0.6 s
+        around the hits, and reports per-joint error plus timing (early/late).
+        Use it whenever a reference *clip* exists (a coach recording, a pro
+        clip, or the player's own best stroke); ``compare`` only has
+        single-frame pro angles.
+        """
+        from technique import compare_technique
+
+        joints = sorted({j for frame in player_angles if frame for j in frame}
+                        & {j for frame in reference_angles if frame for j in frame})
+
+        def to_array(seq: list[dict[str, float] | None]) -> np.ndarray:
+            return np.array([[(f or {}).get(j, np.nan) for j in joints] for f in seq], float)
+
+        result = compare_technique(
+            to_array(player_angles), to_array(reference_angles), joints, fps,
+            player_hit=player_hit, reference_hit=reference_hit, reference_fps=reference_fps,
+        )
+        return ProComparison(
+            pro_name=reference_name,
+            stroke_type=stroke_type,
+            differences={j: d.mean_error_deg for j, d in result.per_joint.items()},
+            timing_offsets_ms={j: d.timing_offset_ms for j, d in result.per_joint.items()},
+            similarity_score=result.similarity,
+            feedback=result.feedback,
         )
 
     def _get_pro_angles(self, athlete: str, stroke_type: str) -> dict[str, float]:

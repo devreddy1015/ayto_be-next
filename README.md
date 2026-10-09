@@ -9,9 +9,10 @@ ayto/
 ├── packages/
 │   ├── cv-core/              # Team A — Shuttle/ball detection, tracking, speed
 │   ├── pose-biomechanics/    # Team B — Body keypoints, joint angles, stroke events
-│   ├── ml-models/            # Team C — BiLSTM stroke classifier, training, export
-│   ├── mobile-app/           # Team D — React Native app
-│   └── data-research/        # Team E — Video collection, preprocessing, research
+│   ├── ml-models/            # Team C — Multimodal stroke classifier, HitNet, export
+│   ├── mobile-app/           # Team D — Expo / React Native app + web dashboard
+│   └── data-research/        # Team E — Video collection, preprocessing
+├── research/                 # Algorithm reviews with verified evidence
 ├── data/                     # DVC-tracked datasets
 ├── models/                   # Model artifacts
 ├── dvc.yaml                  # Data pipeline definitions
@@ -41,36 +42,51 @@ ruff check packages/
 
 ## Module Overview
 
+Each package's `src/` is importable as top-level modules (the tests and
+`packages/core` put them on `sys.path`). Algorithm choices and the evidence
+behind them are in [`research/`](research/README.md).
+
 ### CV Core (Team A)
-Shuttle detection via YOLOv8 + Kalman filter tracking + speed computation from pixel displacement.
+TrackNet heatmap detection (TrackNetV3 background input + V4 motion attention;
+YOLO only as fallback) → constant-acceleration Kalman tracking → offline
+trajectory rectification → court-keypoint calibration → MonoTrack-style
+gravity + drag 3D flight fit → launch and net-crossing speed. Sport geometry
+for badminton, tennis, table tennis, pickleball, padel and squash lives in
+`sports.py`.
 
 ```python
-from packages.cv_core.src.pipeline import CVPipeline
+from pipeline import CVPipeline   # packages/cv-core/src on sys.path
 
-pipeline = CVPipeline(model_path="models/shuttle_detector.pt")
-results = pipeline.process_video("match.mp4")
-pipeline.export_csv("output/match_tracking.csv")
-print(pipeline.get_summary())
+pipe = CVPipeline(sport="badminton", tracknet_path="models/tracknet.pt")
+pipe.process_video("rally.mp4", corners_px=[nl, nr, fr, fl])  # 4 taps on the court corners
+print(pipe.get_summary()["flights"])  # launch_speed_kmh, net_speed_kmh, method
 ```
 
+Train the detector with `python train_tracknet.py --data TrackNetV2 --background --motion`.
+
 ### Pose & Biomechanics (Team B)
-MediaPipe Holistic keypoint extraction → hip-normalized pose → joint angles → stroke event detection → pro comparison.
+RTMPose (via optional `rtmlib`; BlazePose fallback) → hip/torso normalisation
+→ One-Euro smoothing → joint angles → wrist-peak swings fused with shuttle
+turns (`fuse_hits`) → two-level DTW technique comparison (`compare_technique`).
 
 ```python
-from packages.pose_biomechanics.src.keypoints import KeypointExtractor
-from packages.pose_biomechanics.src.stroke_events import StrokeEventDetector
+from keypoints import PoseExtractor   # packages/pose-biomechanics/src on sys.path
+from normalize import normalize_and_smooth
+from stroke_events import StrokeDetector
 
-with KeypointExtractor() as extractor:
-    kps = extractor.extract_from_video("rally.mp4")
-    events = StrokeEventDetector(fps=60).detect(kps)
+with PoseExtractor() as extractor:
+    kps = normalize_and_smooth(extractor.extract_from_video("rally.mp4"), fps=60)
+events = StrokeDetector(fps=60).detect(kps)
 ```
 
 ### ML Models (Team C)
-BiLSTM + Attention stroke classifier. Train → evaluate → export to ONNX/TFLite.
+Multimodal stroke classifier (pose + shuttle trajectory + court position with
+cross-attention, BST-style; optional adjacent-stroke fusion), HitNet hit
+detector, per-sport taxonomies. Train → evaluate → export to ONNX/TFLite.
 
 ```bash
-python -m packages.ml_models.src.train --config packages/ml-models/configs/default.yaml
-python -m packages.ml_models.src.export --model models/stroke_classifier.pt --output models/stroke_classifier.onnx
+python packages/ml-models/src/train.py --config packages/ml-models/configs/default.yaml
+python packages/ml-models/src/export.py --model models/stroke_classifier.ckpt --output models/stroke_classifier.onnx
 ```
 
 ### Data Research (Team E)

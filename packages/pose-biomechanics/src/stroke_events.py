@@ -1,8 +1,19 @@
-"""Stroke event detection from pose sequences.
+"""Stroke (hit) event detection.
 
-Uses wrist velocity analysis with adaptive thresholding to detect stroke
-events.  All numeric constants are derived from badminton biomechanics
-literature:
+Two levels:
+
+* :class:`StrokeDetector`: wrist-velocity peaks with an adaptive threshold.
+  This pose-only cue is the "derivative-based" detector that MonoTrack
+  measured at F1 0.699, against 0.946 for its learned, trajectory-aware
+  HitNet.
+* :func:`fuse_hits`: combines those peaks with shuttle-trajectory turns
+  from cv-core and enforces that the same side never hits twice in a row.
+  Trajectory-only hits have high recall but low precision (P 0.588 / R
+  0.936 on BWF video); confirming them with the hitter's swing is what
+  lifted precision to ~0.90 in the Sensors 2024 shot-refinement study.
+  Train ml-models' HitNet once labelled hit frames exist.
+
+Constants for the pose cue come from badminton biomechanics literature:
 
     * Phomsoupha & Lam 2015 — stroke timing distributions
     * Kwan et al. 2011 — elite vs sub-elite velocity profiles
@@ -200,6 +211,94 @@ class StrokeDetector:
                 last_peak = i
 
         return peaks
+
+
+@dataclass
+class Hit:
+    """A fused hit event.
+
+    Attributes:
+        frame: Hit frame.
+        hitter: ``"player"`` (the tracked person swung) or ``"opponent"``
+            (the shuttle turned with no swing from the tracked player).
+        confidence: In [0, 1].
+        source: Which cues fired: ``"shuttle+pose"``, ``"shuttle"`` or ``"pose"``.
+    """
+
+    frame: int
+    hitter: str
+    confidence: float
+    source: str
+
+
+def fuse_hits(
+    pose_events: list[StrokeEvent],
+    shuttle_turns: list[int],
+    fps: float,
+    shuttle_visible: np.ndarray | None = None,
+    tolerance_s: float = 0.1,
+) -> list[Hit]:
+    """Fuse pose swing peaks with shuttle-trajectory turns.
+
+    Rules:
+
+    1. A shuttle turn with a tracked-player swing within ``tolerance_s`` is
+       a player hit (both cues agree, so confidence is highest).
+    2. A shuttle turn with no player swing is an opponent hit.
+    3. A swing with no turn counts only if the shuttle was unobserved around
+       it (occlusion). If the shuttle was visible and didn't turn, it was a
+       practice swing or feint, and is dropped.
+    4. The same side can't hit twice in a row; of two consecutive same-side
+       hits, the less confident one is dropped.
+
+    Args:
+        pose_events: Output of :meth:`StrokeDetector.detect`.
+        shuttle_turns: Frames from ``cv-core`` ``find_trajectory_turns``.
+        fps: Frame rate.
+        shuttle_visible: Optional per-frame bool mask of shuttle detections.
+            Without it, swings without a turn are kept (pose-only fallback).
+        tolerance_s: Max offset between a swing peak and a shuttle turn.
+
+    Returns:
+        Hits sorted by frame.
+    """
+    tol = max(1, round(tolerance_s * fps))
+    used: set[int] = set()
+    hits: list[Hit] = []
+
+    for turn in shuttle_turns:
+        best = None
+        for i, ev in enumerate(pose_events):
+            if i not in used and abs(ev.peak_frame - turn) <= tol and (
+                best is None
+                or abs(ev.peak_frame - turn) < abs(pose_events[best].peak_frame - turn)
+            ):
+                best = i
+        if best is not None:
+            used.add(best)
+            conf = 0.6 + 0.4 * pose_events[best].confidence
+            hits.append(Hit(turn, "player", conf, "shuttle+pose"))
+        else:
+            hits.append(Hit(turn, "opponent", 0.5, "shuttle"))
+
+    for i, ev in enumerate(pose_events):
+        if i in used:
+            continue
+        if shuttle_visible is not None:
+            lo, hi = max(0, ev.peak_frame - tol), ev.peak_frame + tol + 1
+            if np.any(shuttle_visible[lo:hi]):
+                continue  # shuttle was seen and didn't turn: not a hit
+        hits.append(Hit(ev.peak_frame, "player", 0.3 + 0.3 * ev.confidence, "pose"))
+
+    hits.sort(key=lambda h: h.frame)
+    cleaned: list[Hit] = []
+    for hit in hits:
+        if cleaned and cleaned[-1].hitter == hit.hitter:
+            if hit.confidence > cleaned[-1].confidence:
+                cleaned[-1] = hit
+            continue
+        cleaned.append(hit)
+    return cleaned
 
 
 StrokeEventDetector = StrokeDetector

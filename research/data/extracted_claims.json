@@ -1,0 +1,2153 @@
+[
+ {
+  "source": "https://www.researchsquare.com/article/rs-9880962",
+  "source_quality": "primary",
+  "published": "2026-07-15",
+  "importance": "central",
+  "claim": "The best published learned coach-vs-student comparison result in this source is modest. On a subject-disjoint test set, the exemplar-comparison model's predicted 0-100 technique scores reach MAE 7.47, RMSE 9.09, SRCC 0.56 and PLCC 0.58 against expert coach scores. 38% of predictions fall within 5 points and 73% within 10 points. The paper reports no other baselines, such as DTW alignment or pose and joint-angle comparison, so the comparison method the app uses now cannot be compared directly.",
+  "quote": "Overall Performance 7.47 9.09 0.56 0.58 38% 73% ... the model achieves an MAE of 7.47 and an RMSE of 9.09 ... the SRCC and PLCC coefficients reach 0.56 and 0.58 respectively ... the model attains Acc05 of 38% and Acc10 of 73%",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.researchsquare.com/article/rs-9880962",
+  "source_quality": "primary",
+  "published": "2026-07-15",
+  "importance": "central",
+  "claim": "The benchmark is a smartphone-captured badminton technique-assessment dataset. It has 7,200 clips covering 10 fundamental strokes (forehand/backhand clear, serve, lift, net drop and drive) from 5 professional coaches and 67 university students. Students are scored on a 100-point scale by several coaches, with the highest and lowest scores dropped. The split is by student: 53 students for training and 14 for testing. The data is available only on request.",
+  "quote": "The dataset contains 7,200 smartphone-captured video clips covering 10 fundamental badminton strokes, collected from 5 professional coaches and 67 university students across multiple real-world scenarios. Student performances are annotated on a 100-point scale by expert coaches using a multi-rater scoring protocol.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.researchsquare.com/article/rs-9880962",
+  "source_quality": "primary",
+  "published": "2026-07-15",
+  "importance": "supporting",
+  "claim": "The baseline compares RGB appearance, not skeletons. It uses a pretrained ViT on each frame (only 8 sampled frames at 224x224), then self-attention temporal fusion with mean pooling. Coach and student features are compared by subtraction plus bilinear pooling, followed by a linear regression head trained with RMSE loss. It was trained on an NVIDIA 4090 GPU, and the paper gives no mobile latency figures.",
+  "quote": "we compute the overall discrepancy between the exemplar and student features via a subtraction operation ... we employ the following bilinear pooling operation to capture the local discrepancies ... the input video frames are resized to 224 × 224 pixels ... the number of sampled frames T for each video is set to 8",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.researchsquare.com/article/rs-9880962",
+  "source_quality": "primary",
+  "published": "2026-07-15",
+  "importance": "supporting",
+  "claim": "How well the model agrees with coaches depends strongly on the stroke. Overhead and forehand strokes are hardest: Forehand Clear has SRCC 0.32 / PLCC 0.34 and MAE 8.90, and Forehand Serve has SRCC 0.34. Drives and the backhand serve do best: Backhand Drive has SRCC 0.75 / PLCC 0.75 and MAE 6.04.",
+  "quote": "Forehand Clear 8.90 11.11 0.32 0.34 34% 64% ... Backhand Drive 6.04 7.27 0.75 0.75 46% 82% ... the prediction performance on the remaining 2 strokes, namely Forehand Clear and Forehand Serve, is relatively inferior",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.researchsquare.com/article/rs-9880962",
+  "source_quality": "primary",
+  "published": "2026-07-15",
+  "importance": "tangential",
+  "claim": "Clips were recorded with handheld phones and phones on fixed holders, in places other than courts (dormitories, teaching buildings). This matches the single-phone capture conditions of a consumer app, not lab or multi-camera setups.",
+  "quote": "data acquisition is performed in two modes: fixed shooting with a smartphone holder and handheld shooting ... we require students to perform the technical movements in different scenarios, including dormitories and teaching buildings, rather than being limited to badminton courts only.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/1807.11176",
+  "source_quality": "primary",
+  "published": "2018-08-06",
+  "importance": "central",
+  "claim": "For action recognition on unseen motion categories, learned deep metric approaches, including the proposed MMD-NCA loss with an attentive BiLSTM, cut false positive rate by up to 17% relative to DTW-family measures (DTW, MDDTW, CTW, GDTW). Table 1 on CMU mocap gives FPR at 70% TPR of 20.29 for MMD-NCA against 37.62 for DTW. On Human3.6M the figures are 33.13 against 44.38. This supports replacing hand-crafted per-joint or DTW comparison with a learned similarity embedding, but the benchmark measures action-category similarity, not fine-grained technique quality within one stroke type.",
+  "quote": "With a true positive rate of 70%, the learning approaches [33,41,45,35] including our approach achieve up to 17% improvement in FPR relative to DTW [42], MDDTW [25], CTW [47] and GDTW [48].",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/1807.11176",
+  "source_quality": "primary",
+  "published": "2018-08-06",
+  "importance": "central",
+  "claim": "DTW fails when the distinctive pose fills only a short part of a long sequence, because the non-informative frames dominate the distance. In a cartwheel retrieval query on CMU mocap, DTW returned jumping, laughing and standing motions. This matters for badminton technique comparison, where the stroke-defining moment (backswing to contact) is brief within a longer clip.",
+  "quote": "DTW [42] fails to match the query to the dataset because the distinctive pose appears on a small portion of the sequence. This implies that the large portion, where the actor stands, dominates the similarity measure.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/1807.11176",
+  "source_quality": "primary",
+  "published": "2018-08-06",
+  "importance": "supporting",
+  "claim": "On motion-based person identification (CMU mocap, 29 unseen test subjects, 64-d embedding), MMD-NCA beats DTW-based measures by about 20% and other deep metric losses (Triplet, Triplet+GOR, N-Pair, DCTW) by about 2%. Table 2 gives FPR at 70% TPR of 2.55 for MMD-NCA against 22.85 for DTW. This suggests learned embeddings capture an individual's movement style, which is relevant to comparing a user's style against a pro's.",
+  "quote": "our method outperforms all the approaches for all FPR with a 20% improvement against DTW [42], MDDTW [25], CTW [47] and GDTW [48], and a 2% improvement compared to the state-of-the-art deep learning approaches",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/1807.11176",
+  "source_quality": "primary",
+  "published": "2018-08-06",
+  "importance": "supporting",
+  "claim": "In the ablation, self-attention over the pose sequence is the most important architectural component. Removing it causes the largest drop in NMI and F1. Layer normalization improves FPR by about 7% and self-attention by about 10%. The attention also learns to focus on the key action frame (for example, the ball-throw moment in basketball sequences).",
+  "quote": "Notably, the removal of the self-attention mechanism yields the biggest drop in NMI and F1 on all the datasets. In addition, Both the layer normalization and the self-attention improve the resulting FPR by 7% and 10%, respectively.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/1807.11176",
+  "source_quality": "primary",
+  "published": "2018-08-06",
+  "importance": "tangential",
+  "claim": "The evaluation covers only clean 3D motion-capture data (CMU mocap, Human3.6M), aligned to the torso, in exponential-map representation and downsampled to 30 Hz. It includes no monocular 2D pose estimates, no sports or racket data, and no on-device latency. Transfer to noisy smartphone BlazePose keypoints of fast badminton strokes is therefore unverified by this paper.",
+  "quote": "We tested the models on two different datasets: (1) the CMU Graphics Lab motion capture database (CMU mocap) [1]; and, (2) the Human3.6M dataset [17].",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.scitepress.org/Papers/2016/57785/",
+  "source_quality": "primary",
+  "published": "2016",
+  "importance": "central",
+  "claim": "Morel et al. (VISAPP 2016) compare a learner's motion with a model built only from expert recordings, with no hand-coded rules. They use a 2-level DTW: one DTW aligns the whole body, then a separate DTW aligns each joint. This gives a spatial error and a temporal (timing) error for every joint at every time step. It is a direct alternative to the app's current per-joint angle comparison for stage 7.",
+  "quote": "Only based on a database of experts' motions and no additional knowledge, we propose an innovative 2-level DTW (Dynamic Time Warping) approach to temporally and spatially align the motions and extract the imperfections of the novice's performance for each joints.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.scitepress.org/Papers/2016/57785/",
+  "source_quality": "primary",
+  "published": "2016",
+  "importance": "central",
+  "claim": "The authors argue that one whole-body DTW gives only a single overall error score. It cannot show which joint is wrong or detect timing problems between limbs. Aligning each joint on its own loses the links between joints. The 2-level design is meant to fix both problems.",
+  "quote": "Actually, a single DTW can only give information about the global error of the motion without considering the temporality between limbs for instance and without localizing the errors. Another solution could have been to manage each joint independently but no relationships between the joints could then be identified.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.scitepress.org/Papers/2016/57785/",
+  "source_quality": "primary",
+  "published": "2016",
+  "importance": "supporting",
+  "claim": "How the expert model is built: every expert trial is DTW-aligned to the longest trial and averaged into a mean trajectory. Allowed spatial variation is stored as a 3x3 covariance matrix per joint per time step, and allowed timing variation as a standard deviation. The DTW cost uses both joint positions and their derivatives (derivative DTW). Before alignment, poses are centred on the root joint, rotated to face the hips' direction, and scaled by the head-to-root distance so body size matters less. A learner's spatial error is the Mahalanobis distance from the expert mean under that covariance.",
+  "quote": "the spatial errors are computed with the Mahalanobis distances between the trajectories of the novice's motion x̃a(t) and of the model of experts xamean(t) where ΣS(t, a) is a 3 × 3 matrix modeling the spatial tolerance",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.scitepress.org/Papers/2016/57785/",
+  "source_quality": "primary",
+  "published": "2016",
+  "importance": "supporting",
+  "claim": "The evidence is small and weak. Data came from a Vicon MX-40 optical marker system (43 markers, 25 3D joint centres), not from monocular phone video. The sport was the tennis serve, not badminton. There were 9 expert players (women aged 14-18) and 2 novices, giving 79 expert and 20 novice trials. Results are shown only as box plots in which expert and novice errors look separated. No classification accuracy figure is reported, and the authors call the results preliminary.",
+  "quote": "we captured the tennis serves of 9 experts (14-18 year old women) and 2 novice players. Each of them made 8 to 10 examples (or trials) leading to a database of 79 expert and 20 novice examples ... these preliminary results must be extended to a bigger population to have a statistical analysis.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.scitepress.org/Papers/2016/57785/",
+  "source_quality": "primary",
+  "published": "2016",
+  "importance": "tangential",
+  "claim": "To find the global alignment, the method repeatedly picks random subsets of joints, in the style of RANSAC (N_RANSAC=50 rounds, 5 joints per subset, threshold kT=3). This stops one badly timed joint from distorting the alignment. The authors note that it also makes the output random, so repeated runs can give different results. In the worked example, the novice's right elbow had a temporal error of 50.48 at the moment of ball impact, which the authors read as the arm moving too early.",
+  "quote": "Our algorithm is based on a random-based selection process that could make it stochastic and then subject to variations. On the contrary, this process allows the detection of outliers, i.e. joints that are badly synchronized with others, in an efficient way.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2108.11996",
+  "source_quality": "primary",
+  "published": "2021-08-26 (arXiv v1; published at NeurIPS 2021)",
+  "importance": "central",
+  "claim": "Drop-DTW extends standard DTW so that it aligns only the signal two sequences share and drops outlier elements interspersed anywhere in either sequence, including at the endpoints. Matching and dropping are solved together in one dynamic program, and a smooth-min relaxation makes it differentiable, so it can be used as a training loss. For Ayto's pro comparison, this means a user's stroke clip that contains irrelevant frames (idle, footwork, occlusion) could be aligned to a pro reference without forcing every frame to match.",
+  "quote": "we introduce Drop-DTW, a novel algorithm that aligns the common signal between the sequences while automatically dropping the outlier elements from the matching. The entire procedure is implemented as a single dynamic program that is efficient and fully differentiable.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2108.11996",
+  "source_quality": "primary",
+  "published": "2021-08-26 (arXiv v1; published at NeurIPS 2021)",
+  "importance": "central",
+  "claim": "Used purely at inference on the same frozen embeddings, Drop-DTW beat every other alignment algorithm tested on all three datasets. Accuracy / IoU on CrossTask: Drop-DTW 70.2 / 30.5; DTW 11.2 / 10.1; OTAM 19.5 / 11.6; LCSS 50.3 / 4.1; Needleman-Wunsch 68.8 / 9.5; greedy drop + DTW 60.1 / 13.8. On YouCook2: Drop-DTW 66.0 / 47.5 vs DTW 35.0 / 31.1.",
+  "quote": "Table 2 demonstrates that Drop-DTW outperforms all the existing methods on all metrics and datasets by a significant margin. This is due to their inability to drop interspersed outliers or due to their restricted space of possible matches.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2108.11996",
+  "source_quality": "primary",
+  "published": "2021-08-26 (arXiv v1; published at NeurIPS 2021)",
+  "importance": "supporting",
+  "claim": "In a controlled retrieval test (TMNIST, Recall@1, query frames randomly blurred as noise), plain DTW was very sensitive to the interspersed noise. At the highest noise level, Drop-DTW (constant drop cost 0.3, no training) scored 8x better than DTW.",
+  "quote": "As expected, DTW is very sensitive to interspersed noise. In contrast, Drop-DTW remains robust across the range of noise levels. Concretely, for the highest noise level in Fig 3(a), we see that Drop-DTW is 8× better than DTW",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2108.11996",
+  "source_quality": "primary",
+  "published": "2021-08-26 (arXiv v1; published at NeurIPS 2021)",
+  "importance": "supporting",
+  "claim": "On PennAction, a dataset of human sport and action videos (e.g., baseball pitch and swing), the authors added 0-70% outlier frames taken from other actions. Embeddings trained with the Drop-DTW loss gave better video alignment (Kendall's Tau) than those trained with SmoothDTW, a soft-min differentiable DTW, and held up better as the outlier rate rose. This suggests it can learn alignment-based motion similarity for sport actions.",
+  "quote": "Fig. 5 demonstrates the strong performance of Drop-DTW as a loss for representation learning, which once again proves to be more resilient to outliers.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2108.11996",
+  "source_quality": "primary",
+  "published": "2021-08-26 (arXiv v1; published at NeurIPS 2021)",
+  "importance": "tangential",
+  "claim": "The drop cost can be set per instance as the p-th top percentile of the match-cost matrix, which encodes a prior on the expected outlier rate. It can also be learned by a small feed-forward network. Drop-DTW still enforces a monotonic (strictly ordered) alignment, so it cannot handle signals whose phases are only partially ordered.",
+  "quote": "the final alignment is still subject to the monotonicity constraint, which is based on the assumption that the relevant signals are strictly ordered.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2509.05334v1",
+  "source_quality": "primary",
+  "published": "2025-09-01",
+  "importance": "central",
+  "claim": "A smartphone badminton smash-speed system that combines a custom YOLOv5 shuttle detector with a linear constant-velocity Kalman filter (a SORT-style setup, close to Ayto's current YOLOv8n+KF approach) produced peak speeds far from radar: MAE 66.41 km/h and RMSE 74.68 km/h over 20 smashes filmed on an iPhone 16 at 30 FPS against a Bushnell Speedster III radar. The system's peak readings ran well above radar in every trial (for example, 214.6 vs 132.0 km/h).",
+  "quote": "The Mean Absolute Error (MAE) between the two methods for peak speed was 66.41 km/h, and the Root Mean Squared Error (RMSE) was 74.68 km/h.",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://arxiv.org/html/2509.05334v1",
+  "source_quality": "primary",
+  "published": "2025-09-01",
+  "importance": "central",
+  "claim": "Speed was taken at the net crossing instead of at the peak, and these readings were much closer to radar. The paper gives no MAE for this. Computed from its Table 1, the at-net MAE is about 9.9 km/h, with the worst trials off by about 31 to 34 km/h (trial 5: 178.2 vs 144.0; trial 15: 118.0 vs 87.0).",
+  "quote": "the at-net readings \"align remarkably well\" with the radar",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/html/2509.05334v1",
+  "source_quality": "primary",
+  "published": "2025-09-01",
+  "importance": "central",
+  "claim": "Court calibration needs no homography or keypoint detection. The user clicks two points on a court line at the same depth as the impact point, and the system computes one meters-per-pixel scale factor (S_f = d_real / d_pixel). This strictly 2D planar method cannot measure cross-court or angled smashes correctly and underestimates speed for any motion toward or away from the camera.",
+  "quote": "the strict 2D planar assumption means the system cannot accurately measure the speed of cross-court smashes",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/html/2509.05334v1",
+  "source_quality": "primary",
+  "published": "2025-09-01",
+  "importance": "supporting",
+  "claim": "The custom YOLOv5 shuttle detector reached precision 93%, recall 87% and mAP@0.5 of 91%. It was trained on 15,000 annotated images, all from a perpendicular side view, and ran at a low confidence threshold of 0.1 with IoU 0.45.",
+  "quote": "Upon completion of training, the model achieved a precision of 93%, a recall of 87%, and a mean Average Precision at an IoU threshold of 0.5 (mAP@0.5) of 91%.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2509.05334v1",
+  "source_quality": "primary",
+  "published": "2025-09-01",
+  "importance": "supporting",
+  "claim": "Candidates were chosen with a composite score of 0.3 x YOLO confidence + 0.7 x Kalman-prediction proximity, with weights set empirically. Detections implying speeds below 5 km/h or above 375 km/h were rejected. No on-device FPS or latency was reported, and validation was limited to 20 sub-maximal smashes by one player.",
+  "quote": "Validation used only 20 smashes, kept \"below maximum power due to the radar gun's limitations.\"",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2501.03674",
+  "source_quality": "primary",
+  "published": "2025-01-07 (arXiv v1); revised v2 2025-10-24 (formatted for IEEE Transactions on Image Processing; authors from Beijing University of Posts and Telecommunications)",
+  "importance": "central",
+  "claim": "HP-MCoRe scores a performance relative to a reference: it predicts the query video's quality score from the gap between the query and an exemplar video whose score is known, using both the videos and their skeleton sequences. At inference it averages over N=10 sampled exemplars. This is a learned, exemplar-relative similarity and scoring method, an alternative to per-joint angle or DTW comparison against a pro reference. Its backbones are heavy (I3D, ResNetY, HD-GCN, Transformer decoder) and the paper reports no mobile latency, so it suits cloud post-processing rather than on-device use.",
+  "quote": "Given a pair of query video V^q and exemplar video V^e, along with their respective skeletal sequences P^q and P^e, the object is to predict quality score Ŝ^q of V^q based on the quality score S^e of V^e",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2501.03674",
+  "source_quality": "primary",
+  "published": "2025-01-07 (arXiv v1); revised v2 2025-10-24 (formatted for IEEE Transactions on Image Processing; authors from Beijing University of Posts and Telecommunications)",
+  "importance": "supporting",
+  "claim": "On FineDiving, HP-MCoRe reports SRCC 0.9041 and R-L2(x100) 0.411 without dive-number labels, and SRCC 0.9383 and R-L2 0.269 with them. Both beat the prior baselines it lists: MCoRe at 0.8897/0.461 and 0.9232/0.326, and TSA at 0.8925/0.478 and 0.9203/0.342. On MTL-AQA it reports SRCC 0.9266 without difficulty labels, which is best, and 0.9516 with them, second behind TPT at 0.9552.",
+  "quote": "Specifically, our method achieved an SRCC of 0.9041 and an R_L2 of 0.411 without using dive numbers. When dive numbers are incorporated, the SRCC improves to 0.9383 and the R_L2 reduces to 0.269.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2501.03674",
+  "source_quality": "primary",
+  "published": "2025-01-07 (arXiv v1); revised v2 2025-10-24 (formatted for IEEE Transactions on Image Processing; authors from Beijing University of Posts and Telecommunications)",
+  "importance": "supporting",
+  "claim": "Splitting the motion into sub-action phases dynamically, with a learned Bi-GRU segmenter, works better than fixed-length clips. Stage-boundary AIoU@0.5/0.75 is 99.07/97.96, against 82.51/34.31 for TSA. In the ablation, SRCC rises from 0.9247 with 1 stage to 0.9383 with 3 stages (take-off, flight, entry). This suggests that comparing a stroke against a pro reference phase by phase (e.g. preparation, swing, follow-through) should beat comparing whole sequences.",
+  "quote": "existing methods focus on segmenting the video into fixed frames, which disrupts the temporal continuity of sub-actions resulting in unavoidable prediction errors",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2501.03674",
+  "source_quality": "primary",
+  "published": "2025-01-07 (arXiv v1); revised v2 2025-10-24 (formatted for IEEE Transactions on Image Processing; authors from Beijing University of Posts and Telecommunications)",
+  "importance": "supporting",
+  "claim": "Skeleton features alone are much weaker than visual+skeleton fusion for judging movement quality. The hierarchical skeletal encoder alone reaches SRCC 0.6847, the dynamic visual encoder alone 0.8914, and the full fused model 0.9383. Adding the skeletal encoder to the visual encoder gives a 3.57% SRCC gain. This means pose-only comparison, like the app's per-joint angles, leaves accuracy on the table.",
+  "quote": "utilizing the HSE alone results in inferior performance, with an SRCC of 0.6847",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2501.03674",
+  "source_quality": "primary",
+  "published": "2025-01-07 (arXiv v1); revised v2 2025-10-24 (formatted for IEEE Transactions on Image Processing; authors from Beijing University of Posts and Telecommunications)",
+  "importance": "tangential",
+  "claim": "Off-the-shelf HRNet pose estimation degrades on fast, motion-blurred athletic footage. The authors built FineDiving-Pose (12,722 manually labeled frames and 288,000 auto-labeled frames) and fine-tuned HRNet on it to get reliable keypoints. This points to the need for domain fine-tuning of pose models on fast sports motion.",
+  "quote": "HRNet struggles to estimate the precise human pose, due to the poor image quality resulting from high-speed motions and extreme body distortions.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2402.04599",
+  "source_quality": "primary",
+  "published": "2024-03-25 (arXiv v2; accepted to International Journal of Computer Vision 25.03.2024)",
+  "importance": "central",
+  "claim": "JEANIE extends soft-DTW (a differentiable form of DTW) by aligning 3D skeleton sequences over time and camera viewpoint together. It matches support and query temporal blocks across neighbouring time indices and adjacent simulated camera views, then uses a soft-minimum to pick the lowest-distance path. Plain DTW and soft-DTW align time only. For Ayto's pro-comparison stage, this means soft-DTW is the established differentiable baseline, and adding viewpoint alignment is the documented extension.",
+  "quote": "By the use of soft-minimum, the path with the minimum aggregated distance is selected as the output of JEANIE. Thus, while DTW provides optimal temporal alignment of support-query sequence pairs, JEANIE simultaneously provides the optimal joint temporal-viewpoint alignment.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2402.04599",
+  "source_quality": "primary",
+  "published": "2024-03-25 (arXiv v2; accepted to International Journal of Computer Vision 25.03.2024)",
+  "importance": "central",
+  "claim": "In the paper's own experiments on skeleton few-shot action recognition, unsupervised JEANIE beats temporal-only soft-DTW by up to 5% on NTU-60, 9% on NTU-120 and 6% on Kinetics-skeleton. The largest gain, about 10%, is on UWA3D Multiview Activity II, the dataset with heavy camera-pose variation.",
+  "quote": "unsupervised JEANIE (temporal-viewpoint alignment) outperforms soft-DTW (temporal alignment only) by up to 5%, 9% and 6% on NTU-60, NTU-120 and Kinetics-skeleton, respectively. Table 8 (Unsup.) shows that the biggest improvement is obtained when using unsupervised JEANIE on UWA3D Multiview Activity II dataset, with 10% performance gain.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2402.04599",
+  "source_quality": "primary",
+  "published": "2024-03-25 (arXiv v2; accepted to International Journal of Computer Vision 25.03.2024)",
+  "importance": "supporting",
+  "claim": "In supervised few-shot recognition on NTU-60 (Table 5, 10 to 50 training classes), soft-DTW gets 53.7/56.2/60.0/63.9/67.8% accuracy and no alignment (S2GC backbone) gets 50.8/54.7/58.8/60.2/62.8%. JEANIE with CamVPC viewpoint simulation gets 59.7/68.7/68.4/70.4/73.2%, rising to 63.4/72.4/73.5/73.2/78.1% with cross-validation. Temporal alignment alone adds a few points, and joint temporal-viewpoint alignment adds more.",
+  "quote": "soft-DTW - T 53.7 56.2 60.0 63.9 67.8 ... JEANIE CamVPC T+2V 59.7 68.7 68.4 70.4 73.2 ... JEANIE (+crossval.) CamVPC T+2V 63.4 72.4 73.5 73.2 78.1",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2402.04599",
+  "source_quality": "primary",
+  "published": "2024-03-25 (arXiv v2; accepted to International Journal of Computer Vision 25.03.2024)",
+  "importance": "supporting",
+  "claim": "JEANIE costs about the same to compute as soft-DTW with 9-viewpoint test-time augmentation while scoring higher. On NTU-60 with a Titan RTX, per-query inference takes 0.020 s versus 0.019 s, and accuracy is 65.0% versus 56.8%. Generating the viewpoints was done once offline on CPU and is excluded from these times.",
+  "quote": "soft-DTWaug 0.098 0.019 178.5 56.8 ... JEANIE 0.099 0.020 187.0 65.0 ... Among methods which use multiple viewpoints, JEANIE outperforms soft-DTWaug and TAPaug by 8.2% and 7.4% respectively. JEANIE outperforms ordinary soft-DTW and TAP by 11.3% and 10.8%.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2402.04599",
+  "source_quality": "primary",
+  "published": "2024-03-25 (arXiv v2; accepted to International Journal of Computer Vision 25.03.2024)",
+  "importance": "supporting",
+  "claim": "JEANIE needs 3D skeletons, because it simulates viewpoints by rotating hip-centred 3D joints with Euler angles or stereo projection. The authors report no JEANIE results on 2D keypoints, and on Kinetics-skeleton 3D input beats 2D by 3-4%. A monocular app using 2D BlazePose would need 3D lifting first.",
+  "quote": "Note that we have no results on JEANIE or FVM for 2D coordinates as these require very different viewpoint modeling than 3D coordinates.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2404.08401v4",
+  "source_quality": "primary",
+  "published": "2024-10-24 (arXiv v4; an earlier version appeared at CVPRW 2024)",
+  "importance": "central",
+  "claim": "PnLCalib detects field keypoints and line extremities using HRNetV2-w48 heatmap networks. It computes an initial homography with RANSAC+DLT, recovers full camera intrinsics and extrinsics with Zhang's method, and then refines the camera pose by non-linear least squares over both points and lines (PnL). The pipeline is built around a 3D soccer field model, and the paper does not test other sports such as badminton.",
+  "quote": "an optimization-based calibration pipeline that leverages a 3D soccer field model and a predefined set of keypoints",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/html/2404.08401v4",
+  "source_quality": "primary",
+  "published": "2024-10-24 (arXiv v4; an earlier version appeared at CVPRW 2024)",
+  "importance": "central",
+  "claim": "On the WorldCup 2014 test set, PnLCalib (single-view + PnL) reports IoU whole of 93.4% mean / 95.5% median, a mean projection error of 0.60 m and JaC5 of 85.2, against 59.4 JaC5 for the best prior method. On TS-WorldCup it reports IoU whole of 96.3% mean and a projection error of 0.23 m mean / 0.20 m median. These are reasonable reference accuracy levels for court-homography calibration, which affects shuttle speed accuracy in meters.",
+  "quote": "This approach outperforms existing techniques in both multi-view and single-view 3D camera calibration tasks",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2404.08401v4",
+  "source_quality": "primary",
+  "published": "2024-10-24 (arXiv v4; an earlier version appeared at CVPRW 2024)",
+  "importance": "supporting",
+  "claim": "The PnL point+line refinement raises the SoccerNet calibration Final Score by 2.8%. On SN22-test-center, FS goes from 74.4 to 78.7 and JaC5 from 75.8 to 80.6. This suggests that using line constraints alongside keypoints improves on keypoint-only homography.",
+  "quote": "Additionally, our PnL refinement module showcases a 2.8% increase in the FS metric.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2404.08401v4",
+  "source_quality": "primary",
+  "published": "2024-10-24 (arXiv v4; an earlier version appeared at CVPRW 2024)",
+  "importance": "supporting",
+  "claim": "The method is far from real-time on mobile. On an RTX 2080 Ti GPU the plain multi-view model runs at about 7 Hz, falling to about 4 Hz with PnL refinement. For a Snapdragon 680 phone app, it fits one-time or per-session calibration (or cloud post-processing), not per-frame on-device inference.",
+  "quote": "the inference speed decreases to an average of 4 Hz",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2404.08401v4",
+  "source_quality": "primary",
+  "published": "2024-10-24 (arXiv v4; an earlier version appeared at CVPRW 2024)",
+  "importance": "tangential",
+  "claim": "Calibration needs at least four visible keypoints and fails under extreme lens distortion such as fisheye shots. A phone camera framing must therefore keep enough court-line intersections in view.",
+  "quote": "a minimum of four keypoints are visible",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://revistaseug.ugr.es/index.php/IJRSS/article/view/33259",
+  "source_quality": "primary",
+  "published": "2022 (Int. J. Racket Sports Science vol. 4(2), pp. 11-19; received 2021-11-29, accepted 2022-11-10)",
+  "importance": "central",
+  "claim": "Compared against a 9-camera Vicon motion-capture reference at 500 Hz (a reflective marker on the shuttlecock), a Doppler radar gun (Stalker Sport, 250 Hz) underestimated badminton smash shuttlecock velocity by about 9.7% on average. A racket-handle IMU (Zepp Tennis) underestimated it by about 13.6%. By skill level, the radar deltas were -14.1%, -9.8% and -6.9% for novice, intermediate and expert. The sample was 34 players hitting a shuttle suspended from a string in the lab. Any radar 'ground truth' used to validate a vision-based speed estimate therefore carries a systematic low bias of roughly 7-14%.",
+  "quote": "In terms of validity, radar and motion sensor provides an accurate measure but underestimate projectile velocity (-9.7% and -13.6% respectively).",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://revistaseug.ugr.es/index.php/IJRSS/article/view/33259",
+  "source_quality": "primary",
+  "published": "2022 (Int. J. Racket Sports Science vol. 4(2), pp. 11-19; received 2021-11-29, accepted 2022-11-10)",
+  "importance": "central",
+  "claim": "Radar velocity correlated strongly with the 500 Hz high-speed camera reference (r = 0.917, fitted line y = 0.9447x + 6.703). The handle-mounted IMU correlated only moderately (r = 0.682). Even so, the concurrent-validity CV against the camera was above the 10% adequacy threshold for both devices (about 12.5% for radar and 12.1% for the motion sensor). So the radar ranks shots well but does not match the camera's absolute values.",
+  "quote": "the Pearson product moment correlation coefficient showed almost perfect correlation between the radar and the high-speed camera measurements for velocity (r= 0.917; p < 0.001); and good correlation between the motion sensor and the high-speed camera measurements (r=0.682; p < 0.001)",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://revistaseug.ugr.es/index.php/IJRSS/article/view/33259",
+  "source_quality": "primary",
+  "published": "2022 (Int. J. Racket Sports Science vol. 4(2), pp. 11-19; received 2021-11-29, accepted 2022-11-10)",
+  "importance": "central",
+  "claim": "The authors say a standard video camera at 50 fps measures shuttle velocity to only about +/-5 m/s. The gap between elite and highly skilled players is about 10 m/s, so they consider standard-frame-rate video inadequate for shuttlecock speed. They also put the accuracy of high-speed and 3D setups (120-500 fps) at 12-50 m/s depending on frame rate. This is cited background, not something measured in this study, but it applies directly to a 30-60 fps phone pipeline.",
+  "quote": "The difference of velocity between elite and high skilled players is about 10 m.s-1 (Phomsoupha & Laffaye, 2014), whereas the velocity accuracy of a camera at 50 fps is about 5 m.s-1. This showed that it is impossible to assess a badminton shuttlecock velocity with such devices.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://revistaseug.ugr.es/index.php/IJRSS/article/view/33259",
+  "source_quality": "primary",
+  "published": "2022 (Int. J. Racket Sports Science vol. 4(2), pp. 11-19; received 2021-11-29, accepted 2022-11-10)",
+  "importance": "supporting",
+  "claim": "Shuttlecock speed falls off logarithmically after racket contact, following V = -9.2 ln(T) + 2.4 (V in m/s, T in ms). Speed roughly halves within 0.05 s of leaving the racket. At 30 fps (33 ms per frame), estimating speed from pixel displacement between frames therefore misses the peak unless it is corrected with a drag-aware model.",
+  "quote": "Phomsoupha & Laffaye (2014) showed that the shuttlecock velocity V (in m.s-1) is a logarithmic function of time T (in ms) as follow: V= -9.2 ln(T) +2.4, meaning that the velocity is divided by two times just 0.05 sec after the end of the racket contact.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://revistaseug.ugr.es/index.php/IJRSS/article/view/33259",
+  "source_quality": "primary",
+  "published": "2022 (Int. J. Racket Sports Science vol. 4(2), pp. 11-19; received 2021-11-29, accepted 2022-11-10)",
+  "importance": "supporting",
+  "claim": "Test-retest reliability across two sessions was good for all three systems. Mean ICCs were 0.907 for the radar (range 0.88-0.94), 0.840 for the motion sensor (0.78-0.89) and 0.940 for the 500 Hz high-speed camera (0.92-0.96). The matching mean CVs were 5.8%, 7.7% and 4.3%. The authors add that radar placement and angle affect reproducibility, because a radar gun measures only radial velocity and always underestimates the true speed.",
+  "quote": "The means of the ICCs was 0.907 ± 0.027 (range 0.88-0.94), 0.840 ± 0.054 (range 0.78-0.89) and 0.940 ± 0.018 (range 0.92-0.96) for the radar, the motion sensor and the high-speed cameras, respectively.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2303.07399",
+  "source_quality": "primary",
+  "published": "2023-07-03 (arXiv v2; v1 submitted March 2023)",
+  "importance": "central",
+  "claim": "RTMPose-m reaches 75.8% AP on COCO val2017 (with flip test) at 90+ FPS on an Intel i7-11700 CPU (ONNXRuntime) and 430+ FPS on a GTX 1660 Ti (TensorRT FP16). RTMPose-s reaches 72.2% AP at 70+ FPS on a Snapdragon 865. Caveat (not from the paper): the app's Snapdragon 680 target is a weaker chip than the 865, so expect lower FPS.",
+  "quote": "Our RTMPose-m achieves 75.8% AP on COCO with 90+ FPS on an Intel i7-11700 CPU and 430+ FPS on an NVIDIA GTX 1660 Ti GPU ... Our RTMPose-s model achieves 72.2% AP on COCO with 70+ FPS on a Snapdragon 865 chip, outperforming existing open-source libraries.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2303.07399",
+  "source_quality": "primary",
+  "published": "2023-07-03 (arXiv v2; v1 submitted March 2023)",
+  "importance": "central",
+  "claim": "On a 1,045-image COCO-SinglePerson subset of val2017 (no flip test), RTMPose is far more accurate than the app's current MediaPipe BlazePose and than MoveNet. Table 5: BlazePose-Lite 29.3 AP, BlazePose-Full 35.4 AP, MoveNet Lightning 53.6 AP, MoveNet Thunder 64.8 AP (both MoveNet scores use double inference), RTMPose-t 72.1 AP (0.67 GFLOPs including the RTMDet-nano detector), RTMPose-s 77.1 AP (0.91 GFLOPs), RTMPose-m 82.4 AP (2.23 GFLOPs).",
+  "quote": "we construct a COCO-SinglePerson dataset that contains 1045 single-person images from the COCO val2017 set to evaluate RTMPose as well as other approaches ... The evaluation results in Table 5 show that RTMPose archives superior performance and efficiency even compared to previous solutions tailored for the single-person scenario.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2303.07399",
+  "source_quality": "primary",
+  "published": "2023-07-03 (arXiv v2; v1 submitted March 2023)",
+  "importance": "supporting",
+  "claim": "Measured mobile latency on a Snapdragon 865 (ncnn, 4 threads, 256x192 input), pose model only, FP32/FP16: RTMPose-t 15.84/9.02 ms (68.4 AP with ground-truth boxes), RTMPose-s 25.01/13.89 ms (72.8 AP), RTMPose-m 49.46/26.44 ms (77.3 AP), RTMPose-l 85.75/45.37 ms (78.3 AP). Full mobile pipeline with the RTMDet-nano detector (Table 12): 18.78 ms (t, 64.4 AP), 21.68 ms (s, 68.5 AP), 32.12 ms (m, 73.2 AP), 47.64 ms (l, 74.2 AP).",
+  "quote": "We deploy RTMPose on the Snapdragon 865 chip with ncnn and inference with 4 threads.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2303.07399",
+  "source_quality": "primary",
+  "published": "2023-07-03 (arXiv v2; v1 submitted March 2023)",
+  "importance": "supporting",
+  "claim": "RTMPose's video inference pipeline borrows BlazePose's skip-frame detection, running the person detector only every K frames and taking boxes from the previous pose in between. It smooths keypoints over time with a One-Euro filter (after OKS-based pose NMS), a different approach from the app's current EMA smoothing.",
+  "quote": "We use the skip-frame detection mechanism as in BlazePose [3], where human detection is performed every K frames ... to achieve smooth prediction over frames, we use OKS-based pose NMS and OneEuro [9] filter in the post-processing stage.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2303.07399",
+  "source_quality": "primary",
+  "published": "2023-07-03 (arXiv v2; v1 submitted March 2023)",
+  "importance": "tangential",
+  "claim": "RTMPose replaces heatmaps with a SimCC coordinate-classification head of two fully-connected layers, which makes it simple to deploy. In Table 1, the trimmed SimCC head uses 0.002 GFLOPs and 0.079M parameters, against 1.425 GFLOPs and 10.49M for a heatmap head, at 71.3 vs 71.8 AP. On whole-body pose (COCO-WholeBody V1.0, 133 keypoints including hands and feet), RTMPose-x reaches 65.3 AP.",
+  "quote": "SimCC uses a very simple architecture of two fully-connected layers for prediction, making it easy to deploy on various backends.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2112.13715",
+  "source_quality": "primary",
+  "published": "2022-07-21 (arXiv v2, ECCV 2022; v1 posted Dec 2021)",
+  "importance": "central",
+  "claim": "On AIST++ (dance) with VIBE poses, SmoothNet beats the One-Euro, Savitzky-Golay and Gaussian1d filters on both jitter and accuracy: Accel 4.15 and MPJPE 97.47 mm, against 31.64 / 106.90 for raw VIBE. The paper reports this as an 86.88% Accel reduction and an 8.82% MPJPE reduction. At comparable smoothness, One-Euro does much worse (Accel 4.67, MPJPE 135.71), and even when One-Euro is tuned for its lowest MPJPE it is less accurate and less smooth than SmoothNet (Accel 10.82, MPJPE 108.55).",
+  "quote": "SmoothNet achieves the best performance, and it reduces Accel by 86.88% and MPJPE by 8.82% compared to the original pose estimation results... Among the three filters, the one-Euro filter shows inferior performance, and we attribute it to the real-time frame-by-frame jitter mitigation strategy used in it.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2112.13715",
+  "source_quality": "primary",
+  "published": "2022-07-21 (arXiv v2, ECCV 2022; v1 posted Dec 2021)",
+  "importance": "central",
+  "claim": "SmoothNet is very small: about 0.33M parameters, with a default window of T=32 and step 1. The paper reports average inference above 1.3k fps on a CPU and 46.8k fps on an A100 GPU. That cost is small enough to sit on top of an on-device pose estimator or run in cloud post-processing.",
+  "quote": "The input window size T is 32 and the moving step size s is 1... The parameters of SmoothNet is 0.33M, and the average inference time is less than 1.3k fps on a CPU and 46.8k on an A100-SXM4-40GB GPU.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2112.13715",
+  "source_quality": "primary",
+  "published": "2022-07-21 (arXiv v2, ECCV 2022; v1 posted Dec 2021)",
+  "importance": "supporting",
+  "claim": "SmoothNet works on 2D keypoints as well as 3D, which matters for an app that runs a 2D estimator such as BlazePose. On Human3.6M it cut 2D Accel from 1.01 to 0.13 px/frame^2 for HRNet and from 2.91 to 0.14 for CPN, while MPJPE improved slightly (HRNet 4.59 to 4.54 px). On the worst 1% of frames, Accel fell by about 90% on average. The model was trained only on FCN 3D outputs, so these results also test transfer to other estimators.",
+  "quote": "The Accel of all the backbones followed by our pose refinement method is significantly reduced, and MPJPE is also reduced to some extent... On average, the estimated Accel on these poses are decreased by about 90%.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2112.13715",
+  "source_quality": "primary",
+  "published": "2022-07-21 (arXiv v2, ECCV 2022; v1 posted Dec 2021)",
+  "importance": "central",
+  "claim": "SmoothNet is not causal: each window uses future frames, so it can't refine poses in real time, frame by frame. This limits it to offline or cloud post-processing. A causal filter such as One-Euro or EMA would still be needed for live on-device feedback.",
+  "quote": "SmoothNet is a sliding-window-based model, which limits its use in real-time systems since we can not aggregate future poses to refine the historical poses.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2112.13715",
+  "source_quality": "primary",
+  "published": "2022-07-21 (arXiv v2, ECCV 2022; v1 posted Dec 2021)",
+  "importance": "supporting",
+  "claim": "Window size trades smoothness against accuracy. On VIBE-AIST++, Accel falls steadily from 17.89 at W=2 to 4.03 at W=256. MPJPE improves up to about 64-128 frames, while PA-MPJPE is best at W=32 (69.67), and all three metrics level off beyond 64 frames. The authors recommend W=64. The paper also finds that fixed low-pass filters trade jitter against lag and fail on long-term jitter, which shows up on rare or occluded poses (for example, fast smash motion would likely be affected).",
+  "quote": "As the window size becomes longer, the Accel decreases consistently, but the MPJPE and PA-MPJPE initially decrease, then begin to increase slightly, indicating that when the size exceeds 64 frames, the results of the three metrics tend to be saturated. Therefore, 64 frames can be suitable to balance the smoothness and precision.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://link.springer.com/article/10.1007/s00138-026-01929-3",
+  "source_quality": "primary",
+  "published": "2026-10-02",
+  "importance": "central",
+  "claim": "FreeTrack (Yu et al., Machine Vision and Applications 37:167, 2026) reconstructs 3D shuttlecock trajectories from a single monocular camera far more accurately than MonoTrack. Validated by landing-point error on its own set of 96 sequences (about 17k frames, six stroke types), it cut error from 170.9 to 7.8 cm on Clears and from 30.5 to 5.7 cm on Net Drops. Smashes went from 103.5 to 8.9 cm, flat drives from 97.8 to 4.8, and serves from 86.0 to 8.7. Note that landing-point error is an indirect proxy, since no dense 3D badminton ground truth exists.",
+  "quote": "reducing landing point errors by an order of magnitude in complex strokes (e.g., from 170 cm to 7.8 cm in Clear shots).",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://link.springer.com/article/10.1007/s00138-026-01929-3",
+  "source_quality": "primary",
+  "published": "2026-10-02",
+  "importance": "central",
+  "claim": "FreeTrack fits no drag or kinematic model. It assumes each flight between two strikes lies in one vertical plane, anchors that plane at the striking frame and at the hitter's ground point (midpoint of the feet), and intersects each calibrated camera ray with the plane. Calibration is a six-point DLT from the four court corners and the two net-post tops, and it must be redone whenever the camera moves or zooms. This is a lightweight, physics-free option for stages 2 and 3 (3D trajectory and calibration).",
+  "quote": "the trajectory is physically confined to a single vertical plane for the duration of its flight between two strikes",
+  "verification": "supported"
+ },
+ {
+  "source": "https://link.springer.com/article/10.1007/s00138-026-01929-3",
+  "source_quality": "primary",
+  "published": "2026-10-02",
+  "importance": "supporting",
+  "claim": "FreeTrack's 3D reconstruction runs at 0.705 ms per frame, 83.14 times faster than MonoTrack's 46.815 ms per frame. Timing covered 9 badminton samples (3,291 frames) under the same timing scope. That speed makes per-frame 3D lifting plausible on a mobile device or in cheap cloud post-processing.",
+  "quote": "Overall, FreeTrack is 83.14 times faster than MonoTrack under the same timing scope.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://link.springer.com/article/10.1007/s00138-026-01929-3",
+  "source_quality": "primary",
+  "published": "2026-10-02",
+  "importance": "supporting",
+  "claim": "For 2D shuttlecock detection, FreeTrack uses a fine-tuned YOLOv12 with TrackNet as a fallback. On 1,538 annotated broadcast frames it scored a mean distance error of 28.82 px and 0.846 accuracy within 5 px, the best against MonoTrack, Geetha et al. (2025), the original TrackNet (2019) and plain YOLOv12. The comparison did not include TrackNetV2 or V3, so it says little about TrackNetV3 or later.",
+  "quote": "with the lowest mean distance error of 28.82 pixels and the highest accuracy of 0.846.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://link.springer.com/article/10.1007/s00138-026-01929-3",
+  "source_quality": "primary",
+  "published": "2026-10-02",
+  "importance": "supporting",
+  "claim": "A learned striking-frame detector beat MonoTrack and WASB (Where Is The Ball) on F1 at ±5, ±10 and ±15 frame tolerances. It is an XGBoost classifier on four kinematic features, with a second re-scoring pass and an alternating-hitter rule that recovers missed hits. The test set was small: 1,761 frames from five clips with 64 positive hits. This supports replacing wrist-velocity peak thresholding with a lightweight learned detector for stage 5. Exact F1 values sit in Table 4, which was not visible in the fetched text.",
+  "quote": "Our FreeTrack achieves the best F1-score under all tolerance intervals",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://cambridge.org/core/journals/robotica/article/novel-method-of-shuttlecock-trajectory-tracking-and-prediction-for-a-badminton-robot/913721D5E5CDB96A0D7E0679230ED6DA",
+  "source_quality": "primary",
+  "published": "2022-03-10 (online); Robotica Vol. 40, Issue 6, June 2022, pp. 1682-1694, DOI 10.1017/S0263574721001053",
+  "importance": "central",
+  "claim": "For tracking the shuttlecock, the authors use an unscented Kalman filter (UKF) rather than a classic linear Kalman filter. They give the shuttlecock's nonlinear aerodynamics as the reason, because the classic filter requires linearization. This bears on replacing the app's constant-velocity Kalman filter. The filter's error statistics are only in Table I (an image), so the extracted text has no numbers comparing UKF and KF.",
+  "quote": "we utilize the unscented Kalman filter (UKF) algorithm instead of the classic Kalman filter to filter the errors of measurement and recognition algorithm.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://cambridge.org/core/journals/robotica/article/novel-method-of-shuttlecock-trajectory-tracking-and-prediction-for-a-badminton-robot/913721D5E5CDB96A0D7E0679230ED6DA",
+  "source_quality": "primary",
+  "published": "2022-03-10 (online); Robotica Vol. 40, Issue 6, June 2022, pp. 1682-1694, DOI 10.1017/S0263574721001053",
+  "importance": "supporting",
+  "claim": "The paper models air resistance on the shuttlecock as quadratic in velocity, and says drag coefficients differ notably between feather and synthetic shuttlecocks. This means a physics- or drag-aware trajectory model needs drag parameters set per shuttle type. A constant-velocity model ignores drag altogether.",
+  "quote": "The air resistance force is proportional to the square of a shuttlecock velocity",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://cambridge.org/core/journals/robotica/article/novel-method-of-shuttlecock-trajectory-tracking-and-prediction-for-a-badminton-robot/913721D5E5CDB96A0D7E0679230ED6DA",
+  "source_quality": "primary",
+  "published": "2022-03-10 (online); Robotica Vol. 40, Issue 6, June 2022, pp. 1682-1694, DOI 10.1017/S0263574721001053",
+  "importance": "central",
+  "claim": "To predict the trajectory and landing point, the authors use three RBF neural networks, one per axis (X, Y, Z), that take velocity and elapsed time as input. This replaces a closed-form drag model. The networks were trained on more than 1500 manually collected stereo tracks, and 609 randomly selected tracks were used for testing.",
+  "quote": "A trajectory data set containing more than 1500 tracks has been collected manually",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://cambridge.org/core/journals/robotica/article/novel-method-of-shuttlecock-trajectory-tracking-and-prediction-for-a-badminton-robot/913721D5E5CDB96A0D7E0679230ED6DA",
+  "source_quality": "primary",
+  "published": "2022-03-10 (online); Robotica Vol. 40, Issue 6, June 2022, pp. 1682-1694, DOI 10.1017/S0263574721001053",
+  "importance": "supporting",
+  "claim": "The RBF prediction model computes the shuttlecock's landing (drop-point) state in about 10 ms per prediction. That makes it fast enough for real-time use. The text gives no landing-point error in physical units (cm or mm); the error appears only in Figure 9.",
+  "quote": "The experiment verifies that the prediction model can calculate the state of the drop point in 10 ms on average.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://cambridge.org/core/journals/robotica/article/novel-method-of-shuttlecock-trajectory-tracking-and-prediction-for-a-badminton-robot/913721D5E5CDB96A0D7E0679230ED6DA",
+  "source_quality": "primary",
+  "published": "2022-03-10 (online); Robotica Vol. 40, Issue 6, June 2022, pp. 1682-1694, DOI 10.1017/S0263574721001053",
+  "importance": "supporting",
+  "claim": "The system depends on a special capture setup: two cameras (stereo, not one camera) with infrared filters and IR lights, a reflective marker stuck on the shuttlecock's cork, and detection by three-frame differencing. Its 3D tracking results therefore do not carry over directly to a single unmodified smartphone camera.",
+  "quote": "the two infrared filters and two infrared lights are added in the front of the cameras",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2403.12385v2",
+  "source_quality": "primary",
+  "published": "2024-11-02",
+  "importance": "central",
+  "claim": "On the full VideoBadminton dataset (18 stroke classes, 8:1:1 split), the RGB model SlowFast scored best of the seven models tested, with 82.80% Top-1, 97.54% Top-5 and 73.80% mean class accuracy.",
+  "quote": "SlowFast (2019) | 82.80% | 97.54% | 73.80% (Table 3 row: Top1 Acc | Top5 Acc | Mean Cls Acc); the authors call SlowFast the \"standout method\"",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2403.12385v2",
+  "source_quality": "primary",
+  "published": "2024-11-02",
+  "importance": "central",
+  "claim": "Among skeleton-based models on the full VideoBadminton dataset, PoseC3D reached 80.76% Top-1 (67.18% mean class accuracy), about 2 points behind SlowFast. ST-GCN reached only 74.41% Top-1 (61.44% mean class accuracy). This suggests that a heatmap-volume pose model is clearly better than a plain graph-convolution model for badminton stroke classification.",
+  "quote": "PoseC3D (2022) | 80.76% | 96.01% | 67.18% ... ST-GCN (2018) | 74.41% | 93.76% | 61.44% (Table 3 rows)",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2403.12385v2",
+  "source_quality": "primary",
+  "published": "2024-11-02",
+  "importance": "supporting",
+  "claim": "VideoBadminton has 18 fine-grained stroke categories in 7,822 clips (about 145 minutes) from 19 university players. It was recorded at 60 fps and 1280x960 by a fixed camera about 2 m behind the baseline. This makes it a benchmark more fine-grained than the app's 6-class scheme, and its camera setup is close to a phone placed behind the court.",
+  "quote": "It incorporates 18 categories of badminton actions, with a total of 7,822 clips ... Operating at a frame rate of 60fps, the DFK 37AUX273 captured the fast-paced movements ... The camera was positioned approximately 2 meters behind the baseline of the badminton court",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2403.12385v2",
+  "source_quality": "primary",
+  "published": "2024-11-02",
+  "importance": "supporting",
+  "claim": "With little data (10 or 50 clips per class), the skeleton model ST-GCN beat the RGB models. On VideoBadminton-50 it reached 60.70% Top-1 and led in every metric except Top-5, where PoseC3D scored slightly higher (89.87% vs 89.25%). Accuracy rose sharply with more samples per class. This suggests that pose-based models are more data-efficient for small custom datasets.",
+  "quote": "ST-GCN \"leads in all metrics\" (VideoBadminton-50 subset discussion); \"increasing the number of samples per class leads to significantly better model performance\"",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2403.12385v2",
+  "source_quality": "primary",
+  "published": "2024-11-02",
+  "importance": "tangential",
+  "claim": "The transformer video models did poorly on fine-grained badminton strokes. MViT-V2 collapsed to 14.23% Top-1 (10.76% mean class accuracy), and TimeSformer reached only 73.18% Top-1. This argues against assuming a generic video transformer will beat CNN or pose baselines in this domain.",
+  "quote": "MViT-V2 (2022) | 14.23% | 62.23% | 10.76% (Table 3 row); MViT-V2 shows \"notably lower scores across all metrics\"",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2502.21085v3",
+  "source_quality": "primary",
+  "published": "2025-09-18",
+  "importance": "central",
+  "claim": "On ShuttleSet (25 merged stroke classes; 36,492 strokes from 44 broadcast matches), BST-CG-AP reaches 0.8254 accuracy / 0.7983 macro-F1 with fixed-width clipping, ahead of TemPose-TF (0.8189/0.7943), ST-GCN (0.7758/0.7352), SkateFormer (0.7710/0.7363), ProtoGCN (0.7746/0.7306) and BlockGCN (0.7652/0.7298). With the paper's own clipping strategy it reaches 0.8322 / 0.8097, against 0.8235 / 0.8028 for TemPose-TF. These numbers come from Tables 1 and 2. The margin over TemPose is small (under 1 point) and was reported on fine-grained classes, not a 6-class taxonomy.",
+  "quote": "Notably, our BST series achieves some improvement over TemPose on 18/20 metrics when using the fixed-width clipping strategy.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2502.21085v3",
+  "source_quality": "primary",
+  "published": "2025-09-18",
+  "importance": "central",
+  "claim": "BST is a multimodal model. It fuses 2D player pose (joints and bones), the shuttlecock's 2D trajectory and player court positions, using TCN, Transformer encoders and a Cross Transformer that relates pose and position to the shuttle trajectory. Its inputs come from RTMPose (via MMPose) for 2D pose and TrackNetV3 (attention version) for shuttle positions. MotionBERT 3D lifting was also run, but the models use the 2D poses.",
+  "quote": "For the shuttlecock trajectories, we utilize the 2D shuttlecock positions generated by TrackNetV3 for each clip.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2502.21085v3",
+  "source_quality": "primary",
+  "published": "2025-09-18",
+  "importance": "supporting",
+  "claim": "On BadmintonDB (18 classes, 7,658 strokes from 8 singles matches), every model scores far lower. The best BST variant, BST-AP, reaches 0.6517 accuracy / 0.5799 macro-F1, against TemPose-TF at 0.6199/0.5448, ST-GCN at 0.5602/0.4870 and ProtoGCN at 0.5656/0.4798 (Table 4). BST-CG-AP, the best variant on ShuttleSet, is not the best here (0.6392/0.5580).",
+  "quote": "contains 7658 strokes across 8 badminton singles matches after data cleaning.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2502.21085v3",
+  "source_quality": "primary",
+  "published": "2025-09-18",
+  "importance": "supporting",
+  "claim": "BST is a lightweight model, which suggests it could run on a phone. BST-CG-AP has 1.85M parameters, against 1.71M for TemPose-TF, 3.08M for ST-GCN, 4.11M for ProtoGCN, 2.38M for SkateFormer and 1.50M for BlockGCN (Table A). FLOPs and mobile latency are not reported.",
+  "quote": "Model training speed per epoch on ShuttleSet and the numbers of their parameters.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2502.21085v3",
+  "source_quality": "primary",
+  "published": "2025-09-18",
+  "importance": "tangential",
+  "claim": "Stroke clips are cut around hit frames that are already annotated: a fixed-width window of half the FPS (0.5 s), with neighboring hits capped at 1.5 s. Sequence lengths are 30 or 100 frames on ShuttleSet and 72 on BadmintonDB. On TenniSet (6 classes) every method is close to saturation; BST-AP scores 0.9923 accuracy and ST-GCN 0.9890. The paper claims state-of-the-art results across all three datasets.",
+  "quote": "Through experiments, we show that our method outperforms existing state-of-the-art methods",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2605.02558",
+  "source_quality": "primary",
+  "published": "2026-05 (arXiv 2605.02558; v3 dated 2026-06-24)",
+  "importance": "central",
+  "claim": "On ShuttleSet (40 cleaned matches, 33,429 strokes, 30/5/5 train/val/test match split, 31 stroke classes), TemPose-TF-ASF reaches 0.854 accuracy, 0.761 macro-F1 and 0.945 top-2 accuracy with 1.95M parameters. That beats the TemPose-TF baseline (0.835 / 0.742 / 0.927, 1.71M params) and BST-CG-AP (0.838 / 0.723 / 0.942, 1.88M params).",
+  "quote": "Table 2: TemPose-TF-ASF | 1.95M | 0.854 | 0.761 | 0.945; TemPose-TF | 1.71M | 0.835 | 0.742 | 0.927; BST-CG-AP | 1.88M | 0.838 | 0.723 | 0.942. Abstract: \"Experiments on a large-scale badminton match dataset show consistent improvements over the baseline and its variants in terms of Accuracy and Macro-F1.\"",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2605.02558",
+  "source_quality": "primary",
+  "published": "2026-05 (arXiv 2605.02558; v3 dated 2026-06-24)",
+  "importance": "central",
+  "claim": "On the same ShuttleSet benchmark, the badminton-specific multimodal transformers (TemPose-TF, BST-CG-AP) beat general-purpose skeleton action models. BlockGCN reaches 0.793 Acc / 0.657 macro-F1 and SkateFormer 0.808 / 0.665, against 0.835 to 0.838 Acc and 0.723 to 0.742 macro-F1 for the badminton models. This suggests that generic GCN-style skeleton models underperform pose+shuttle+court fusion models for fine-grained stroke classification.",
+  "quote": "Section 4.2: \"comparisons with several state-of-the-art (SOTA) methods, including BlockGCN, SkateFormer, and BST-CG-AP, were conducted.\" Table 2: BlockGCN | 1.69M | 0.793 | 0.657 | 0.906; SkateFormer | 2.38M | 0.808 | 0.665 | 0.897",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2605.02558",
+  "source_quality": "primary",
+  "published": "2026-05 (arXiv 2605.02558; v3 dated 2026-06-24)",
+  "importance": "supporting",
+  "claim": "The best stroke classifiers here fuse several inputs: skeleton joints and bones of both players, player court positions, and shuttlecock trajectories. The trajectories come from TrackNetV3 and the court lines from MonoTrack or TennisCourtDetector. In practice this ties the stroke-classification stage to the detection and court-calibration stages upstream.",
+  "quote": "\"shuttlecock trajectories are extracted using TrackNetV3\"; \"Court lines are extracted using either the method proposed in MonoTrack\" \"or a deep learning-based approach, TennisCourtDetector\"",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2605.02558",
+  "source_quality": "primary",
+  "published": "2026-05 (arXiv 2605.02558; v3 dated 2026-06-24)",
+  "importance": "supporting",
+  "claim": "The Adjacent-Stroke Fusion (ASF) module adds context from the stroke types predicted for the preceding and following strokes. It is plug-in: it improved every model it was added to, raising TemPose-V macro-F1 from 0.658 to 0.701 and BlockGCN from 0.657 to 0.673. It needs two-stage inference, where the baseline's first-pass predictions serve as context. Because it uses future strokes, it is suited to post-rally or offline (cloud) processing rather than strictly causal real-time use.",
+  "quote": "\"Preliminary predictions from the baseline model are reused as estimated temporal context.\" \"All augmented models consistently outperform their original versions.\" Table 2: TemPose-V | 0.798 | 0.658 vs TemPose-V-ASF | 0.814 | 0.701",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2605.02558",
+  "source_quality": "primary",
+  "published": "2026-05 (arXiv 2605.02558; v3 dated 2026-06-24)",
+  "importance": "supporting",
+  "claim": "All results use a fine-grained label set of 31 stroke categories, re-derived from ShuttleSet's original 19 (which include a 'none' class), and ShuttleSet is the only dataset evaluated. The numbers do not carry over directly to a 6-class (smash/drop/clear/net/serve/defensive) setup or to the VideoBadminton and BadmintonDB datasets. The paper reports parameter counts only, with no latency figures.",
+  "quote": "\"After these adjustments, the final classification setup consists of 31 stroke categories.\" \"The original ShuttleSet contains 19 distinct stroke categories, including a 'none' class.\"",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2511.17045",
+  "source_quality": "primary",
+  "published": "2025-11 (arXiv v1; v3 dated 2026-01-28; AAAI 2026)",
+  "importance": "central",
+  "claim": "On RacketVision's badminton split (pro broadcast footage at 1080p, metrics computed at 1920x1080), TrackNetV3 trained on all three sports with a background-median input and 4 frames is the best shuttle tracker. It reaches mAP@50 83.1, recall 0.865 and mean distance error (MDE) 1.54 px. The best single-sport TrackNetV3 (background median, 4 frames) reaches mAP 72.5 and MDE 2.07 px. Multi-sport training therefore adds 14.6% mAP on badminton.",
+  "quote": "the MS model boosts mAP by a significant 19.2% in Tennis (81.9 vs. 68.7) and 14.6% in Badminton (83.1 vs. 72.5).",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2511.17045",
+  "source_quality": "primary",
+  "published": "2025-11 (arXiv v1; v3 dated 2026-01-28; AAAI 2026)",
+  "importance": "central",
+  "claim": "A generic single-frame YOLO11 detector does much worse than heatmap trackers on the badminton shuttle. From Table 3: YOLO11 gets recall 0.548 and MDE 29.3 px (mAP 72.1). WASB gets recall 0.803 and MDE 4.03 px. TrackNetV3 with background median and 4 frames gets recall 0.865 and MDE 2.07 px. RTMDet gets recall 0.721 and MDE 38.2 px. So the YOLO-family detector's mAP is comparable, but it misses about 45% of visible shuttles and localizes them about 14x worse.",
+  "quote": "YOLO11 × 1 0.877 0.595 30.6 67.2 0.881 0.416 17.5 58.5 0.858 0.548 29.3 72.1",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2511.17045",
+  "source_quality": "primary",
+  "published": "2025-11 (arXiv v1; v3 dated 2026-01-28; AAAI 2026)",
+  "importance": "central",
+  "claim": "Adding a static background-median frame as an extra input to TrackNetV3 (single frame) cuts the shuttle localization error (MDE) on badminton by 54.8%, from 7.39 px to 3.34 px. It also raises badminton mAP from 57.8 to 67.7.",
+  "quote": "background modeling reduces MDE by a remarkable 54.0% for Table Tennis, 61.4% for Tennis, and 54.8% for Badminton.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2511.17045",
+  "source_quality": "primary",
+  "published": "2025-11 (arXiv v1; v3 dated 2026-01-28; AAAI 2026)",
+  "importance": "supporting",
+  "claim": "For predicting future ball trajectories from past positions, naively concatenating racket-pose features does worse than a ball-only model: badminton short-horizon LSTM ADE rises from 37.5 to 45.7. Cross-attention fusion (ball as query, racket as key/value) is best but only slightly better: badminton short ADE goes from 37.5 to 37.0, and long-horizon LSTM ADE/FDE goes from 118.7/194.7 to 114.6/187.6. Across all settings, the LSTM backbone beats a 4-layer Transformer.",
+  "quote": "In Short Badminton, ADE improves from 37.5 to 37.0.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2511.17045",
+  "source_quality": "primary",
+  "published": "2025-11 (arXiv v1; v3 dated 2026-01-28; AAAI 2026)",
+  "importance": "tangential",
+  "claim": "A top-down RTMPose model (RTMDet as the detector) trained on all three sports estimates 5 badminton racket keypoints at PCK@0.2 88.5, MPJPE 5.00 px and mOKS 0.668. The side keypoints (left/right) are much less accurate (74.6/75.5%) than top/bottom/handle (above 97%).",
+  "quote": "badminton excels in pose quality metrics with the lowest MPJPE (5.00px) and highest mOKS (0.668), demonstrating the effectiveness of cross-sport knowledge transfer.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://github.com/qaz812345/TrackNetV3",
+  "source_quality": "primary",
+  "published": "2023-12 (ACM MM Asia 2023 paper, DOI 10.1145/3595916.3626370; repo created 2023-07-13)",
+  "importance": "central",
+  "claim": "On the test split of the Shuttlecock Trajectory Dataset, TrackNetV3 gets 97.51% accuracy, 97.79% precision, 99.33% recall and 98.56% F1 at 25.11 FPS. TrackNetV2 gets 94.98% accuracy and 97.03% F1 at 27.70 FPS. So V3 raises F1 by about 1.5 points and recall by about 4.8 points, at a small cost in speed and precision.",
+  "quote": "TrackNetV2 | 94.98% | 99.64% | 94.56% | 97.03% | 27.70 ... TrackNetV3 | 97.51% | 97.79% | 99.33% | 98.56% | 25.11 (\"Performance on the test split of Shuttlecock Trajectory Dataset\")",
+  "verification": "supported"
+ },
+ {
+  "source": "https://github.com/qaz812345/TrackNetV3",
+  "source_quality": "primary",
+  "published": "2023-12 (ACM MM Asia 2023 paper, DOI 10.1145/3595916.3626370; repo created 2023-07-13)",
+  "importance": "central",
+  "claim": "A general-purpose YOLO detector (YOLOv7) does much worse than heatmap-based TrackNet models at shuttlecock detection on the same test split: 57.82% accuracy and 68.00% F1. It is the fastest model in the table at 34.77 FPS. This suggests generic YOLO detectors, such as the app's current YOLOv8n, are poorly suited to the tiny, fast shuttlecock compared with TrackNet-style models.",
+  "quote": "YOLOv7 | 57.82% | 78.53% | 59.96% | 68.00% | 34.77",
+  "verification": "supported"
+ },
+ {
+  "source": "https://github.com/qaz812345/TrackNetV3",
+  "source_quality": "primary",
+  "published": "2023-12 (ACM MM Asia 2023 paper, DOI 10.1145/3595916.3626370; repo created 2023-07-13)",
+  "importance": "central",
+  "claim": "TrackNetV3 has two modules. The first is a trajectory-prediction (tracking) network that takes an estimated background image as extra input and is trained with mixup augmentation. The second is a rectification module (InpaintNet) that builds repair masks from the predicted trajectory and fills in occluded or missed points by inpainting.",
+  "quote": "We present TrackNetV3, a model composed of two core modules: trajectory prediction and rectification. The trajectory prediction module leverages an estimated background as auxiliary data to locate the shuttlecock in spite of the fluctuating visual interferences. This module also incorporates mixup data augmentation ... we create repair masks by analyzing the predicted trajectory, subsequently rectifying the path via inpainting.",
+  "verification": "supported"
+ },
+ {
+  "source": "https://github.com/qaz812345/TrackNetV3",
+  "source_quality": "primary",
+  "published": "2023-12 (ACM MM Asia 2023 paper, DOI 10.1145/3595916.3626370; repo created 2023-07-13)",
+  "importance": "supporting",
+  "claim": "TrackNetV3 needs a background image computed as the median frame over a match or rally, and it works on multi-frame windows: an 8-frame sequence for the tracking network and a 16-frame sequence for the rectification module. This makes it a natural fit for offline or cloud post-processing rather than strict per-frame on-device streaming.",
+  "quote": "If available, the dataset will use the median image of the match; otherwise, it will use the median image of the rally. ... python train.py --model_name TrackNet --seq_len 8 --epochs 30 --batch_size 10 --bg_mode concat --alpha 0.5",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://github.com/qaz812345/TrackNetV3",
+  "source_quality": "primary",
+  "published": "2023-12 (ACM MM Asia 2023 paper, DOI 10.1145/3595916.3626370; repo created 2023-07-13)",
+  "importance": "tangential",
+  "claim": "The official TrackNetV3 code and pretrained checkpoints (TrackNet_best.pt and InpaintNet_best.pt) are public. The README states MIT licensing, and the published FPS figures come from a PyTorch 1.10 desktop environment, not from mobile hardware.",
+  "quote": "Develop Environment: Ubuntu 16.04.7 LTS, Python 3.8.7, torch 1.10.0 ... python predict.py --video_file test.mp4 --tracknet_file ckpts/TrackNet_best.pt --inpaintnet_file ckpts/InpaintNet_best.pt --save_dir prediction",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://people.cs.nycu.edu.tw/~yushuen/data/TracknetV5_26.pdf",
+  "source_quality": "primary",
+  "published": "2026 (preprint in ICASSP-style format, hosted on NYCU faculty page; filename suffix _26; no explicit date in PDF)",
+  "importance": "central",
+  "claim": "On the public TrackNetV2 badminton shuttlecock dataset, TrackNetV5 reports F1 98.47 (Acc 97.37, Prec 99.72, Recall 97.25). That beats TrackNetV3 (F1 97.64) and TrackNetV4 (F1 97.99), but the margin over TrackNetV4 is under 0.5 F1 points. All numbers are self-reported by the TrackNetV3 authors' lab. The table includes no YOLO, WASB or MonoTrack baselines.",
+  "quote": "TrackNetV5 achieves a leading F1-Score of 98.47, surpassing TrackNetV3 and TrackNetV4. [Table 1: TrackNetV3 11.34M 95.98 99.67 95.69 97.64 119.09; TrackNetV4 11.34M 96.58 99.56 96.48 97.99 118.81; TrackNetV5 10.09M 97.37 99.72 97.25 98.47 60.7]",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://people.cs.nycu.edu.tw/~yushuen/data/TracknetV5_26.pdf",
+  "source_quality": "primary",
+  "published": "2026 (preprint in ICASSP-style format, hosted on NYCU faculty page; filename suffix _26; no explicit date in PDF)",
+  "importance": "central",
+  "claim": "TrackNetV5-Lite is built with width multiplier alpha=0.5. It has 2.58M parameters and reaches F1 98.06, still above TrackNetV4's 97.99. It runs at 135.18 FPS, but on a desktop RTX 5080 GPU. The paper gives no mobile or TFLite latency, so it is a candidate for on-device use but unproven on a Snapdragon 680.",
+  "quote": "the lightweight TrackNetV5-Lite (2.58M parameters) reaches an F1-Score of 98.06 while running at 135.18 FPS on an RTX 5080, effectively doubling the accuracy gain over the baseline with superior speed.",
+  "verification": "supported"
+ },
+ {
+  "source": "https://people.cs.nycu.edu.tw/~yushuen/data/TracknetV5_26.pdf",
+  "source_quality": "primary",
+  "published": "2026 (preprint in ICASSP-style format, hosted on NYCU faculty page; filename suffix _26; no explicit date in PDF)",
+  "importance": "supporting",
+  "claim": "The full TrackNetV5 (alpha=1.0, 10.09M params) runs at about half the throughput of TrackNetV3/V4: 60.7 FPS vs about 119 FPS on the same GPU. The paper shows width multiplier alpha trades accuracy against size: alpha 1.0 gives F1 98.47 at 10.09M, 0.75 gives 98.29 at 6.46M, and 0.5 gives 98.06 at 2.58M.",
+  "quote": "larger α improves accurcy, precision, recall and F1 but increases model size and reduces speed, while smaller α yields a lighter and faster model. [Table 3: 1 10.09M ... 98.47; 0.75 6.46M ... 98.29; 0.5 2.58M ... 98.06]",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://people.cs.nycu.edu.tw/~yushuen/data/TracknetV5_26.pdf",
+  "source_quality": "primary",
+  "published": "2026 (preprint in ICASSP-style format, hosted on NYCU faculty page; filename suffix _26; no explicit date in PDF)",
+  "importance": "supporting",
+  "claim": "Evaluation protocol: frames are resized to 512x288 and the model takes a 5-frame input window (T=5). A detection counts as a true positive if it lies within 4 pixels of ground truth. The method uses frame-difference motion prompts plus R(2+1)D spatiotemporal blocks, so it needs multi-frame input, unlike single-frame YOLO detectors.",
+  "quote": "We evaluate TrackNetV5 on the public badminton dataset [5, 6] with frames resized to 512 × 288. The value of T (e.g., sequence length) is set to 5. A prediction is considered a True Positive (TP) if the distance to the ground truth is within 4 pixels [5].",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://people.cs.nycu.edu.tw/~yushuen/data/TracknetV5_26.pdf",
+  "source_quality": "primary",
+  "published": "2026 (preprint in ICASSP-style format, hosted on NYCU faculty page; filename suffix _26; no explicit date in PDF)",
+  "importance": "supporting",
+  "claim": "The authors argue that single-frame YOLO-family detectors, including YOLOv12, are ill-suited to shuttlecock tracking for two reasons: backbone downsampling loses features of tiny objects, and without temporal context a detector cannot separate a motion-blurred shuttle (up to 426 km/h) from background noise. This is a qualitative argument with no YOLO baseline numbers in the paper.",
+  "quote": "The aggressive downsampling in these backbones often leads to the loss of fine-grained features for minuscule objects. Furthermore, the lack of temporal context makes it nearly impossible for static detectors to distinguish a blurred shuttlecock (i.e., traveling at speeds up to 426 km/h) from complex background noise.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2311.05237",
+  "source_quality": "primary",
+  "published": "2023-11-16 (arXiv v2; BMVC 2023)",
+  "importance": "central",
+  "claim": "On the TrackNetV2 Badminton (shuttlecock) dataset, with a 4-pixel distance threshold, WASB with oversampling (Step=1, 1.5M params) reaches F1 93.1 / Accuracy 89.0 / AP 91.6 at 34.3 FPS. The authors' re-implementations score lower: TrackNetV2 (11.3M params) gets F1 90.5 / Acc 85.6 / AP 83.6 at 77.0 FPS, and MonoTrack (2.9M) gets F1 90.9 / Acc 85.9 / AP 84.9 at 75.5 FPS. FPS was measured on a V100 GPU.",
+  "quote": "TrackNetV2 [75] 11.3M ... 90.5 85.6 83.6 77.0 ... MonoTrack [50] 2.9M ... 90.9 85.9 84.9 75.5 ... WASB (Ours, Step=1) 1.5M ... 93.1 89.0 91.6 34.3 [Badminton columns: F1, Acc., AP, FPS]; 'We set the distance threshold τ = 4 [pixel] to compute F1, Accuracy (Acc.) and Average Precision (AP)'",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2311.05237",
+  "source_quality": "primary",
+  "published": "2023-11-16 (arXiv v2; BMVC 2023)",
+  "importance": "central",
+  "claim": "Without oversampling (Step=3), WASB scores F1 91.6 / Acc 87.0 / AP 88.5 on Badminton at 70.4 FPS. That is close to TrackNetV2's speed with about 7.5x fewer parameters (1.5M vs 11.3M). Oversampling (Step=1) adds about +1.5 F1 and +3.1 AP but roughly halves throughput. Across datasets, WASB's best AP beats the best prior method by 7.8 to 16.8 points.",
+  "quote": "WASB (Ours, Step=3) 1.5M ... 91.6 87.0 88.5 70.4 [Badminton]; 'with respect to AP, our best models significantly outperform the best existing methods by 7.8 ~16.8 %. Notice that WASB is not the fastest among the methods.'",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2311.05237",
+  "source_quality": "primary",
+  "published": "2023-11-16 (arXiv v2; BMVC 2023)",
+  "importance": "supporting",
+  "claim": "WASB works as follows. A small HRNet backbone, with strides removed from the stem, keeps high-resolution features instead of using a U-Net encoder-decoder. It takes 3 consecutive frames resized to 288x512 and outputs one heatmap per frame (multiple-in multiple-out). It is trained with real-valued Gaussian ground-truth maps and quality focal loss, applied only to hard-to-localize samples. At inference the ball position is taken as the center of the heatmap values. All timings come from a V100 server GPU, not from a mobile device.",
+  "quote": "N (cf. §3.1) is set to 3 and each image is resized to 288 × 512 to be fed into our model... We performed all the following experiments on an Ubuntu server with 4 V100 GPUs.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2311.05237",
+  "source_quality": "primary",
+  "published": "2023-11-16 (arXiv v2; BMVC 2023)",
+  "importance": "supporting",
+  "claim": "The authors report that classical Kalman or particle filtering gave no improvement over their simple online candidate filtering, which uses a constant-acceleration local motion model. In the ablation, the online-tracking step itself added nothing on the Badminton dataset (F1 91.6 / AP 88.5 both with and without it). This bears on the app's current constant-velocity Kalman filter.",
+  "quote": "we do not use filtering algorithms such as Kalman filter [...] and particle filter [...], since any performance improvement was not observed with them... online tracking does not contribute on the Soccer and Badminton datasets",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2311.05237",
+  "source_quality": "primary",
+  "published": "2023-11-16 (arXiv v2; BMVC 2023)",
+  "importance": "tangential",
+  "claim": "WASB predicts at most one ball (x, y) per frame. It was validated only on HD/FHD video at 25-30 fps, so performance at the app's 60 fps or on low-resolution phone input is untested. On the 1280x720, 30 fps Badminton dataset, the shuttle moves about 12 px per frame on average.",
+  "quote": "While there are no theoretical limitations with respect to frame resolution and frame rate, our validation is limited to standard frame resolutions (e.g., HD, FHD) and frame rates (e.g., 25-30 FPS).",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2409.14543",
+  "source_quality": "primary",
+  "published": "2024-09-22",
+  "importance": "central",
+  "claim": "On the shuttlecock (TrackNetV2/V3 badminton) benchmark, adding TrackNetV4's motion attention to TrackNetV3 raised accuracy from 95.7 to 96.4, precision went from 99.7 to 99.5, recall from 95.4 to 96.3 and F1 from 97.5 to 97.9. This TrackNetV3 (+Motion), i.e. TrackNetV4, configuration had the highest shuttlecock score in the paper's Table I (evaluated on 10,836 frames for the V3 protocol).",
+  "quote": "Experimental results on the tennis ball and shuttlecock datasets show that our method enhances the tracking performance of both TrackNetV2 and V3 ... our motion-aware fusion mechanism still achieves improvements of over 0.8%",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/abs/2409.14543",
+  "source_quality": "primary",
+  "published": "2024-09-22",
+  "importance": "central",
+  "claim": "A generic box detector does much worse than heatmap TrackNet models on shuttlecock detection. On the same shuttlecock dataset, YOLOv7 scored Acc 57.8 / Prec 78.5 / Rec 60.0 / F1 68.0, against TrackNetV2 at Acc 85.6 / F1 90.6 and TrackNetV3 at Acc 95.7 / F1 97.5. This suggests the app's YOLOv8n shuttle detector is the weak link compared with a TrackNet-family heatmap model.",
+  "quote": "Shuttlecock: YOLOv7 | 57.8 | 78.5 | 60.0 | 68.0 (Table I row; TrackNetV2 | 85.6 | 96.6 | 85.3 | 90.6; TrackNetV3 | 95.7 | 99.7 | 95.4 | 97.5)",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/abs/2409.14543",
+  "source_quality": "primary",
+  "published": "2024-09-22",
+  "importance": "supporting",
+  "claim": "The motion-attention module is a lightweight plug-in that costs very little speed. On the shuttlecock data, TrackNetV2 runs at 163.3 FPS and TrackNetV2 (+Motion) at 161.1 FPS, while accuracy improves from 85.6 to 86.6 and F1 from 90.6 to 91.4. TrackNetV3's reported 15.1 FPS covers the whole script, including data loading and file I/O, so it cannot be compared directly. Benchmark hardware was a desktop GPU, not mobile.",
+  "quote": "a lightweight, plug-and-play extension of TrackNet ... TrackNetV4",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2409.14543",
+  "source_quality": "primary",
+  "published": "2024-09-22",
+  "importance": "supporting",
+  "claim": "TrackNetV4's mechanism is frame-differencing maps, modulated by a learnable motion prompt layer, fused with high-level visual features. It targets the cases where TrackNetV1-V3 fail: partial occlusion and low visibility of small, fast, motion-blurred objects.",
+  "quote": "fusing high-level visual features with learnable motion attention maps through a motion-aware fusion mechanism",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2409.14543",
+  "source_quality": "primary",
+  "published": "2024-09-22",
+  "importance": "tangential",
+  "claim": "On the authors' own multi-ball dataset (3,279 evaluation frames), TrackNetV4 (v2) trained from scratch reached Acc 94.7 / F1 97.2 at 169.1 FPS, against TrackNetV2 at Acc 93.4 / F1 96.5 at 186.4 FPS. The v1 variant underperformed the baseline (Acc 91.8 / F1 95.7). Gains depend on the variant and on the fine-tuning learning rate.",
+  "quote": "outperforms the baseline, with improvements of 1.3%, 1.2%, 0.3%, and 0.7% in accuracy",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2511.14186",
+  "source_quality": "primary",
+  "published": "2025-11-18",
+  "importance": "central",
+  "claim": "UMEG-Net is a 2.2M-parameter graph model. Each frame's graph joins player skeletons, ball/shuttle keypoints and court-corner keypoints, and frames are linked by a parameter-free multi-scale temporal shift. In few-shot precise event spotting it beats the best baselines (E2E-Spot, T-DEED, F3ED, BlockGCN) by 1.3% to 5.5% F1evt and 1.3% to 16.4% Edit. On ShuttleSet in the 100-clip setting it scores 49.2 F1evt / 64.0 Edit, against 42.7/54.6 for E2E-Spot and 47.1/59.4 for BlockGCN.",
+  "quote": "UMEG-Net consistently outperforms baseline methods, improving F1 scores by 1.3% to 5.5% and edit scores by 1.3% to 16.4%",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2511.14186",
+  "source_quality": "primary",
+  "published": "2025-11-18",
+  "importance": "central",
+  "claim": "UMEG-Distill transfers knowledge from the frozen pose+shuttle+court graph teacher to an RGB student (VideoMAEv2 plus a bidirectional GRU) using unlabeled clips. It adds an average of 5.8% F1 and 6.7% Edit over UMEG-Net. On ShuttleSet (100-clip few-shot) it reaches 59.1 F1evt / 69.0 Edit, but the distilled model is about 67.8M parameters.",
+  "quote": "Compared to UMEG-Net, it improves on average 5.8% in F1",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2511.14186",
+  "source_quality": "primary",
+  "published": "2025-11-18",
+  "importance": "central",
+  "claim": "ShuttleSet works as a learned hit-frame benchmark: every shot is labeled with its exact racket-shuttle contact frame and one of 36 event types. The paper scores against a strict tolerance of 1 frame.",
+  "quote": "Each shot is annotated with the exact racket–shuttle contact frame and its event type (36 categories).",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2511.14186",
+  "source_quality": "primary",
+  "published": "2025-11-18",
+  "importance": "supporting",
+  "claim": "With full supervision, UMEG-Net roughly matches the RGB end-to-end E2E-Spot on ShuttleSet (71.4 vs 71.2 F1evt, both 76.1 Edit). It has the higher F1evt on 3 of 5 datasets (F3Set-Tennis, ShuttleSet, Figure Skating) and the lower on FineGym-BB and SoccerNet-BAS.",
+  "quote": "It shows better performance in 3 out of 5 datasets.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2511.14186",
+  "source_quality": "primary",
+  "published": "2025-11-18",
+  "importance": "supporting",
+  "claim": "UMEG-Net gets its inputs from upstream detectors: top-down HRNet for 2D pose, a fine-tuned YOLOv8 for players and balls, TrackNetV3 for shuttle tracking on ShuttleSet, and deployed court-detection models for the four court corners. Its graph network is the smallest of all compared baselines at 2.2M parameters. The paper reports no inference latency.",
+  "quote": "with the fewest parameters (2.2M) among all baselines.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.mdpi.com/1424-8220/24/13/4372",
+  "source_quality": "primary",
+  "published": "2024-07-05",
+  "importance": "central",
+  "claim": "Fusing TrackNet shuttle trajectories with a YOLOv7 player-swing (hit-action) detector through a rule-based Shot Refinement Algorithm (SRA) raises hit/shot-extraction precision from 0.588 to 0.897 and F1 from 0.723 to 0.905, while recall drops slightly from 0.936 to 0.913. Shots are matched at temporal IoU of 0.5 on BWF broadcast match videos. The abstract calls the precision figure 'accuracy'.",
+  "quote": "Our proposed method achieves an accuracy of 89.7%, a recall rate of 91.3%, and an F1 rate of 90.5% ... compared to the use of TrackNet alone, which yields 58.8% accuracy, 93.6% recall, and 72.3% F1 score.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.mdpi.com/1424-8220/24/13/4372",
+  "source_quality": "primary",
+  "published": "2024-07-05",
+  "importance": "central",
+  "claim": "Hit-frame detection based only on the shuttle trajectory (TrackNet direction changes) has high recall but many false positives, with precision of 0.588. Adding a learned visual swing detector (YOLOv7 trained on manually labelled player hit actions) is what removes most of those false hits. This argues against relying on a single kinematic cue such as wrist-velocity peaks or trajectory inflection alone.",
+  "quote": "the trajectory-based method only yielded a precision of 0.588, a recall rate of 0.936, and an F1 score of 0.723",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.mdpi.com/1424-8220/24/13/4372",
+  "source_quality": "primary",
+  "published": "2024-07-05",
+  "importance": "supporting",
+  "claim": "Shot-type classification uses an XGBoost classifier over 7 classes (clear, drive, smash, net, drop, lift, push). Its accuracy is 72.1%, 65.4% and 54.1% at t-IoU thresholds of 0.5, 0.85 and 0.95 when the SRA-refined segments are used, compared with 71.9%, 61.0% and 38.8% from TrackNet-only segmentation. Table 2 orders thresholds against values in reverse of the abstract's wording. Better hit segmentation therefore improves the downstream stroke classifier most at strict temporal thresholds.",
+  "quote": "the accuracy of shot type classification at three different thresholds is 72.1%, 65.4%, and 54.1%.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.mdpi.com/1424-8220/24/13/4372",
+  "source_quality": "primary",
+  "published": "2024-07-05",
+  "importance": "supporting",
+  "claim": "The SRA refinement step adds about 0.14 s of processing per sample (0.032 s for TrackNet alone vs 0.174-0.175 s with SRA in Table 1). Both the shuttle tracker and the action detector produce false alarms and misses, especially when the player occludes the shuttle. The paper does not state which TrackNet version it uses or report FPS.",
+  "quote": "Notably, both the shuttlecock-tracking and action-detection modules are susceptible to false alarms or detection misses.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.mdpi.com/1424-8220/24/13/4372",
+  "source_quality": "primary",
+  "published": "2024-07-05",
+  "importance": "tangential",
+  "claim": "The evaluation uses Badminton World Federation (BWF) broadcast match videos: 69 matches and 1,582 rallies according to the abstract. The body reports different subset counts (e.g., 32 matches / 602 rallies / 8,975 images), so the dataset size is internally inconsistent. All footage is fixed broadcast-view, not smartphone capture.",
+  "quote": "in 69 matches, with 1582 rallies of the Badminton World Federation (BWF) match videos",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2204.01899",
+  "source_quality": "primary",
+  "published": "2022-04-04 (v1; v2 revised 2022-05-18; CVSports workshop at CVPR 2022)",
+  "importance": "central",
+  "claim": "MonoTrack's learned hit detector (HitNet, about 16K parameters, using shuttle, pose and court features) plus a sequence optimization step reaches F1 0.946 (94.3% recall, 94.9% precision). A derivative-based hit detector, which works much like the app's current velocity-peak thresholding, gets F1 0.699 on the same test set. HitNet without the optimization step reaches F1 0.866.",
+  "quote": "Table 1: 'Derivative-based | 65.7% | 53.8% | 74.7% | 0.699' ... 'HitNet (All) | 78.1% | 76.4% | 97.2% | 0.866' ... 'HitNet+optimization | 94.3% | 89.7% | 94.9% | 0.946'; text: 'The network is compact in size (around 16K parameters) and can reach 86.3% accuracy.'",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/abs/2204.01899",
+  "source_quality": "primary",
+  "published": "2022-04-04 (v1; v2 revised 2022-05-18; CVSports workshop at CVPR 2022)",
+  "importance": "central",
+  "claim": "MonoTrack reconstructs 3D shuttle trajectories from monocular video by modeling the shuttle as a particle under quadratic air drag, with a drag coefficient that can change per shot, plus court and shot-placement priors. On 10k synthetic trajectories the priors cut the average 3D error from 14.9 cm to 8.0 cm. Real matches have no 3D ground truth, so only 2D reprojection error was measured: 8.1-9.8 px bootstrapped and up to 37.1 px end-to-end (about 5% of image resolution).",
+  "quote": "On average, adding the priors improves the error from 14.9 cm to 8.0 cm. ... The highest error is 37.1 pixels, or about 5% given the image resolution we are working with.",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/abs/2204.01899",
+  "source_quality": "primary",
+  "published": "2022-04-04 (v1; v2 revised 2022-05-18; CVSports workshop at CVPR 2022)",
+  "importance": "central",
+  "claim": "MonoTrack's modified TrackNetV2 shuttle tracker raises tracking accuracy from 84.0% to 88.6% while shrinking the model from 11.3M to 2.9M parameters. Input is 288x512 and the model predicts three frames at once. No precision, recall or F1 is reported for this tracker.",
+  "quote": "88.6% accuracy from 84.0% in the original ... 2.9M parameters in our model versus 11.3M parameters",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://arxiv.org/abs/2204.01899",
+  "source_quality": "primary",
+  "published": "2022-04-04 (v1; v2 revised 2022-05-18; CVSports workshop at CVPR 2022)",
+  "importance": "supporting",
+  "claim": "MonoTrack's court detector raises the court detection success rate (IoU > 0.8) from 73.9% to 85.5%, with average IoU 0.97 vs 0.96. It also cuts detection time by about 40x. This supports homography-based court calibration as the basis for speed estimation.",
+  "quote": "our proposed approach increases the success rate of court detection from 73.9% to 85.5%",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2204.01899",
+  "source_quality": "primary",
+  "published": "2022-04-04 (v1; v2 revised 2022-05-18; CVSports workshop at CVPR 2022)",
+  "importance": "supporting",
+  "claim": "MonoTrack is trained and evaluated on 77k annotated frames from 26 international singles matches, with a test set of about 12k frames from 3 matches. Court detection was also tested on 40 more YouTube matches. All of this is broadcast-style footage, not smartphone video.",
+  "quote": "In total, this dataset contains 77k annotated frames from 26 unique singles matches from international play.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://github.com/qaz812345/TrackNetV3",
+  "source_quality": "primary",
+  "published": "2023 (ACM MM Asia 2023; DOI 10.1145/3595916.3626370)",
+  "importance": "central",
+  "claim": "On the test split of the Shuttlecock Trajectory Dataset, TrackNetV3 reaches 97.51% accuracy, 97.79% precision, 99.33% recall and 98.56% F1. TrackNetV2 reaches 94.98% accuracy, 99.64% precision, 94.56% recall and 97.03% F1. So V3 gains about 2.5 points of accuracy and about 1.5 points of F1, mostly through recall, while precision drops slightly.",
+  "quote": "TrackNetV2 | 94.98% | 99.64% | 94.56% | 97.03% | 27.70 ... TrackNetV3 | 97.51% | 97.79% | 99.33% | 98.56% | 25.11",
+  "verification": "supported"
+ },
+ {
+  "source": "https://github.com/qaz812345/TrackNetV3",
+  "source_quality": "primary",
+  "published": "2023 (ACM MM Asia 2023; DOI 10.1145/3595916.3626370)",
+  "importance": "central",
+  "claim": "A general-purpose YOLO detector (YOLOv7) does much worse than heatmap-based TrackNet models on the same shuttlecock test set: 57.82% accuracy, 59.96% recall and 68.00% F1. This suggests generic box detectors miss many shuttlecock frames.",
+  "quote": "YOLOv7 | 57.82% | 78.53% | 59.96% | 68.00% | 34.77",
+  "verification": "supported"
+ },
+ {
+  "source": "https://github.com/qaz812345/TrackNetV3",
+  "source_quality": "primary",
+  "published": "2023 (ACM MM Asia 2023; DOI 10.1145/3595916.3626370)",
+  "importance": "supporting",
+  "claim": "TrackNetV3 is slightly slower than TrackNetV2: 25.11 FPS against 27.70 FPS. YOLOv7 is the fastest at 34.77 FPS. The README does not say what hardware these speeds were measured on, so they cannot be carried over to a Snapdragon 680 phone.",
+  "quote": "TrackNetV2 | 94.98% | 99.64% | 94.56% | 97.03% | 27.70 ... TrackNetV3 | 97.51% | 97.79% | 99.33% | 98.56% | 25.11",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://github.com/qaz812345/TrackNetV3",
+  "source_quality": "primary",
+  "published": "2023 (ACM MM Asia 2023; DOI 10.1145/3595916.3626370)",
+  "importance": "central",
+  "claim": "TrackNetV3 has two modules. A trajectory prediction module uses an estimated background (the median image of the match, or of the rally) as extra input, plus mixup augmentation. A separate rectification module (InpaintNet) builds repair masks from the predicted trajectory and fills in missing or incorrect positions by inpainting. The training commands use 8-frame sequences for tracking and 16-frame sequences for rectification.",
+  "quote": "The trajectory prediction module leverages an estimated background as auxiliary data to locate the shuttlecock ... we create repair masks by analyzing the predicted trajectory ... If available, the dataset will use the median image of the match; otherwise, it will use the median image of the rally.",
+  "verification": "supported"
+ },
+ {
+  "source": "https://github.com/qaz812345/TrackNetV3",
+  "source_quality": "primary",
+  "published": "2023 (ACM MM Asia 2023; DOI 10.1145/3595916.3626370)",
+  "importance": "supporting",
+  "claim": "The code and the pretrained checkpoints (TrackNet_best.pt and InpaintNet_best.pt) are released under the MIT License, so they can be used commercially or adapted for a mobile app.",
+  "quote": "released under the MIT License",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2509.05334v1",
+  "source_quality": "primary",
+  "published": "2025-09-01",
+  "importance": "central",
+  "claim": "A custom-trained YOLOv5 shuttlecock detector, trained on a self-annotated dataset of 15,000 images all taken from a perpendicular side-on viewpoint, reached 93% precision, 87% recall and 91% mAP@0.5. No F1 score was given, and there was no comparison to TrackNet or other heatmap trackers.",
+  "quote": "a precision of 93%, a recall of 87%, and a mean Average Precision at an IoU threshold of 0.5 (mAP@0.5) of 91%",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/html/2509.05334v1",
+  "source_quality": "primary",
+  "published": "2025-09-01",
+  "importance": "central",
+  "claim": "Against a Bushnell Speedster III radar gun over 20 smashes from one skilled player, filmed on an iPhone 16 at 30 fps, the vision system's peak smash speed had an MAE of 66.41 km/h and an RMSE of 74.68 km/h. It consistently read higher than the radar. The author blames the radar for missing the early, fastest phase of flight. Agreement 'at net' is described only in words, with no number.",
+  "quote": "The Mean Absolute Error (MAE) between the two methods for peak speed was 66.41 km/h ... the Root Mean Squared Error (RMSE) was 74.68 km/h.",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/html/2509.05334v1",
+  "source_quality": "primary",
+  "published": "2025-09-01",
+  "importance": "central",
+  "claim": "Court calibration uses no homography or 3D reconstruction. The user clicks two points on a court line to set one meters-per-pixel scale. The method assumes the camera is perpendicular to the plane of motion and cannot capture motion toward or away from the camera, which is the same family of limits as Ayto's current pixels-per-meter approach.",
+  "quote": "Any movement along the z-axis (towards or away from the camera) is not captured",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/html/2509.05334v1",
+  "source_quality": "primary",
+  "published": "2025-09-01",
+  "importance": "supporting",
+  "claim": "Tracking uses a linear constant-velocity Kalman filter, SORT-style. The best candidate box is chosen with a composite score weighted 0.7 on Kalman prediction and 0.3 on YOLO confidence. Detections implying speeds below 5 km/h or above 375 km/h are thrown out, and detection runs at a low 0.1 confidence threshold to maximize recall.",
+  "quote": "S_comp = (0.3·C_YOLO) + (0.7·P_Kalman). The weights are set empirically to prioritize temporal smoothness over raw detection confidence.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2509.05334v1",
+  "source_quality": "primary",
+  "published": "2025-09-01",
+  "importance": "tangential",
+  "claim": "The system ships as iOS (Swift) and Android (React Native) apps, but the paper reports no on-device inference latency or FPS. It treats TrackNetV2 only as an unsuitable broadcast-view dataset and leaves training on it to future work.",
+  "quote": "train similar models on badminton-specific datasets like TrackNetV2",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2303.07399",
+  "source_quality": "primary",
+  "published": "2023-07-03 (arXiv v2; v1 March 2023)",
+  "importance": "central",
+  "claim": "On the COCO-SinglePerson val subset (1045 single-person images), top-down RTMPose with an RTMDet-nano detector reaches 72.1 AP (t), 77.1 AP (s), 82.4 AP (m) and 83.5 AP (l). MediaPipe BlazePose-Lite scores 29.3 AP, BlazePose-Full 35.4 AP, MoveNet Lightning 53.6 AP and MoveNet Thunder 64.8 AP (MoveNet with double inference). So RTMPose-t is about 37 AP higher than BlazePose-Full, the model the app uses now.",
+  "quote": "The evaluation results in Table 5 show that RTMPose archives superior performance and efficiency even compared to previous solutions tailored for the single-person scenario. [Table 5: BlazePose-Lite 29.3; BlazePose-Full 35.4; MoveNet Lightning 53.6*; Thunder 64.8*; RTMPose-t 72.1; RTMPose-s 77.1; RTMPose-m 82.4; RTMPose-l 83.5]",
+  "verification": "unresolved"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2303.07399",
+  "source_quality": "primary",
+  "published": "2023-07-03 (arXiv v2; v1 March 2023)",
+  "importance": "central",
+  "claim": "In the paper's mobile test (ncnn, 4 threads, Snapdragon 865), pose-model latency at 256x192 input is 9.02 ms for RTMPose-t (FP16, 15.84 ms FP32), 13.89 ms for RTMPose-s (FP16, 25.01 ms FP32), 26.44 ms for RTMPose-m (FP16, 49.46 ms FP32) and 45.37 ms for RTMPose-l (FP16, 85.75 ms FP32). These figures are for a Snapdragon 865, a flagship chip faster than the Snapdragon 680 the app targets.",
+  "quote": "We deploy RTMPose on the Snapdragon 865 chip with ncnn and inference with 4 threads. [Table 10: RTMPose-t 0.36 GFLOPs, AP(GT) 68.4, FP32 15.84 ms, FP16 9.02 ms; RTMPose-s 72.8, 25.01, 13.89; RTMPose-m 77.3, 49.46, 26.44; RTMPose-l 78.3, 85.75, 45.37]",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2303.07399",
+  "source_quality": "primary",
+  "published": "2023-07-03 (arXiv v2; v1 March 2023)",
+  "importance": "central",
+  "claim": "On full COCO val2017, RTMPose-m reaches 75.8% AP at over 90 FPS on an Intel i7-11700 CPU and over 430 FPS on a GTX 1660 Ti. RTMPose-s reaches 72.2% AP at over 70 FPS on a Snapdragon 865. RTMPose-x reaches 65.3% AP on COCO-WholeBody.",
+  "quote": "Our RTMPose-m achieves 75.8% AP on COCO with 90+ FPS on an Intel i7-11700 CPU and 430+ FPS on an NVIDIA GTX 1660 Ti GPU, and RTMPose-x achieves 65.3% AP on COCO-WholeBody. ... Our RTMPose-s model achieves 72.2% AP on COCO with 70+ FPS on a Snapdragon 865 chip",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2303.07399",
+  "source_quality": "primary",
+  "published": "2023-07-03 (arXiv v2; v1 March 2023)",
+  "importance": "supporting",
+  "claim": "The RTMPose inference pipeline uses BlazePose-style skip-frame detection: the person detector runs only every K frames, and the boxes in between come from the previous pose. Temporal smoothing uses OKS-based pose NMS plus a One-Euro filter, not EMA.",
+  "quote": "We use the skip-frame detection mechanism as in BlazePose [3], where human detection is performed every K frames, and in the interval frames the bounding boxes are generated from the last pose estimation results. Additionally, to achieve smooth prediction over frames, we use OKS-based pose NMS and OneEuro [9] filter in the post-processing stage.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2303.07399",
+  "source_quality": "primary",
+  "published": "2023-07-03 (arXiv v2; v1 March 2023)",
+  "importance": "supporting",
+  "claim": "RTMPose locates keypoints with SimCC coordinate classification (separate x-axis and y-axis bin classifiers) on a CSPNeXt backbone instead of heatmaps. With the upsampling layers removed, the head needs 0.002 GFLOPs versus 1.425 GFLOPs for a heatmap head, at comparable AP (71.3 vs 71.8).",
+  "quote": "RTMPose predicts keypoints using a SimCC-based [35] algorithm that treats keypoint localization as a classification task. Compared with heatmap-based algorithms [24, 59, 61, 65], the SimCC-based algorithm achieves competitive accuracy with lower computational effort.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2112.13715",
+  "source_quality": "primary",
+  "published": "2022-07-21 (arXiv v2, ECCV 2022; v1 posted Dec 2021)",
+  "importance": "central",
+  "claim": "On AIST++ dance video (60 fps, fast complex motion) with VIBE as the pose estimator, SmoothNet cut acceleration error (jitter) from 31.64 to 4.15 mm/frame^2, an 86.88% reduction. It also cut MPJPE from 106.90 to 97.47 mm, an 8.82% reduction. This beat the best-tuned One-Euro, Savitzky-Golay and Gaussian1d filters on both metrics.",
+  "quote": "SmoothNet achieves the best performance, and it reduces Accel by 86.88% and MPJPE by 8.82% compared to the original pose estimation results.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2112.13715",
+  "source_quality": "primary",
+  "published": "2022-07-21 (arXiv v2, ECCV 2022; v1 posted Dec 2021)",
+  "importance": "central",
+  "claim": "In Table 1 on AIST++, the One-Euro filter was tuned to match SmoothNet's smoothness (Accel 4.67 vs 4.15). At that setting its MPJPE rose to 135.71 mm, versus 97.47 mm for SmoothNet and 105.71 mm for Gaussian1d. The authors call One-Euro the weakest of the three filters and blame its causal, frame-by-frame design.",
+  "quote": "Among the three filters, the one-Euro filter shows inferior performance, and we attribute it to the real-time frame-by-frame jitter mitigation strategy used in it.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2112.13715",
+  "source_quality": "primary",
+  "published": "2022-07-21 (arXiv v2, ECCV 2022; v1 posted Dec 2021)",
+  "importance": "supporting",
+  "claim": "SmoothNet is very light: 0.33M parameters, a default input window of T=32 frames with step 1, and inference above 1.3k fps on a CPU (46.8k fps on an A100). Window-size ablation: Accel drops steadily as the window grows, and results saturate past 64 frames, which the authors recommend as the best balance.",
+  "quote": "The parameters of SmoothNet is 0.33M, and the average inference time is less than 1.3k fps on a CPU and 46.8k on an A100-SXM4-40GB GPU.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2112.13715",
+  "source_quality": "primary",
+  "published": "2022-07-21 (arXiv v2, ECCV 2022; v1 posted Dec 2021)",
+  "importance": "central",
+  "claim": "SmoothNet works on a sliding window and needs future frames, so the authors say it is limited in real-time systems. For a live on-device feedback loop it either adds about a window's worth of latency or belongs in offline/cloud post-processing. A causal filter such as One-Euro is the alternative.",
+  "quote": "SmoothNet is a sliding-window-based model, which limits its use in real-time systems since we can not aggregate future poses to refine the historical poses.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2112.13715",
+  "source_quality": "primary",
+  "published": "2022-07-21 (arXiv v2, ECCV 2022; v1 posted Dec 2021)",
+  "importance": "supporting",
+  "claim": "SmoothNet is plug-and-play for 2D keypoint estimators, not just 3D. On Human3.6M 2D pose it cut HRNet's Accel from 1.01 to 0.13 px/frame^2 (MPJPE 4.59 to 4.54 px) and CPN's Accel from 2.91 to 0.14 (MPJPE 6.67 to 6.45 px). On the worst 1% of poses, Accel fell by about 90% on average.",
+  "quote": "On average, the estimated Accel on these poses are decreased by about 90%.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://cambridge.org/core/journals/robotica/article/novel-method-of-shuttlecock-trajectory-tracking-and-prediction-for-a-badminton-robot/913721D5E5CDB96A0D7E0679230ED6DA",
+  "source_quality": "primary",
+  "published": "2022-03-10",
+  "importance": "central",
+  "claim": "Zhi et al. (UESTC, Robotica 40(6), 2022) filter noisy 3D shuttlecock tracks with an unscented Kalman filter (UKF) in place of a classic linear Kalman filter. Their reason is that drag is nonlinear: air resistance scales with the square of velocity, which a constant-velocity Kalman filter cannot capture. The UKF parameters were alpha=0.01, kappa=0, beta=2, and it was tested on 609 randomly chosen tracks. Per-track RMSE appears only in a table image; the page text gives no numbers.",
+  "quote": "we utilize the unscented Kalman filter (UKF) algorithm instead of the classic Kalman filter ... The air resistance force is proportional to the square of a shuttlecock velocity",
+  "verification": "supported"
+ },
+ {
+  "source": "https://cambridge.org/core/journals/robotica/article/novel-method-of-shuttlecock-trajectory-tracking-and-prediction-for-a-badminton-robot/913721D5E5CDB96A0D7E0679230ED6DA",
+  "source_quality": "primary",
+  "published": "2022-03-10",
+  "importance": "supporting",
+  "claim": "The trajectory data came from a stereo (binocular) infrared camera rig, not a single camera. Shuttles were detected with a three-frame difference algorithm. More than 1500 tracks were collected by hand. This means the 3D tracking result does not carry over directly to a single-phone RGB setup.",
+  "quote": "First, we have established a shuttlecock track data set by an infrared-based binocular vision system. ... A trajectory data set containing more than 1500 tracks has been collected manually",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://cambridge.org/core/journals/robotica/article/novel-method-of-shuttlecock-trajectory-tracking-and-prediction-for-a-badminton-robot/913721D5E5CDB96A0D7E0679230ED6DA",
+  "source_quality": "primary",
+  "published": "2022-03-10",
+  "importance": "supporting",
+  "claim": "Landing points are predicted by a radial basis function (RBF) neural network model rather than by integrating an explicit physics model. There are three RBF networks, each taking speed and time interval as its two inputs. Each network was trained on more than 2 million samples.",
+  "quote": "Third, the radial basis function (RBF)-based track prediction model is designed.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://cambridge.org/core/journals/robotica/article/novel-method-of-shuttlecock-trajectory-tracking-and-prediction-for-a-badminton-robot/913721D5E5CDB96A0D7E0679230ED6DA",
+  "source_quality": "primary",
+  "published": "2022-03-10",
+  "importance": "supporting",
+  "claim": "The RBF model computes the landing-point state in 10 ms on average. This was measured on a desktop CPU (Ryzen 5 2600X) with the model re-implemented in C++. The paper does not test on a phone.",
+  "quote": "The experiment verifies that the prediction model can calculate the state of the drop point in 10 ms on average.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://cambridge.org/core/journals/robotica/article/novel-method-of-shuttlecock-trajectory-tracking-and-prediction-for-a-badminton-robot/913721D5E5CDB96A0D7E0679230ED6DA",
+  "source_quality": "primary",
+  "published": "2022-03-10",
+  "importance": "tangential",
+  "claim": "The paper says it predicts trajectories in real time with high accuracy, but the page text gives no position error in cm or mm. Prediction error appears only in Figure 9, and there is no numeric comparison against a classic Kalman filter or any other baseline.",
+  "quote": "the proposed method can predict the shuttlecock trajectory in real time at high accuracy",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://revistaseug.ugr.es/index.php/IJRSS/article/view/33259",
+  "source_quality": "primary",
+  "published": "2022 (Int. J. Racket Sports Sci. 4(2):11-19; accepted 2022-11-10; journal web page dated 2025-03-22)",
+  "importance": "central",
+  "claim": "In a 34-player smash study (12 novices, 11 intermediates, 11 experts), a Doppler radar gun (Stalker Sport, 250 Hz) underestimated peak shuttlecock velocity by an average of 9.7% against a 500 Hz, 9-camera Vicon reference. A racket-mounted IMU (Zepp Tennis) underestimated it by 13.6%. By skill level, radar bias was -14.1% for novices, -9.8% for intermediates and -6.9% for experts. So radar is a biased ground truth, not an exact one, for checking a camera-based speed estimator.",
+  "quote": "In terms of validity, radar and motion sensor provides an accurate measure but underestimate projectile velocity (-9.7% and -13.6% respectively).",
+  "verification": "supported"
+ },
+ {
+  "source": "https://revistaseug.ugr.es/index.php/IJRSS/article/view/33259",
+  "source_quality": "primary",
+  "published": "2022 (Int. J. Racket Sports Sci. 4(2):11-19; accepted 2022-11-10; journal web page dated 2025-03-22)",
+  "importance": "central",
+  "claim": "The authors say a standard camera at 50 fps measures shuttle velocity only to within about 5 m/s, while elite and high-skilled players differ by about 10 m/s. They conclude that shuttlecock velocity cannot be assessed with such low-frame-rate devices. This bears directly on pixel-displacement speed estimation from 30-60 fps smartphone video.",
+  "quote": "The difference of velocity between elite and high skilled players is about 10 m.s-1 (Phomsoupha & Laffaye, 2014), whereas the velocity accuracy of a camera at 50 fps is about 5 m.s-1. This showed that it is impossible to assess a badminton shuttlecock velocity with such devices.",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://revistaseug.ugr.es/index.php/IJRSS/article/view/33259",
+  "source_quality": "primary",
+  "published": "2022 (Int. J. Racket Sports Sci. 4(2):11-19; accepted 2022-11-10; journal web page dated 2025-03-22)",
+  "importance": "supporting",
+  "claim": "The shuttle slows very quickly after racket contact: the authors report that velocity halves within about 0.05 s of contact (log-decay model V = -9.2 ln(T) + 2.4, T in ms, as printed; the constants look garbled). At 30-60 fps that is only 1.5-3 frames, so frame-differencing tends to miss the true peak, and drag-aware fitting or extrapolation back to the hit frame is needed.",
+  "quote": "Phomsoupha & Laffaye (2014) showed that the shuttlecock velocity V (in m.s-1) is a logarithmic function of time T (in ms) as follow: V= -9.2 ln(T) +2.4, meaning that the velocity is divided by two times just 0.05 sec after the end of the racket contact.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://revistaseug.ugr.es/index.php/IJRSS/article/view/33259",
+  "source_quality": "primary",
+  "published": "2022 (Int. J. Racket Sports Sci. 4(2):11-19; accepted 2022-11-10; journal web page dated 2025-03-22)",
+  "importance": "supporting",
+  "claim": "Against the 500 Hz high-speed camera, radar correlated at r = 0.917 (the IMU at r = 0.682). Concurrent-validity CVs, 12.5% for radar and 12.1% for the IMU, exceeded the 10% adequacy threshold. About 20% of shots gave no radar reading, partly because the radar is sensitive to placement and tilt.",
+  "quote": "Also, the Pearson product moment correlation coefficient showed almost perfect correlation between the radar and the high-speed camera measurements for velocity (r= 0.917; p < 0.001); and good correlation between the motion sensor and the high-speed camera measurements (r=0.682; p < 0.001)",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://revistaseug.ugr.es/index.php/IJRSS/article/view/33259",
+  "source_quality": "primary",
+  "published": "2022 (Int. J. Racket Sports Sci. 4(2):11-19; accepted 2022-11-10; journal web page dated 2025-03-22)",
+  "importance": "tangential",
+  "claim": "The authors fit linear equations to convert high-speed-camera velocity xv into radar-comparable values (0.945xv + 6.703) and IMU-comparable values (0.894xv + 10.273). They report mean smash speeds measured by the high-speed camera of 37.4, 48.6 and 60.1 m/s for novices, intermediates and experts. These give a reference speed range and a way to correct for radar bias.",
+  "quote": "Linear regression analyses on our data suggests using the following equation to obtain velocity (xv) from the high-speed camera that are comparable to those from the radar (0.945xv + 6.703) and the motion sensor (0.894xv + 10.273) when individuals velocity ranging from novices to experts",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://people.cs.nycu.edu.tw/~yushuen/data/TracknetV5_26.pdf",
+  "source_quality": "primary",
+  "published": "2026 (PDF creation date 2026-08-24; the PDF gives no venue or arXiv ID, so it is an author-hosted preprint in ICASSP-style format)",
+  "importance": "central",
+  "claim": "On the public TrackNetV2/V3 shuttlecock dataset, TrackNetV5 (10.09M params) reaches F1 98.47 (Acc 97.37, Prec 99.72, Recall 97.25). It beats TrackNetV3 (11.34M, F1 97.64, Acc 95.98) and TrackNetV4 (11.34M, F1 97.99, Acc 96.58). It also runs at about half their throughput: 60.7 FPS versus about 119 FPS on the same GPU.",
+  "quote": "TrackNetV5 achieves a leading F1-Score of 98.47, surpassing TrackNetV3 and TrackNetV4. [Table 1:] TrackNetV3 [6] 11.34M 95.98 99.67 95.69 97.64 119.09 / TrackNetV4 [7] 11.34M 96.58 99.56 96.48 97.99 118.81 / TrackNetV5 10.09M 97.37 99.72 97.25 98.47 60.7",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://people.cs.nycu.edu.tw/~yushuen/data/TracknetV5_26.pdf",
+  "source_quality": "primary",
+  "published": "2026 (PDF creation date 2026-08-24; the PDF gives no venue or arXiv ID, so it is an author-hosted preprint in ICASSP-style format)",
+  "importance": "central",
+  "claim": "TrackNetV5-Lite (width multiplier 0.5, 2.58M params, about 4.4x fewer than TrackNetV3) reaches F1 98.06 (Acc 96.69). That is still above TrackNetV3 and TrackNetV4. It runs at 135.18 FPS, but the paper measured speed only on a desktop RTX 5080 GPU. It reports no mobile, NPU or TFLite latency, so the paper's claim that it is ready for edge devices is not checked on phone-class hardware such as the Snapdragon 680.",
+  "quote": "the lightweight TrackNetV5-Lite (2.58M parameters) reaches an F1-Score of 98.06 while running at 135.18 FPS on an RTX 5080",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://people.cs.nycu.edu.tw/~yushuen/data/TracknetV5_26.pdf",
+  "source_quality": "primary",
+  "published": "2026 (PDF creation date 2026-08-24; the PDF gives no venue or arXiv ID, so it is an author-hosted preprint in ICASSP-style format)",
+  "importance": "supporting",
+  "claim": "The paper reports an intermediate variant at width multiplier 0.75: 6.46M params, F1 98.29, Acc 97.07. The authors describe a monotonic accuracy-versus-size/speed trade-off controlled by the width multiplier, so accuracy can be tuned to the device budget.",
+  "quote": "[Table 3:] 0.75 6.46M 97.07 99.64 96.97 98.29 ... larger α improves accurcy, precision, recall and F1 but increases model size and reduces speed, while smaller α yields a lighter and faster model.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://people.cs.nycu.edu.tw/~yushuen/data/TracknetV5_26.pdf",
+  "source_quality": "primary",
+  "published": "2026 (PDF creation date 2026-08-24; the PDF gives no venue or arXiv ID, so it is an author-hosted preprint in ICASSP-style format)",
+  "importance": "supporting",
+  "claim": "The evaluation protocol is the standard TrackNet one: 512x288 input, 5-frame input sequences, and a detection counts as a true positive within 4 pixels of ground truth. The numbers are therefore comparable with published TrackNetV2/V3/V4 results on the same dataset, but they say little about sub-pixel or metric accuracy, which matters for speed estimation.",
+  "quote": "We evaluate TrackNetV5 on the public badminton dataset [5, 6] with frames resized to 512 × 288. The value of T (e.g., sequence length) is set to 5. A prediction is considered a True Positive (TP) if the distance to the ground truth is within 4 pixels [5].",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://people.cs.nycu.edu.tw/~yushuen/data/TracknetV5_26.pdf",
+  "source_quality": "primary",
+  "published": "2026 (PDF creation date 2026-08-24; the PDF gives no venue or arXiv ID, so it is an author-hosted preprint in ICASSP-style format)",
+  "importance": "supporting",
+  "claim": "Over the TrackNetV4 baseline (F1 97.99), the gains are small (about 0.1-0.5 F1 points). In the ablation, adding the R(2+1)D blocks actually lowers F1 from 98.11 to 98.03, and the paper does not explain how the full model reaches 98.47. The method builds on TrackNetV4's motion prompts and does not compare against trajectory rectification/inpainting or against YOLO-family detectors. It dismisses YOLO-family detectors only qualitatively, with no numbers.",
+  "quote": "[Table 4:] TrackNetV4 [7] 96.58 99.56 96.48 97.99 / + MBConv 96.73 99.61 96.62 98.09 / + Motion Prompt + SCG 96.77 99.63 96.64 98.11 / + R(2+1)D 96.64 99.56 96.55 98.03",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://link.springer.com/article/10.1007/s00138-026-01929-3",
+  "source_quality": "primary",
+  "published": "2026-10-02",
+  "importance": "central",
+  "claim": "FreeTrack (Machine Vision and Applications, vol. 37, art. 167, 2026) reconstructs 3D shuttle trajectories from monocular video with no drag model. It assumes flight between two strikes stays in a vertical 'Motion Plane'. The plane is anchored in time by striking frames and in space by a ground anchor at the midpoint of the player's ankles. Each 2D detection is back-projected through a ray–plane intersection, with no iterative physics fitting.",
+  "quote": "is strictly confined to a vertical Motion Plane ... without presupposing the trajectory's specific shape or aerodynamic parameters",
+  "verification": "supported"
+ },
+ {
+  "source": "https://link.springer.com/article/10.1007/s00138-026-01929-3",
+  "source_quality": "primary",
+  "published": "2026-10-02",
+  "importance": "central",
+  "claim": "Against MonoTrack on 96 real sequences (about 17,000 frames, six stroke types), FreeTrack cut landing-point error from 170.9 cm to 7.8 cm on clears, from 103.5 cm to 8.9 cm on smashes and from 97.8 cm to 4.8 cm on flat drives. The authors measured these with a ruler placed in the scene. Landing point is the reference; there is no radar or speed ground truth.",
+  "quote": "from 170.9 cm to 7.8 cm on Clears ... from 103.5 cm to 8.9 cm on Smashes ... from 97.8 cm to 4.8 cm on Flat Drives",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://link.springer.com/article/10.1007/s00138-026-01929-3",
+  "source_quality": "primary",
+  "published": "2026-10-02",
+  "importance": "supporting",
+  "claim": "FreeTrack ran 83 times faster than MonoTrack in the same timing scope: 0.705 ms per frame against 46.815 ms per frame. Its cost is light enough for an on-device or real-time 3D stage.",
+  "quote": "FreeTrack requires only 3.892 s to process the 9 common samples, corresponding to 0.705 ms per frame ... MonoTrack requires 323.597 s, corresponding to 46.815 ms per frame ... FreeTrack is 83.14 times faster than MonoTrack",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://link.springer.com/article/10.1007/s00138-026-01929-3",
+  "source_quality": "primary",
+  "published": "2026-10-02",
+  "importance": "supporting",
+  "claim": "Camera calibration uses six known 3D–2D court correspondences: the four court corners and the two net-post tops. These give the projection matrix, which supports a court-keypoint/homography approach over pixels-per-meter scaling. On 180 synthetic trajectories generated with aerodynamic drag, the mean 3D error was 16.94 cm.",
+  "quote": "including four court corners and two net-post tops ... The overall mean error across all trajectories is 16.94 cm",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://link.springer.com/article/10.1007/s00138-026-01929-3",
+  "source_quality": "primary",
+  "published": "2026-10-02",
+  "importance": "supporting",
+  "claim": "The ankle-based ground anchor is a stated weakness. It can fail on diving saves, jump smashes and falling blocks, where the feet do not mark where the shuttle was struck, and 3D error then grows. The method also assumes negligible crosswind.",
+  "quote": "ankle-keypoint-based Ground Anchor may deviate from the true contact position and lead to larger 3D reconstruction errors",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2404.08401v4",
+  "source_quality": "primary",
+  "published": "2024-10-24",
+  "importance": "central",
+  "claim": "PnLCalib calibrates a sports-field camera from a single view. A modified HRNetV2-w48 detects field keypoints and line extremities. An initial DLT/RANSAC estimate against a 3D field model is then refined by a non-linear point-and-line (PnL) reprojection optimization. This is a template for court-line keypoint calibration, offered here as an alternative to the app's pixels-per-meter and depth-based calibration.",
+  "quote": "Particularly, we adopt HRNetv2 [49] as the backbone model for the keypoints and line extremities prediction. ... we propose an optimization-based calibration pipeline that leverages a 3D soccer field model",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/html/2404.08401v4",
+  "source_quality": "primary",
+  "published": "2024-10-24",
+  "importance": "central",
+  "claim": "Adding line-based PnL refinement to keypoint-only calibration raises the Final Score (FS) by 4.3% on SN22-test-center (74.4 to 78.7) and by 7.6% on WC14-test (77.6 to 85.2). This beats the prior best FS of 63.9 and 59.4 on those sets (Mavrogiannis et al.).",
+  "quote": "by increasing the FS metric by 4.3% on the SN22-test-center dataset and a 7.6% increase on the WC14-test one.",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://arxiv.org/html/2404.08401v4",
+  "source_quality": "primary",
+  "published": "2024-10-24",
+  "importance": "supporting",
+  "claim": "As a homography method on WC14-test, PnLCalib (SV+PnL) reaches mean IoU_whole 93.4 and a mean projection error of 0.60 m, against 92.9 and 0.65 m for the best prior method (Oo et al.). On TS-WorldCup it reaches IoU_whole 96.3 with a 0.23 m mean projection error. These metric-scale errors are on soccer pitches, not badminton courts.",
+  "quote": "Ours SV + PnL: IoU_part 97.0 / 98.2, IoU_whole 93.4 / 95.5, projection error 0.60 / 0.42 m (WC14-test, mean/median, as reported in results table)",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2404.08401v4",
+  "source_quality": "primary",
+  "published": "2024-10-24",
+  "importance": "supporting",
+  "claim": "The pipeline is too slow for on-device real-time use as published: about 7 Hz for the plain multi-view model and about 4 Hz average with PnL refinement, on an RTX 2080 Ti GPU. On a phone it would have to run occasionally (calibrate once or rarely) or in cloud post-processing.",
+  "quote": "the plain MV model achieves 7 Hz ... the inference speed decreases to an average of 4 Hz ... The experiments are conducted on a single NVIDIA GeForce RTX 2080 Ti GPU",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2404.08401v4",
+  "source_quality": "primary",
+  "published": "2024-10-24",
+  "importance": "tangential",
+  "claim": "The camera model ignores lens distortion (zero skew, known aspect ratio). Extreme-distortion fisheye shots are a stated failure case, a limitation for phone wide-angle or ultra-wide lenses.",
+  "quote": "Following [22], we assume zero skew and a known pixel aspect ratio. ... i.e., we neglect astigmatism or distortions. ... fisheye shots from inside the goals, where extreme lens distortion makes calibration unable.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2409.14543",
+  "source_quality": "primary",
+  "published": "2024-09-22 (arXiv v1; the arXiv page says \"Research report\" and does not mention the ICASSP 2025 venue)",
+  "importance": "central",
+  "claim": "Adding TrackNetV4's motion attention maps to TrackNetV3 improves shuttlecock tracking on the TrackNetV2 shuttlecock dataset. Accuracy rises from 95.7% to 96.4%, recall from 95.4% to 96.3% and F1 from 97.5% to 97.9%. Precision drops slightly, from 99.7% to 99.5%.",
+  "quote": "Table I (Shuttlecock): 'TrackNetV3 | 95.7 | 99.7 | 95.4 | 97.5' vs 'TrackNetV3 (+Motion) | 96.4 | 99.5 | 96.3 | 97.9' (Acc. / Prec. / Rec. / F1, %); text: 'our method enhances the tracking performance of both TrackNetV2 and V3'",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/abs/2409.14543",
+  "source_quality": "primary",
+  "published": "2024-09-22 (arXiv v1; the arXiv page says \"Research report\" and does not mention the ICASSP 2025 venue)",
+  "importance": "central",
+  "claim": "Adding the motion module to TrackNetV2 on the shuttlecock dataset raises accuracy from 85.6% to 86.6% and F1 from 90.6% to 91.4%. Speed falls only slightly, from 163.3 to 161.1 FPS, so the module adds almost no inference cost.",
+  "quote": "Table I (Shuttlecock): 'TrackNetV2 | 85.6 | 96.6 | 85.3 | 90.6 | 163.3' vs 'TrackNetV2 (+Motion) | 86.6 | 94.9 | 88.1 | 91.4 | 161.1'; text: 'our motion-aware fusion mechanism still achieves improvements of over 0.8%'",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://arxiv.org/abs/2409.14543",
+  "source_quality": "primary",
+  "published": "2024-09-22 (arXiv v1; the arXiv page says \"Research report\" and does not mention the ICASSP 2025 venue)",
+  "importance": "supporting",
+  "claim": "A general-purpose YOLO detector (YOLOv7) does much worse than heatmap-based TrackNet models on the shuttlecock dataset. It reaches 57.8% accuracy and 68.0% F1, against 85.6% / 90.6% for TrackNetV2 and 95.7% / 97.5% for TrackNetV3.",
+  "quote": "Table I (Shuttlecock): 'YOLOv7 | 57.8 | 78.5 | 60.0 | 68.0 | -'",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2409.14543",
+  "source_quality": "primary",
+  "published": "2024-09-22 (arXiv v1; the arXiv page says \"Research report\" and does not mention the ICASSP 2025 venue)",
+  "importance": "supporting",
+  "claim": "TrackNetV4 is not a new standalone network. It is a lightweight, plug-and-play add-on to existing TrackNet models: frame-differencing maps, modulated by a learnable motion prompt layer, are fused with high-level visual features. It targets cases where TrackNetV1-V3 fail, such as partial occlusion and low visibility.",
+  "quote": "'We refer to our lightweight, plug-and-play solution, built on top of the existing TrackNet, as TrackNetV4.' ... TrackNetV1-V3 'often struggle in scenarios with partial occlusion or low visibility.'",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2409.14543",
+  "source_quality": "primary",
+  "published": "2024-09-22 (arXiv v1; the arXiv page says \"Research report\" and does not mention the ICASSP 2025 venue)",
+  "importance": "tangential",
+  "claim": "TrackNetV3's reported speed of 15.1 FPS, with or without the motion module, covers the whole script, including data loading and file writing. It cannot be compared directly with TrackNetV2's roughly 160 FPS, so the paper gives no clean inference-latency number for V3 or V4-on-V3.",
+  "quote": "Table I footnote: '15.1*' with '* Covers the whole script (data loading, file writing, etc.), so it is not directly comparable to the other speeds.'",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2311.05237",
+  "source_quality": "primary",
+  "published": "2023-11-16",
+  "importance": "central",
+  "claim": "WASB (1.5M parameters) beats re-implemented TrackNetV2 (11.3M) and MonoTrack (2.9M) on the TrackNetV2 Badminton shuttlecock dataset, using a 4-pixel distance threshold. With oversampling (Step=1), WASB scores F1 93.1, Accuracy 89.0 and AP 91.6. TrackNetV2 scores F1 90.5, Acc 85.6, AP 83.6, and MonoTrack scores F1 90.9, Acc 85.9, AP 84.9. Without oversampling (Step=3), WASB scores F1 91.6, Acc 87.0, AP 88.5.",
+  "quote": "Table 2 rows (Badminton columns F1/Acc./AP/FPS): \"TrackNetV2 [75] 11.3M ... 90.5 85.6 83.6 77.0\"; \"MonoTrack [50] 2.9M ... 90.9 85.9 84.9 75.5\"; \"WASB (Ours, Step=3) 1.5M ... 91.6 87.0 88.5 70.4\"; \"WASB (Ours, Step=1) 1.5M ... 93.1 89.0 91.6 34.3\". Caption: \"We set the distance threshold τ = 4 [pixel] to compute F1, Accuracy (Acc.) and Average Precision (AP)\"",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2311.05237",
+  "source_quality": "primary",
+  "published": "2023-11-16",
+  "importance": "supporting",
+  "claim": "The accuracy gain costs throughput. On badminton, WASB runs at 70.4 FPS without oversampling and 34.3 FPS with Step=1 oversampling, against 77.0 FPS for TrackNetV2. These timings come from a server with 4 V100 GPUs at 288x512 input with 3-frame clips, not from mobile hardware.",
+  "quote": "Notice that WASB is not the fastest among the methods. However, it can still be processed over 30 FPS on 4 out of 5 datasets, which is reasonable efficiency for real-time inference. ... each image is resized to 288 × 512 ... We performed all the following experiments on an Ubuntu server with 4 V100 GPUs.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2311.05237",
+  "source_quality": "primary",
+  "published": "2023-11-16",
+  "importance": "supporting",
+  "claim": "WASB deliberately avoids Kalman and particle filters for ball tracking because the authors saw no gain from them. Instead it predicts the next position with a constant-acceleration local motion model and only uses that prediction to discard inconsistent detection candidates. In the ablation, this online tracking added nothing on the Badminton dataset: F1 stayed at 91.6 and AP at 88.5.",
+  "quote": "Different from classical methods, we do not use filtering algorithms such as Kalman filter ... and particle filter ..., since any performance improvement was not observed with them. ... each technique complementarily ameliorate the SBDT performance with a few exceptions (e.g., online tracking does not contribute on the Soccer and Badminton datasets).",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2311.05237",
+  "source_quality": "primary",
+  "published": "2023-11-16",
+  "importance": "supporting",
+  "claim": "Most of WASB's advantage comes from its high-resolution HRNet backbone with strides removed from the stem. On badminton, the default stem-stride-free design (Fig. 3c) reaches F1 91.6 / AP 88.5, against F1 86.8 / AP 80.3 for the original strided HRNet stem (Fig. 3a). With none of the training or inference tricks, WASB already slightly exceeds the best existing method (F1 91.1 vs 90.9).",
+  "quote": "Figure 3 (a) 1.5M ... [Badminton] 86.8 80.4 80.3 77.1 ... Figure 3 (c) 1.5M ... 91.6 87.0 88.5 70.4 ... Interestingly, even without any techniques, our method is superior to the best of existing methods (cf. first row in Table 4). This indicates the superiority of our high-resolution feature extraction model to existing approaches.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2311.05237",
+  "source_quality": "primary",
+  "published": "2023-11-16",
+  "importance": "tangential",
+  "claim": "WASB predicts at most one ball per frame. It was validated only at standard resolutions (HD/FHD) and 25-30 FPS, so its behavior on 60 fps smartphone video is unverified. The Badminton benchmark used here is the TrackNetV2 dataset (1280x720, 30 FPS; 26 training matches and 3 test matches with 12,656 test frames).",
+  "quote": "our validation is limited to standard frame resolutions (e.g., HD, FHD) and frame rates (e.g., 25-30 FPS). ... Badminton [75] 1280 × 720 30 26 172 78558 11.8 ± 12.2 3 29 12656 12.5 ± 12.9",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2512.02789",
+  "source_quality": "primary",
+  "published": "2025-12-02 (v1); v4 2026-01-13",
+  "importance": "central",
+  "claim": "TrackNetV5 reports a state-of-the-art F1 of 0.9859 and accuracy of 0.9733 on the TrackNetV2 dataset (precision 0.9923, recall 0.9797, 3-frame input at 512x288). It beats TrackNetV2 (F1 0.9677, Acc 0.9396) and TrackNetV4 (F1 0.9581, Acc 0.9224). Most of the gain comes from recall, which rises from 0.9446 for V2 to 0.9797.",
+  "quote": "TrackNetV5 achieves a new state-of-the-art F1-score of 0.9859 and an accuracy of 0.9733 (Table 1: V2 Acc 0.9396 / P 0.9919 / R 0.9446 / F1 0.9677; V4 0.9224 / 0.9965 / 0.9225 / 0.9581; V5 0.9733 / 0.9923 / 0.9797 / 0.9859)",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://arxiv.org/abs/2512.02789",
+  "source_quality": "primary",
+  "published": "2025-12-02 (v1); v4 2026-01-13",
+  "importance": "supporting",
+  "claim": "TrackNetV5 costs 117.09 GFLOPs and 14.77M parameters, against 112.89 GFLOPs and 11.33M for V2/V4. It runs at about 114 FPS on an NVIDIA T4 server GPU, but no mobile or edge latency is reported. That compute load makes it much better suited to cloud post-processing than to on-device use on a Snapdragon 680-class phone.",
+  "quote": "with only a 3.7% increase in FLOPs (117.09 G) compared to V4 ... Crucially, it maintains a real-time inference speed of 114 FPS (Table 3, NVIDIA T4: V5 38.12x3 FPS, 117.09 GFLOPs, 14.77M params)",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2512.02789",
+  "source_quality": "primary",
+  "published": "2025-12-02 (v1); v4 2026-01-13",
+  "importance": "supporting",
+  "claim": "The paper's comparisons include only TrackNetV2 and V4. It gives no numbers for TrackNetV3 (trajectory rectification/inpainting), WASB, MonoTrack or YOLO detectors. It describes V3 qualitatively as heavier and less real-time-friendly, so it does not show that V5 beats TrackNetV3.",
+  "quote": "Subsequent variants, such as TrackNetV3 ... focused on maximizing accuracy by stacking heavyweight modules (e.g., Inception blocks) ... but at the cost of real-time performance.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2512.02789",
+  "source_quality": "primary",
+  "published": "2025-12-02 (v1); v4 2026-01-13",
+  "importance": "supporting",
+  "claim": "TrackNetV5 adds two modules. Motion Direction Decoupling (MDD) keeps signed motion polarity, which V4's absolute frame difference throws away. A Transformer-based Residual-Driven Spatio-Temporal Refinement (R-STR) head predicts a corrective residual intended to recover occluded targets. The occlusion claim rests only on overall false-negative reductions; there is no separate occlusion experiment.",
+  "quote": "Unlike V4, MDD decomposes temporal dynamics into signed polarity fields ... this Transformer-based module leverages factorized spatio-temporal contexts to estimate a corrective residual, effectively recovering occluded targets.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2512.02789",
+  "source_quality": "primary",
+  "published": "2025-12-02 (v1); v4 2026-01-13",
+  "importance": "tangential",
+  "claim": "It is unclear which sport the benchmark covers. The conclusion calls the main dataset the 'TrackNet tennis dataset', while Section 4.1 calls it the 'TrackNetV2 Dataset'. Generalization is shown only on a proprietary LoveAll dataset (V5 F1 0.9878 vs V2 0.9762 and V4 0.9731), so the shuttlecock-specific results cannot be reproduced.",
+  "quote": "Extensive experiments on the public TrackNet tennis dataset and our proprietary LoveAll dataset",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2502.21085v3",
+  "source_quality": "primary",
+  "published": "2025-09-18",
+  "importance": "central",
+  "claim": "BST (Badminton Stroke-type Transformer) combines player pose, the shuttlecock trajectory and court positions, and beats prior SOTA (TemPose-TF, ST-GCN, BlockGCN, SkateFormer, ProtoGCN) on ShuttleSet, BadmintonDB and TenniSet. On ShuttleSet with 25 merged classes and the clipping strategy, BST-CG-AP scores Acc 0.8322 / Macro-F1 0.8097, against TemPose-TF at 0.8235 / 0.8028. With fixed-width clips, ST-GCN scores only Acc 0.7758 / Macro-F1 0.7352, against 0.8254 / 0.7983 for BST-CG-AP.",
+  "quote": "To the best of our knowledge, experimental results demonstrate that our method outperforms the previous state-of-the-art on the largest publicly available badminton video dataset (ShuttleSet), another badminton dataset (BadmintonDB), and a tennis dataset (TenniSet).",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2502.21085v3",
+  "source_quality": "primary",
+  "published": "2025-09-18",
+  "importance": "central",
+  "claim": "On BadmintonDB (18 stroke classes), BST-AP reaches Acc 0.6517 / Macro-F1 0.5799 / Acc-2 0.8628. TemPose-TF scores 0.6199 / 0.5448 / 0.8517 and ST-GCN 0.5602 / 0.4870 / 0.7732. The skeleton-only GCN baseline therefore trails the pose+shuttle Transformer by about 9 points of accuracy.",
+  "quote": "Nevertheless, our BST series consistently outperforms previous methods.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2502.21085v3",
+  "source_quality": "primary",
+  "published": "2025-09-18",
+  "importance": "supporting",
+  "claim": "The BST pipeline gets 2D pose from RTMPose (via MMPose) rather than 3D poses lifted with MotionBERT, because 2D gave better downstream stroke-classification accuracy. It gets 2D shuttle positions from TrackNetV3 (attention variant).",
+  "quote": "The models we utilized in MMPose are RTMPose [20] for 2D pose estimation and MotionBERT [41] for further 3D pose estimation. ... We choose 2D poses for better downstream accuracy. ... For the shuttlecock trajectories, we utilize the 2D shuttlecock positions generated by TrackNetV3",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2502.21085v3",
+  "source_quality": "primary",
+  "published": "2025-09-18",
+  "importance": "supporting",
+  "claim": "Adding the shuttle trajectory is the main source of the gains over pose-only models. However, naively adding player court positions to the pose input (PP) lowered some BadmintonDB metrics, so how modalities are fused matters. The strongest results come from clips cut around detected hit frames (the frame when shuttle and racket are in contact or closest), with t set to half the interval between consecutive hit frames.",
+  "quote": "These results suggest that effectively leveraging ball trajectory is a promising direction for action recognition in racket sports.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2502.21085v3",
+  "source_quality": "primary",
+  "published": "2025-09-18",
+  "importance": "supporting",
+  "claim": "BST models are small: BST-CG-AP has about 1.85M parameters, against TemPose-TF 1.71M, ST-GCN 3.08M, SkateFormer 2.38M and ProtoGCN 4.11M. This size suggests on-device deployment is feasible, but the paper reports no inference latency or FLOPs, only training speed on an RTX 4090.",
+  "quote": "On a NVIDIA RTX 4090 setup, BST-CG-AP trains slightly faster than TemPose-TF",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2605.02558",
+  "source_quality": "primary",
+  "published": "2026-05 (arXiv 2605.x; v3 stamped 24 Jun 2026)",
+  "importance": "central",
+  "claim": "On ShuttleSet stroke recognition (31 classes after merging and splitting by court side; 40 matches split 30/5/5; 33,429 strokes), TemPose-TF-ASF (1.95M params) scores the highest results in the paper: Acc 0.854, Macro-F1 0.761, Acc-2 0.945. BST-CG-AP (1.88M) reaches Acc 0.838 / Macro-F1 0.723 / Acc-2 0.942, and the TemPose-TF baseline (1.71M) reaches 0.835 / 0.742 / 0.927.",
+  "quote": "TemPose-TF-ASF achieves the best overall performance among all evaluated variants (Table 2: TemPose-TF-ASF 1.95M, Acc 0.854, Macro-F1 0.761, Acc-2 0.945; BST-CG-AP 1.88M, 0.838, 0.723, 0.942)",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2605.02558",
+  "source_quality": "primary",
+  "published": "2026-05 (arXiv 2605.x; v3 stamped 24 Jun 2026)",
+  "importance": "central",
+  "claim": "In the same ShuttleSet benchmark, generic skeleton action-recognition models score lower than badminton-specific models. BlockGCN (1.69M) gets Acc 0.793 / Macro-F1 0.657, SkateFormer (2.38M) gets 0.808 / 0.665, and TemPose-V (1.62M) gets 0.798 / 0.658. This suggests that pose-only GCN or transformer classifiers trail models that fuse pose with shuttle and court data on fine-grained badminton stroke typing.",
+  "quote": "Table 2: BlockGCN 1.69M Acc 0.793 Macro-F1 0.657; SkateFormer 2.38M Acc 0.808 Macro-F1 0.665; TemPose-V 1.62M Acc 0.798 Macro-F1 0.658",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2605.02558",
+  "source_quality": "primary",
+  "published": "2026-05 (arXiv 2605.x; v3 stamped 24 Jun 2026)",
+  "importance": "central",
+  "claim": "ASF (Adjacent-Stroke Fusion) feeds the stroke types of the preceding and following strokes into the classifier. It works in two stages. In stage 1 the context inputs are set to zero, so the baseline model gives a first prediction. In stage 2 those predicted labels, not ground-truth labels, serve as bidirectional context. Because stage 2 needs the following stroke, this is offline or post-hoc refinement and cannot classify a stroke in real time as it happens.",
+  "quote": "Preliminary predictions from the baseline model are reused as estimated temporal context. ... Instead of using ground-truth annotations of future strokes, we introduce a Two-Stage Contextual Refinement (TSCR).",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2605.02558",
+  "source_quality": "primary",
+  "published": "2026-05 (arXiv 2605.x; v3 stamped 24 Jun 2026)",
+  "importance": "supporting",
+  "claim": "ASF works as a plug-in that improves other stroke classifiers as well. Adding it raised BST-CG-AP from Acc 0.838 to 0.843 (Macro-F1 0.723 to 0.729), TemPose-V from 0.798 to 0.814 (Macro-F1 0.658 to 0.701), and BlockGCN from 0.793 to 0.809, at a cost of about 0.24-0.40M extra parameters.",
+  "quote": "Moreover, integrating ASF into other advanced methods yields notable performance gains. These results demonstrate strong transferability and generalization capability.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2605.02558",
+  "source_quality": "primary",
+  "published": "2026-05 (arXiv 2605.x; v3 stamped 24 Jun 2026)",
+  "importance": "supporting",
+  "claim": "The pipeline is multimodal. It combines two-player skeleton joints and bones, shuttlecock trajectories from TrackNetV3, and player court positions from court-line detection (MonoTrack or TennisCourtDetector). The models are small (about 1.6-2.7M params for the main variants), but the paper reports no inference latency or mobile benchmarks.",
+  "quote": "By explicitly modeling bidirectional temporal stroke dependencies, the proposed method can be seamlessly integrated into existing state-of-the-art models.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.scitepress.org/Papers/2016/57785/",
+  "source_quality": "primary",
+  "published": "2016",
+  "importance": "central",
+  "claim": "Morel et al. (VISAPP 2016) compare a novice's sport motion to expert reference motions with a two-level Dynamic Time Warping (DTW) method that aligns the motions both in time and in space. This is an alternative to comparing raw joint angles frame by frame.",
+  "quote": "we propose an innovative 2-level DTW (Dynamic Time Warping) approach ... to temporally and spatially align the motions and extract the imperfections of the novice's performance for each joints",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.scitepress.org/Papers/2016/57785/",
+  "source_quality": "primary",
+  "published": "2016",
+  "importance": "central",
+  "claim": "The method needs only a database of expert motions and no hand-picked features or extra domain knowledge. It reports an error for each joint, and the authors say it is morphology-independent: it is meant to handle differences in body build and style between experts and novices.",
+  "quote": "Only based on a database of experts' motions and no additional knowledge ... since it is automatic and morphology-independent",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.scitepress.org/Papers/2016/57785/",
+  "source_quality": "primary",
+  "published": "2016",
+  "importance": "supporting",
+  "claim": "The method was tested only on tennis serves, not on badminton strokes. The authors claim it applies to any individual motor skill, but the abstract on this page gives no numbers and no agreement score with coaches or expert raters.",
+  "quote": "we applied our method on tennis serve ... it can be applied to any individual motor performance",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.scitepress.org/Papers/2016/57785/",
+  "source_quality": "primary",
+  "published": "2016",
+  "importance": "supporting",
+  "claim": "The authors say automatic player scoring is hard because the reference experts and the novices differ in body shape and style. This is why naive per-joint angle comparison against a single pro is unreliable.",
+  "quote": "the variability of morphologies and styles of both the experts who perform the reference motions",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2403.12385v2",
+  "source_quality": "primary",
+  "published": "2024-11-02",
+  "importance": "central",
+  "claim": "VideoBadminton is a fine-grained badminton action recognition dataset with 18 stroke classes and 7,822 clips (145 minutes) recorded at 60 fps and 1280x960 resolution from 19 university team players. That is far more fine-grained than Ayto's 6-class taxonomy.",
+  "quote": "It incorporates 18 categories of badminton actions, with a total of 7,822 clips spanning 145 minutes of self-recorded footage. ... Operating at a frame rate of 60fps, the DFK 37AUX273 captured the fast-paced movements inherent in badminton",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2403.12385v2",
+  "source_quality": "primary",
+  "published": "2024-11-02",
+  "importance": "central",
+  "claim": "On the full VideoBadminton dataset (8:1:1 train/val/test split), the RGB-based SlowFast model performed best, with 82.80% Top-1 accuracy and 73.80% mean class accuracy. Video Swin reached 81.99% Top-1, R(2+1)D 79.53% and TimeSformer 73.18%.",
+  "quote": "SlowFast | 82.80% | 97.54% | 73.80% ... Its Mean Cls Acc of 73.80% is the highest, indicating robustness and versatility in handling various action classes.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2403.12385v2",
+  "source_quality": "primary",
+  "published": "2024-11-02",
+  "importance": "central",
+  "claim": "Skeleton-based models trailed the best RGB model on the full dataset. PoseC3D reached 80.76% Top-1 and 67.18% mean class accuracy, while ST-GCN reached 74.41% Top-1 and 61.44% mean class accuracy. Pose-only classifiers similar to Ayto's BiLSTM/Transformer on pose sequences lose about 2-8 points of Top-1 compared with RGB video models on this benchmark.",
+  "quote": "ST-GCN | 74.41% | 93.76% | 61.44% ... PoseC3D | 80.76% | 96.01% | 67.18%",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2403.12385v2",
+  "source_quality": "primary",
+  "published": "2024-11-02",
+  "importance": "supporting",
+  "claim": "In low-data regimes (the VideoBadminton-10 and VideoBadminton-50 subsets), the skeleton-based ST-GCN beat all RGB video models. On VideoBadminton-50 it led every metric with 60.70% Top-1. This suggests pose-based models are more data-efficient when labeled badminton clips are scarce.",
+  "quote": "ST-GCN demonstrates the highest Top1 and Top5 Accuracies, suggesting its robustness in smaller datasets. ... In this larger dataset, ST-GCN leads in all metrics, showing its scalability.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2403.12385v2",
+  "source_quality": "primary",
+  "published": "2024-11-02",
+  "importance": "tangential",
+  "claim": "MViT-V2 failed on VideoBadminton, reaching only 14.23% Top-1 and 10.76% mean class accuracy. Not every state-of-the-art general video transformer transfers to fine-grained badminton stroke recognition.",
+  "quote": "MViT-V2 displays significant limitations with notably lower scores across all metrics, suggesting major challenges in action recognition.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2511.17045",
+  "source_quality": "primary",
+  "published": "2026-01-28 (v3; v1 submitted Nov 2025; AAAI 2026)",
+  "importance": "central",
+  "claim": "On the RacketVision badminton split, a multi-sport TrackNetV3 with background-median input and 4-frame context scored best: precision 0.915, recall 0.865, mean distance error 1.54 px and mAP@50 83.1. The general-purpose detectors scored lower. YOLO11 (single frame) reached P 0.858, R 0.548, MDE 29.3 px, mAP 72.1, and RTMDet reached P 0.801, R 0.721, MDE 38.2 px, mAP 64.2. WASB reached P 0.907, R 0.803, MDE 4.03 px, mAP 58.7. So heatmap trackers localize the shuttle about 10-20x more precisely than YOLO11 or RTMDet. Caveat: the footage is 1080p professional broadcast with sparse 20% frame annotation, not smartphone video.",
+  "quote": "The best overall results in our benchmark are achieved by MS-TrackNetV3 with 4 frames. [Table 3, Badminton: YOLO11 0.858 0.548 29.3 72.1; WASB 0.907 0.803 4.03 58.7; MS-TrackNetV3 BM #F=4 0.915 0.865 1.54 83.1]",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2511.17045",
+  "source_quality": "primary",
+  "published": "2026-01-28 (v3; v1 submitted Nov 2025; AAAI 2026)",
+  "importance": "central",
+  "claim": "Adding a per-clip background median frame as extra input to single-frame TrackNetV3 cut the mean shuttle localization error by 54.8% on badminton (MDE 7.39 px down to 3.34 px). It also raised badminton mAP from 57.8 to 67.7.",
+  "quote": "comparing TrackNetV3 (#F=1) with and without BM, background modeling reduces MDE by a remarkable 54.0% for Table Tennis, 61.4% for Tennis, and 54.8% for Badminton.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2511.17045",
+  "source_quality": "primary",
+  "published": "2026-01-28 (v3; v1 submitted Nov 2025; AAAI 2026)",
+  "importance": "supporting",
+  "claim": "Training the ball tracker on badminton, tennis and table tennis together raised badminton mAP@50 from 72.5 (best single-sport TrackNetV3) to 83.1. Single-sport models sometimes kept a slight edge in pinpoint localization.",
+  "quote": "the MS model boosts mAP by a significant 19.2% in Tennis (81.9 vs. 68.7) and 14.6% in Badminton (83.1 vs. 72.5).",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2511.17045",
+  "source_quality": "primary",
+  "published": "2026-01-28 (v3; v1 submitted Nov 2025; AAAI 2026)",
+  "importance": "supporting",
+  "claim": "For predicting where the shuttle goes next from its 2D history, simply concatenating racket-pose features made LSTM and Transformer predictors worse than ball-only models. Cross-attention fusion of racket pose with an LSTM was best overall, but its gain on badminton was small. Short-horizon ADE went from 37.5 to 37.0 px, and long-horizon ADE/FDE went from 118.7/194.7 to 114.6/187.6 px. The Transformer predictors did worse than the LSTMs.",
+  "quote": "simply concatenating racket pose features consistently leads to worse performance than the ball-only baseline for both LSTM and Transformer backbones... In Short Badminton, ADE improves from 37.5 to 37.0.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2511.17045",
+  "source_quality": "primary",
+  "published": "2026-01-28 (v3; v1 submitted Nov 2025; AAAI 2026)",
+  "importance": "tangential",
+  "claim": "A top-down RTMPose model (with an RTMDet detector) trained on all three sports estimated 5-keypoint badminton racket pose at PCK@0.2 88.5%, MPJPE 5.00 px and mOKS 0.668. Its accuracy was above 97% for the top, bottom and handle keypoints but only about 75% for the left and right side keypoints, because of grip occlusion and motion blur.",
+  "quote": "badminton excels in pose quality metrics with the lowest MPJPE (5.00px) and highest mOKS (0.668), demonstrating the effectiveness of cross-sport knowledge transfer.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.researchsquare.com/article/rs-9880962",
+  "source_quality": "primary",
+  "published": "2026-07-15",
+  "importance": "central",
+  "claim": "The preprint (actual title: 'Badminton Technical Movement Evaluation: A New Benchmark and Baseline Model', Song et al., Qilu Normal Univ. / Aerospace Information Technology Univ.) introduces a coach-reference technique-scoring benchmark. It has 7,200 smartphone-captured clips of 10 basic strokes from 5 professional coaches and 67 university students. Students are scored on a 100-point scale by several coaches; the highest and lowest scores are dropped and the rest averaged. The stroke set is Forehand/Backhand Clear, Forehand/Backhand Serve, Forehand/Backhand Lift, Forehand/Backhand Net Drop and Forehand/Backhand Drive. It has no smash, so it does not line up with Ayto's 6 classes.",
+  "quote": "The dataset contains 7,200 smartphone-captured video clips covering 10 fundamental badminton strokes, collected from 5 professional coaches and 67 university students across multiple real-world scenarios. Student performances are annotated on a 100-point scale by expert coaches using a multi-rater scoring protocol.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.researchsquare.com/article/rs-9880962",
+  "source_quality": "primary",
+  "published": "2026-07-15",
+  "importance": "central",
+  "claim": "The learned exemplar-vs-student baseline only agrees moderately with expert coach scores. On a held-out test set of 14 students (split by subject, 53 train / 14 test) it gets MAE 7.47, RMSE 9.09, SRCC 0.56, PLCC 0.58, Acc5 (error within 5 points) 38% and Acc10 (within 10 points) 73%. The paper reports no other baseline, such as DTW or joint-angle comparison, to measure these numbers against.",
+  "quote": "Experimental results on the test set show that the proposed baseline achieves promising performance, with a reported MAE of 7.47, SRCC of 0.56, PLCC of 0.58, and Acc10 of 73%.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.researchsquare.com/article/rs-9880962",
+  "source_quality": "primary",
+  "published": "2026-07-15",
+  "importance": "central",
+  "claim": "The scoring model works on raw RGB, not pose, and does no explicit temporal alignment such as DTW. It encodes each frame with a pretrained ViT, using only T=8 sampled frames at 224x224. It fuses frames with self-attention plus average pooling, compares coach and student embeddings by subtraction plus bilinear pooling, and regresses a score with an RMSE loss. Each student clip is scored against all 5 coach templates, and the highest and lowest predictions are dropped before averaging.",
+  "quote": "we first compute the overall discrepancy between the exemplar and student features via a subtraction operation",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.researchsquare.com/article/rs-9880962",
+  "source_quality": "primary",
+  "published": "2026-07-15",
+  "importance": "supporting",
+  "claim": "Accuracy varies a lot by stroke. Backhand Drive is the best (SRCC 0.75, PLCC 0.75, MAE 6.04, Acc10 82%) and Backhand Serve is also strong (SRCC 0.68). The overhead Forehand Clear is the worst (SRCC 0.32, PLCC 0.34, MAE 8.90, Acc10 64%), followed by Forehand Serve (SRCC 0.34, PLCC 0.38). This suggests that fast overhead strokes are the hardest to grade from the 8-frame RGB representation.",
+  "quote": "In contrast, the prediction performance on the remaining 2 strokes, namely Forehand Clear and Forehand Serve, is relatively inferior.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.researchsquare.com/article/rs-9880962",
+  "source_quality": "primary",
+  "published": "2026-07-15",
+  "importance": "tangential",
+  "claim": "The data was recorded on smartphones, either on a tripod or handheld, and students performed strokes in places other than courts, such as dormitories and teaching buildings. The dataset is not publicly released and is available only on request. This makes it closer to Ayto's casual phone-capture setting but harder to reproduce.",
+  "quote": "Therefore, we require students to perform the technical movements in different scenarios, including dormitories and teaching buildings, rather than being limited to badminton courts only.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2511.14186",
+  "source_quality": "primary",
+  "published": "2025-11-18",
+  "importance": "central",
+  "claim": "On ShuttleSet with 100 training clips, the metric is F1evt at a strict ±1-frame tolerance on racket-shuttle contact frames across 36 classes. UMEG-Net, a skeleton + shuttle + court graph model, reaches 49.2 F1evt and 64.0 Edit. Baselines score lower: BlockGCN 47.1/59.4, F3ED 44.1/55.1, E2E-Spot 800MF 42.7/54.6. The distilled RGB variant (UMEG-Net distill) reaches 59.1 F1evt and 69.0 Edit.",
+  "quote": "\"Each shot is annotated with the exact racket–shuttle contact frame and its event type (36 categories).\" ... \"Unless otherwise specified, we use a strict tolerance of δ=1 frame\" (Table 1, ShuttleSet, 100-clip: E2E-Spot 800MF 42.7/54.6; F3ED 44.1/55.1; BlockGCN 47.1/59.4; UMEG-Net 49.2/64.0; UMEG-Net distill 59.1/69.0)",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2511.14186",
+  "source_quality": "primary",
+  "published": "2025-11-18",
+  "importance": "central",
+  "claim": "UMEG-Net combines human skeletons, the shuttle/ball and court-corner keypoints in one graph. It uses 2.2M parameters, the fewest of the compared baselines. That size suits on-device learned hit-frame detection on top of an existing pose + shuttle pipeline. The paper reports no inference latency or FLOPs.",
+  "quote": "\"UMEG-Net integrates human skeletons and sport-specific object keypoints into a unified graph\" ... \"with the fewest parameters (2.2M) among all baselines.\"",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2511.14186",
+  "source_quality": "primary",
+  "published": "2025-11-18",
+  "importance": "supporting",
+  "claim": "Across five fine-grained sports datasets, UMEG-Net improves F1 by 1.3-5.5% and Edit score by 1.3-16.4%. Distilling the keypoint-graph teacher into a VideoMAEv2 RGB student (listed at 67.8M parameters) adds an average 5.8% F1 and 6.7% Edit. That student is a cloud-scale option rather than an on-device one.",
+  "quote": "\"improving F1 scores by 1.3% to 5.5% and edit scores by 1.3% to 16.4%\" ... \"achieves an additional average gain of 5.8% in F1 score and 6.7% in edit score\"",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2511.14186",
+  "source_quality": "primary",
+  "published": "2025-11-18",
+  "importance": "supporting",
+  "claim": "The ShuttleSet pipeline relies on upstream detectors: TrackNetV3 for shuttle tracking, YOLOv8 player detection filtered to players whose feet are inside the court, and a separate court-corner detector. The authors acknowledge that keypoint-based event spotting degrades when those detections are unreliable in fast-moving sports.",
+  "quote": "\"shuttlecock tracking is performed with TrackNetV3\" ... \"keypoint-based approaches depend on accurate detections, which are often unreliable in fast-moving sports\"",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/html/2511.14186",
+  "source_quality": "primary",
+  "published": "2025-11-18",
+  "importance": "tangential",
+  "claim": "Under full supervision (not few-shot), UMEG-Net does not beat all baselines on every dataset. It is better on only 3 of the 5 evaluated datasets, so its advantage is mainly in the low-label regime.",
+  "quote": "\"It shows better performance in 3 out of 5 datasets.\"",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://openaccess.thecvf.com/content/ICCV2023/papers/Zhu_MotionBERT_A_Unified_Perspective_on_Learning_Human_Motion_Representations_ICCV_2023_paper.pdf",
+  "source_quality": "primary",
+  "published": "2023 (ICCV 2023; arXiv 2210.06551 v1 12 Oct 2022, v5 camera-ready 14 Aug 2023). The CVF link returned 403, so the content was read from the identical arXiv v5 PDF.",
+  "importance": "central",
+  "claim": "MotionBERT's DSTformer (finetuned from pretraining) reaches 37.5 mm MPJPE on Human3.6M from detected 2D keypoints (Stacked Hourglass) with a 243-frame clip, beating MixSTE (39.8 mm, CVPR'22) and P-STMO (42.1 mm). With ground-truth 2D input it reaches 16.9 mm, against 21.6 mm for MixSTE. This makes it the strongest 2D-to-3D lifting baseline for monocular 3D pose as of 2023.",
+  "quote": "Table 1 (Top, detected 2D): 'Ours (finetune) 243 ... Avg 37.5' vs 'MixSTE CVPR'22 243 ... 39.8'; (Middle, GT 2D): 'Ours (finetune) 243 ... 16.9' vs 'MixSTE 243 ... 21.6'. Text: 'As shown in Table 1 (middle), our models significantly outperform all the previous approaches.'",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://openaccess.thecvf.com/content/ICCV2023/papers/Zhu_MotionBERT_A_Unified_Perspective_on_Learning_Human_Motion_Representations_ICCV_2023_paper.pdf",
+  "source_quality": "primary",
+  "published": "2023 (ICCV 2023; arXiv 2210.06551 v1 12 Oct 2022, v5 camera-ready 14 Aug 2023). The CVF link returned 403, so the content was read from the identical arXiv v5 PDF.",
+  "importance": "supporting",
+  "claim": "MotionBERT also produces smoother 3D motion. Its mean per-joint velocity error (MPJVE) on Human3.6M with detected 2D input is 1.7 mm, against 2.3 mm for MixSTE, 3.1 mm for PoseFormer and 3.0 mm for VideoPose3D. A learned temporal lifter therefore reduces jitter, which is the same problem that EMA, One-Euro or SmoothNet smoothing targets.",
+  "quote": "'Table 1 (bottom) shows that both of our models also surpass previous works in terms of MPJVE, implying better temporal coherence.' Table 1 (Bottom): 'Ours (finetune) 243 ... 1.7'; 'MixSTE ... 2.3'; 'PoseFormer ... 3.1'",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://openaccess.thecvf.com/content/ICCV2023/papers/Zhu_MotionBERT_A_Unified_Perspective_on_Learning_Human_Motion_Representations_ICCV_2023_paper.pdf",
+  "source_quality": "primary",
+  "published": "2023 (ICCV 2023; arXiv 2210.06551 v1 12 Oct 2022, v5 camera-ready 14 Aug 2023). The CVF link returned 403, so the content was read from the identical arXiv v5 PDF.",
+  "importance": "supporting",
+  "claim": "When the pretrained encoder is finetuned for skeleton-based action recognition, it reaches 93.0% (X-Sub) and 97.2% (X-View) top-1 accuracy on NTU-RGB+D 60, using HRNet 2D joints only. On one-shot recognition on NTU-RGB+D-120 it scores 67.4%, against 54.2% for the previous best (Skeleton-DML). This shows that the pretrained motion representations transfer well to classification tasks with few labels, such as badminton stroke types.",
+  "quote": "'We perform one-shot action recognition using 1-nearest-neighbor with the exemplars and achieve 67.4% top-1 accuracy.' Table 2: 'Ours (finetune) 93.0 97.2'; 'Skeleton-DML [80] 54.2'; 'Ours (finetune) 67.4'",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://openaccess.thecvf.com/content/ICCV2023/papers/Zhu_MotionBERT_A_Unified_Perspective_on_Learning_Human_Motion_Representations_ICCV_2023_paper.pdf",
+  "source_quality": "primary",
+  "published": "2023 (ICCV 2023; arXiv 2210.06551 v1 12 Oct 2022, v5 camera-ready 14 Aug 2023). The CVF link returned 403, so the content was read from the identical arXiv v5 PDF.",
+  "importance": "supporting",
+  "claim": "The model is a large Transformer that works on long temporal windows. Its configuration is depth 5, 8 heads and 512-dimensional features, pretrained on 243-frame sequences (about 4-8 s at 30-60 fps). The paper reports no parameter count, FLOPs or mobile latency. Running it on a Snapdragon 680-class device would therefore need distillation or shorter windows; the paper does not validate this, so it is best treated as a cloud post-processing option.",
+  "quote": "'We implement the proposed motion encoder DSTformer with depth N = 5, number of heads h = 8, feature size Cf = 512, embedding size Ce = 512. For pretraining, we use sequence length T = 243.'",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://openaccess.thecvf.com/content/ICCV2023/papers/Zhu_MotionBERT_A_Unified_Perspective_on_Learning_Human_Motion_Representations_ICCV_2023_paper.pdf",
+  "source_quality": "primary",
+  "published": "2023 (ICCV 2023; arXiv 2210.06551 v1 12 Oct 2022, v5 camera-ready 14 Aug 2023). The CVF link returned 403, so the content was read from the identical arXiv v5 PDF.",
+  "importance": "tangential",
+  "claim": "A frozen pretrained backbone with only a task head still performs well: 40.3 mm MPJPE and 87.3% NTU X-View accuracy, against 404.4 mm and 47.6% for a randomly initialised frozen backbone. This lets one shared encoder serve several tasks (3D pose, stroke classification). The stated limitation is that the representation covers single-person skeletons only and ignores appearance and interactions, such as the racket or shuttle.",
+  "quote": "'Pretraining and partial finetuning make it possible for all the downstream tasks to share the same backbone, significantly reducing computation overhead' ... 'The primary limitation of this work lies in its focus on single-person skeleton sequences, which results in the motion representation being insensitive to factors such as appearance, surroundings, and interactions.'",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.mdpi.com/1424-8220/24/13/4372",
+  "source_quality": "primary",
+  "published": "2024-07-05",
+  "importance": "central",
+  "claim": "Hit detection from the shuttle trajectory alone (original TrackNet with peak and direction identification) has high recall but low precision: P=0.588, R=0.936, F1=0.723 at temporal IoU 0.5 on BWF match videos. Combining it with YOLOv7 swing detection through a rule-based Shot Refinement Algorithm (SRA) raises this to P=0.897, R=0.913, F1=0.905. The abstract calls the 0.897 figure 'accuracy', but Table 1 labels it precision.",
+  "quote": "Our proposed method achieves an accuracy of 89.7%, a recall rate of 91.3%, and an F1 rate of 90.5% in 69 matches, with 1582 rallies of the Badminton World Federation (BWF) match videos. This is a significant improvement compared to the use of TrackNet alone, which yields 58.8% accuracy, 93.6% recall, and 72.3% F1 score.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.mdpi.com/1424-8220/24/13/4372",
+  "source_quality": "primary",
+  "published": "2024-07-05",
+  "importance": "central",
+  "claim": "The fused hit detector uses two learned visual cues: TrackNet (v1) for the shuttle trajectory and a YOLOv7 detector, trained on manually labeled hit actions, that finds which player is swinging. Each cue is used to remove the other's false detections. This shows that fusing a learned swing detector with the trajectory beats peak or threshold heuristics alone, which bears directly on replacing wrist-velocity peak thresholding.",
+  "quote": "Second, the YOLOv7 model is used to identify whether the player is swinging. As both TrackNet and YOLOv7 may have detection misses and false detections, this study proposes a shot refinement algorithm to obtain the correct hitting moment.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.mdpi.com/1424-8220/24/13/4372",
+  "source_quality": "primary",
+  "published": "2024-07-05",
+  "importance": "supporting",
+  "claim": "Hit-frame localization falls off sharply under stricter temporal IoU. At t-IoU 0.85, the best fused method (Tuned+SRA) gets only F1=0.472, and at t-IoU 0.95 it gets F1=0.270. TrackNet alone gets 0.162 and 0.056 at the same thresholds.",
+  "quote": "the trajectory-based method only yielded a precision of 0.588, a recall rate of 0.936, and an F1 score of 0.723",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.mdpi.com/1424-8220/24/13/4372",
+  "source_quality": "primary",
+  "published": "2024-07-05",
+  "importance": "supporting",
+  "claim": "Shot-type classification uses XGBoost on seven hand-crafted features: both players' ankle court positions, shuttle flight duration, and shuttle displacement (dx, dy), over 7 classes (clear, drive, smash, net, drop, lift, push). Accuracy is only 72.1%, 65.4% and 54.1% at the three thresholds (54.1% at t-IoU 0.5, 72.1% at 0.95). This is a weak non-deep baseline against pose-sequence models such as BST or GCN-based classifiers.",
+  "quote": "Furthermore, the accuracy of shot type classification at three different thresholds is 72.1%, 65.4%, and 54.1%.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://www.mdpi.com/1424-8220/24/13/4372",
+  "source_quality": "primary",
+  "published": "2024-07-05",
+  "importance": "tangential",
+  "claim": "The extra YOLOv7 model raises processing time about 5x compared with trajectory-only hit detection (about 0.032 s to about 0.175 s in Table 1, on an RTX 3080Ti desktop). The single monocular viewpoint is named as a limitation, and 3D shuttle and ankle coordinates are proposed as future work. This bears on whether the method can run on a mid-range phone.",
+  "quote": "Because the proposed method includes an additional YOLO model, the overall processing time is increased.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/abs/2204.01899",
+  "source_quality": "primary",
+  "published": "2022-04-04 (v1); revised 2022-05-18 (v2); CVSports@CVPR 2022",
+  "importance": "central",
+  "claim": "MonoTrack's 2D shuttle tracker reaches 88.6% tracking accuracy on the TrackNetV2-based dataset, up from 84.0% for TrackNetV2, while using about a quarter of the parameters (2.9M vs 11.3M). This makes it a stronger and lighter option than the app's current TrackNetV2 heatmap tracker.",
+  "quote": "88.6% accuracy from 84.0% in the original ... 2.9M parameters in our model versus 11.3M parameters",
+  "verification": "refuted"
+ },
+ {
+  "source": "https://arxiv.org/abs/2204.01899",
+  "source_quality": "primary",
+  "published": "2022-04-04 (v1); revised 2022-05-18 (v2); CVSports@CVPR 2022",
+  "importance": "central",
+  "claim": "MonoTrack's learned hit detector (HitNet, about 16K parameters) plus a trajectory-aware optimization step reaches 89.7% accuracy, 94.9% precision, 94.3% recall and F1 0.946 for hit/shot segmentation. That is more than 35% better than a naive baseline, and the detector runs at several thousand frames per second.",
+  "quote": "our model offers a substantial (>35%) accuracy improvement of the hit detection over the naive model ... can reach 86.3% accuracy [before optimization]",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/abs/2204.01899",
+  "source_quality": "primary",
+  "published": "2022-04-04 (v1); revised 2022-05-18 (v2); CVSports@CVPR 2022",
+  "importance": "central",
+  "claim": "MonoTrack's improved court-line detection raises the court detection success rate (IoU > 0.8) from 73.9% to 85.5%, with average IoU of 0.97 (vs 0.96), and cuts average detection time by a factor of 40. This is relevant to replacing pixels-per-meter calibration with court homography.",
+  "quote": "increases the success rate of court detection from 73.9% to 85.5% ... decreased the average detection time by a factor of 40",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/abs/2204.01899",
+  "source_quality": "primary",
+  "published": "2022-04-04 (v1); revised 2022-05-18 (v2); CVSports@CVPR 2022",
+  "importance": "central",
+  "claim": "MonoTrack reconstructs 3D shuttle trajectories from a single camera by fitting a physics model (gravity plus quadratic air drag, with the drag coefficient fitted per shot) together with court and shot-placement priors. On synthetic data the priors cut 3D error from 14.9 cm to 8.0 cm. On real video the worst end-to-end reprojection error was 37.1 px (about 5%).",
+  "quote": "adding the priors improves the error from 14.9 cm to 8.0 cm ... The highest error is 37.1 pixels, or about 5%",
+  "verification": "supported"
+ },
+ {
+  "source": "https://arxiv.org/abs/2204.01899",
+  "source_quality": "primary",
+  "published": "2022-04-04 (v1); revised 2022-05-18 (v2); CVSports@CVPR 2022",
+  "importance": "supporting",
+  "claim": "MonoTrack calls itself the first complete end-to-end system for extracting and segmenting 3D shuttle trajectories from monocular badminton video. It was trained and evaluated on 77k annotated frames from 26 singles matches (TrackNetV2 base), with a test set of about 12k frames from 3 matches, plus 40 extra matches labeled for court detection.",
+  "quote": "integrates badminton domain knowledge such as court dimension, shot placement, physical laws of motion ... 77k annotated frames from 26 unique singles matches",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2501.03674",
+  "source_quality": "primary",
+  "published": "2025-01-07 (arXiv v1; v2 revised 2025-10-24, formatted as IEEE Transactions on Image Processing)",
+  "importance": "central",
+  "claim": "HP-MCoRe scores technique against a reference performance instead of comparing joint angles one by one. It splits the query video and an exemplar video into sub-action phases (for diving: take-off, flight, entry) and predicts a relative score for each phase. Those phase scores are added to the exemplar's known score to give the final score. This is a learned, phase-aligned way to compare against an exemplar, and it could replace per-joint angle comparison against a pro.",
+  "quote": "our proposed method begins by segmenting both the query and exemplar videos into sub-actions ... the relative scores of each sub-action are summed with the ground truth score S e of the exemplar video to compute the predicted score",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2501.03674",
+  "source_quality": "primary",
+  "published": "2025-01-07 (arXiv v1; v2 revised 2025-10-24, formatted as IEEE Transactions on Image Processing)",
+  "importance": "supporting",
+  "claim": "On FineDiving, HP-MCoRe reports a Spearman correlation (SRCC) of 0.9383 and RL2 (x100) of 0.269 when dive numbers are used, and 0.9041 / 0.411 without them. The baselines in the same table, with dive numbers, are TSA at 0.9203, MCoRe at 0.9232, T2CR at 0.9275 and PECoP at 0.9315.",
+  "quote": "our method achieved an SRCC of 0.9041 and an RL2 of 0.411 without using dive numbers. When dive numbers are incorporated, the SRCC improves to 0.9383 and the RL2 reduces to 0.269.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2501.03674",
+  "source_quality": "primary",
+  "published": "2025-01-07 (arXiv v1; v2 revised 2025-10-24, formatted as IEEE Transactions on Image Processing)",
+  "importance": "supporting",
+  "claim": "The skeleton features alone are much weaker than when fused with video. The hierarchical skeletal encoder (built on HD-GCN) used by itself reaches only 0.6847 SRCC on FineDiving, but adding it to the visual encoders raises SRCC by 3.57% over the visual-only baseline. This suggests that comparing quality from pose alone loses information that appearance cues carry.",
+  "quote": "utilizing the HSE alone results in inferior performance, with an SRCC of only 0.6847. It is attributed to the absence of some crucial visual information",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2501.03674",
+  "source_quality": "primary",
+  "published": "2025-01-07 (arXiv v1; v2 revised 2025-10-24, formatted as IEEE Transactions on Image Processing)",
+  "importance": "supporting",
+  "claim": "The authors argue that cutting videos into fixed-length clips breaks the continuity of sub-actions. Their learned procedure-segmentation network for phase boundaries reaches AIoU@0.5/0.75 of 98.17/93.68 on FineDiving without dive numbers, against 80.71/30.17 for TSA. With dive numbers it reaches 99.07/97.96, against 98.26/79.17 for MCoRe. This is learned phase alignment, an alternative to DTW-style temporal alignment. The paper itself does not evaluate DTW.",
+  "quote": "existing methods focus on segmenting the video into fixed frames, which disrupts the temporal continuity of sub-actions resulting in unavoidable prediction errors",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2501.03674",
+  "source_quality": "primary",
+  "published": "2025-01-07 (arXiv v1; v2 revised 2025-10-24, formatted as IEEE Transactions on Image Processing)",
+  "importance": "tangential",
+  "claim": "The full model is a heavy server-class network: about 138.1 GFLOPs and 16.8M parameters, using an I3D video backbone plus HD-GCN. It reaches 0.9516 SRCC on MTL-AQA (with difficulty labels), close to TPT's 0.9552, which needs 557.64 GFLOPs. At this cost it is cloud post-processing only and not feasible on-device on mid-range phones.",
+  "quote": "our method achieves lower GFLOPs and fewer parameters than state-of-the-art models such as TPT and TSA, while maintaining competitive performance.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2402.04599",
+  "source_quality": "primary",
+  "published": "2024-03-25",
+  "importance": "central",
+  "claim": "JEANIE extends soft-DTW (a differentiable DTW) to align two 3D skeleton sequences jointly over time and simulated camera viewpoint. Plain DTW and soft-DTW align only in time. JEANIE takes the soft-minimum over warping paths in a 4D temporal-viewpoint grid, with each step limited to adjacent time blocks and adjacent views (\"1-max shift\"). For Ayto's stage 7 (pro technique comparison), this is a published improvement over plain DTW or soft-DTW for comparing a user's motion with a pro's when the two clips were shot from different camera angles.",
+  "quote": "JEANIE selects the smallest distance among matching paths with different temporal-viewpoint warping patterns, an advantage over DTW which only performs temporal alignment.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2402.04599",
+  "source_quality": "primary",
+  "published": "2024-03-25",
+  "importance": "supporting",
+  "claim": "In supervised few-shot action recognition on NTU-60 with an S2GC backbone, soft-DTW (temporal alignment only) reaches 53.7-67.8% accuracy for 10-50 training classes. The best JEANIE variant (+crossval +Transformer) reaches 65.0-80.0% on the same settings. Two-axis viewpoint alignment alone adds 5-8% over simply concatenating viewpoints.",
+  "quote": "Table 5 (Sup.) shows that using the viewpoint alignment simultaneously in two dimensions, x and y for Euler angles, or azimuth and altitude the stereo projection geometry (CamVPC), improves the performance by 5–8%",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2402.04599",
+  "source_quality": "primary",
+  "published": "2024-03-25",
+  "importance": "supporting",
+  "claim": "On the UWA3D Multiview Activity II cross-view benchmark (supervised, S2GC backbone), mean accuracy is 56.7% with soft-DTW, 59.5% with Free Viewpoint Matching and 63.7% with JEANIE. In the unsupervised setting, JEANIE's gain over soft-DTW is about 10%. On NTU-120 (100 training classes), JEANIE beats SL-DML by 6.1% and Skeleton-DML by 2.8%.",
+  "quote": "Table 8 (Unsup.) shows that the biggest improvement is obtained when using unsupervised JEANIE on UWA3D Multiview Activity II dataset, with 10% performance gain.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2402.04599",
+  "source_quality": "primary",
+  "published": "2024-03-25",
+  "importance": "supporting",
+  "claim": "JEANIE's viewpoint alignment needs 3D skeletons and was not evaluated on 2D keypoints. On Kinetics-skeleton (YouTube video, including phone footage), 3D skeletons beat 2D by 3-4%, but camera-viewpoint simulation added only about 0.3% over Euler-angle rotation because it becomes unreliable on such footage. For a single-phone-camera app, this means 3D pose lifting would be needed before JEANIE-style view-invariant comparison, and the viewpoint gains seen on lab datasets may shrink on in-the-wild video.",
+  "quote": "the camera viewpoint simulation becomes unreliable especially when videos are captured by multiple different devices, e.g., camera and mobile phone.",
+  "verification": "not checked"
+ },
+ {
+  "source": "https://arxiv.org/pdf/2402.04599",
+  "source_quality": "primary",
+  "published": "2024-03-25",
+  "importance": "tangential",
+  "claim": "JEANIE's encoder is small (0.25-0.5M parameters, versus 0.47M+24M for VA-RNN+VA-CNN), but the full pipeline is heavy to train and preprocess. Viewpoint generation took 1.6h of non-optimized CPU preprocessing, and parallel training took 44h on 4 GPUs. On MSRAction3D, the supervised pipeline took about 1.95 s per 10 episodes. All benchmarks are few-shot action recognition, not technique-similarity scoring. Applying it to on-device pro comparison would therefore require adaptation, and its latency on a phone is not shown.",
+  "quote": "Training JEANIEpar with 4 Titan RTX 2090 took 44h, the total inference was 48s.",
+  "verification": "not checked"
+ }
+]

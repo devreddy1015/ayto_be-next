@@ -1,4 +1,4 @@
-"""SportIQ Pose Biomechanics — Keypoint extraction, normalization, angles, stroke events."""
+"""SportIQ Pose Biomechanics: keypoints, normalisation, angles, hits, technique."""
 
 from .angles import (
     IDEAL_ANGLES_BY_STROKE,
@@ -11,18 +11,22 @@ from .angles import (
     compute_trunk_lean,
     validate_angles,
 )
-from .keypoints import PoseExtractor
+from .keypoints import PoseExtractor, coco17_to_blazepose
 from .normalize import (
+    OneEuroFilter,
     PoseNormalizer,
     normalize_and_smooth,
     normalize_keypoints,
     normalize_sequence,
     smooth_sequence,
 )
-from .stroke_events import StrokeDetector, StrokeEvent
+from .stroke_events import Hit, StrokeDetector, StrokeEvent, fuse_hits
+from .technique import JointDeviation, TechniqueComparison, compare_technique, dtw_path
 
 __all__ = [
     "PoseExtractor",
+    "coco17_to_blazepose",
+    "OneEuroFilter",
     "PoseNormalizer",
     "normalize_keypoints",
     "normalize_sequence",
@@ -39,4 +43,10 @@ __all__ = [
     "IDEAL_ANGLES_BY_STROKE",
     "StrokeDetector",
     "StrokeEvent",
+    "Hit",
+    "fuse_hits",
+    "compare_technique",
+    "dtw_path",
+    "TechniqueComparison",
+    "JointDeviation",
 ]

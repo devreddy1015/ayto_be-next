@@ -1,227 +1,144 @@
-import React, { useState } from "react"
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Switch,
-} from "react-native"
-import { Colors, Spacing, Radius } from "../../src/theme"
-import { useUserStore } from "../../src/store/userStore"
-import { signOut } from "../../src/lib/supabase"
-import Card from "../../src/components/ui/Card"
+import { useState } from "react"
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
+import { router } from "expo-router"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { Screen } from "../../src/components/riso/RisoSurface"
+import { SweepHeading } from "../../src/components/riso/SweepHeading"
 import Button from "../../src/components/ui/Button"
-import Skeleton from "../../src/components/ui/Skeleton"
+import { Chip } from "../../src/components/ui/Chip"
+import { SectionHead } from "../../src/components/ui/SectionHead"
+import { Stat } from "../../src/components/ui/Stat"
+import { Toggle } from "../../src/components/ui/Toggle"
+import { ALL_SESSIONS } from "../../src/data/demo"
+import { useSport } from "../../src/hooks/useSport"
+import { capitalize } from "../../src/lib/format"
+import { signOut } from "../../src/lib/supabase"
+import { SPORTS } from "../../src/sports"
+import { useUserStore, type OverlaySettings } from "../../src/store/userStore"
+import type { SpeedUnit } from "../../src/types"
+import { Fonts, Paper, Space, Type } from "../../src/theme"
+
+const UNITS: readonly { id: SpeedUnit; label: string }[] = [
+  { id: "kmh", label: "km/h" },
+  { id: "mph", label: "mph" },
+]
 
 export default function ProfileScreen() {
-  const {
-    profile,
-    isAuthenticated,
-    unitPreference,
-    setUnitPreference,
-    overlaySettings,
-    setOverlaySettings,
-    signOut: storeSignOut,
-  } = useUserStore()
+  const insets = useSafeAreaInsets()
+  const sport = useSport()
+  const { palette } = sport
+  const profile = useUserStore((s) => s.profile)
+  const isAuthenticated = useUserStore((s) => s.isAuthenticated)
+  const unitPreference = useUserStore((s) => s.unitPreference)
+  const setUnitPreference = useUserStore((s) => s.setUnitPreference)
+  const setSportPreference = useUserStore((s) => s.setSportPreference)
+  const overlay = useUserStore((s) => s.overlaySettings)
+  const setOverlay = useUserStore((s) => s.setOverlaySettings)
+  const storeSignOut = useUserStore((s) => s.signOut)
+  const [confirming, setConfirming] = useState(false)
 
-  const [loading, setLoading] = useState(true)
-  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
+  const name = profile?.name ?? "Athlete"
+  const hours = ALL_SESSIONS.reduce((sum, s) => sum + s.duration_seconds, 0) / 3600
+  const sportsPlayed = new Set(ALL_SESSIONS.map((s) => s.sport)).size
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 800)
-    return () => clearTimeout(timer)
-  }, [])
-
-  const name = profile?.name || "Ayto Athlete"
-  const initials = name.split(" ").map((n) => n.charAt(0).toUpperCase()).join("")
-
-  const stats = [
-    { label: "Sessions", value: "42" },
-    { label: "Hours", value: "18.5" },
-    { label: "Sports", value: "3" },
+  const overlayRows: readonly { key: keyof OverlaySettings; label: string; hint: string }[] = [
+    { key: "showSpeedBadge", label: "Speed badge", hint: `Live ${sport.tracked} speed while recording` },
+    { key: "showStrokeLabel", label: `${capitalize(sport.strokeNoun)} label`, hint: "The class the model just read" },
+    { key: "showFramingGuide", label: `${sport.playArea.label} guide`, hint: `Frame the whole ${sport.playArea.label.toLowerCase()}` },
   ]
 
   const handleSignOut = async () => {
     await signOut()
     storeSignOut()
+    setConfirming(false)
   }
 
-  const sports = ["Badminton", "Tennis", "Table Tennis", "Squash"]
-
   return (
-    <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Profile</Text>
+    <Screen palette={palette}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + Space.lg }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={Type.kicker}>
+          Profile · {isAuthenticated ? "Signed in" : "Guest"} · {sport.name}
+        </Text>
+        <SweepHeading lines={name} palette={palette} size="hero" style={styles.hero} />
+
+        <View style={styles.stats}>
+          <Stat label="Sessions" value={ALL_SESSIONS.length} size="md" style={styles.flex} />
+          <Stat label="Hours" value={hours.toFixed(1)} size="md" style={styles.flex} />
+          <Stat label="Sports" value={sportsPlayed} size="md" style={styles.flex} />
         </View>
 
-        {/* Avatar Section */}
-        <View style={styles.avatarSection}>
-          <View style={styles.avatarRing}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
+        <SectionHead
+          kicker="01 / Primary"
+          title="Your sport"
+          palette={palette}
+          right={
+            <Pressable onPress={() => router.push("/sports")} accessibilityRole="link" hitSlop={10}>
+              <Text style={[Type.kicker, { color: palette.ink }]}>Gallery →</Text>
+            </Pressable>
+          }
+        />
+        <View style={styles.wrap}>
+          {SPORTS.map((s) => (
+            <Chip key={s.id} value={s.id} label={s.name} active={s.id === sport.id} palette={palette} onSelect={setSportPreference} />
+          ))}
+        </View>
+
+        <SectionHead kicker="02 / Units" title="Speed" palette={palette} />
+        <View style={styles.row}>
+          {UNITS.map((u) => (
+            <Chip key={u.id} value={u.id} label={u.label} active={unitPreference === u.id} palette={palette} onSelect={setUnitPreference} />
+          ))}
+        </View>
+
+        <SectionHead kicker="03 / Camera" title="Recording overlay" palette={palette} />
+        {overlayRows.map(({ key, label, hint }, i) => (
+          <View key={key} style={[styles.toggle, i > 0 && styles.rule]}>
+            <View style={styles.flex}>
+              <Text style={Type.body}>{label}</Text>
+              <Text style={Type.small}>{hint}</Text>
             </View>
+            <Toggle value={overlay[key]} onChange={(v) => setOverlay({ [key]: v })} palette={palette} label={label} />
           </View>
-          <Text style={styles.playerName}>{name}</Text>
-          <Text style={styles.playerLabel}>Badminton · Right-handed</Text>
-        </View>
+        ))}
 
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          {stats.map((stat) => (
-            <View key={stat.label} style={styles.statCard}>
-              {loading ? (
-                <Skeleton height={28} width={40} borderRadius={8} style={{ marginBottom: 4 }} />
-              ) : (
-                <Text style={styles.statValue}>{stat.value}</Text>
-              )}
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Sports */}
-        <Text style={styles.sectionTitle}>SPORTS YOU PLAY</Text>
-        <View style={styles.sportsRow}>
-          {sports.map((sport) => (
-            <TouchableOpacity
-              key={sport}
-              style={[styles.sportChip, sport === "Badminton" && styles.sportChipActive]}
-            >
-              <Text style={[styles.sportChipText, sport === "Badminton" && styles.sportChipTextActive]}>
-                {sport}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Unit Preference */}
-        <Card variant="surface" style={styles.settingCard}>
-          <View style={styles.settingRow}>
-            <View>
-              <Text style={styles.settingLabel}>Unit Preference</Text>
-              <Text style={styles.settingDesc}>Speed measurement unit</Text>
-            </View>
-            <View style={styles.unitToggle}>
-              <TouchableOpacity
-                style={[styles.unitOption, unitPreference === "kmh" && styles.unitOptionActive]}
-                onPress={() => setUnitPreference("kmh")}
-              >
-                <Text style={[styles.unitText, unitPreference === "kmh" && styles.unitTextActive]}>
-                  km/h
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.unitOption, unitPreference === "mph" && styles.unitOptionActive]}
-                onPress={() => setUnitPreference("mph")}
-              >
-                <Text style={[styles.unitText, unitPreference === "mph" && styles.unitTextActive]}>
-                  mph
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Card>
-
-        {/* Overlay Settings */}
-        <Card variant="surface" style={styles.settingCard}>
-          <Text style={styles.sectionTitle}>HUD OVERLAY</Text>
-          {[
-            { key: "showSpeedBadge", label: "Speed Badge" },
-            { key: "showStrokeLabel", label: "Stroke Label" },
-            { key: "showSkeleton", label: "Pose Skeleton" },
-            { key: "showCourtGrid", label: "Court Grid" },
-          ].map(({ key, label }) => (
-            <View key={key} style={styles.toggleRow}>
-              <Text style={styles.toggleLabel}>{label}</Text>
-              <Switch
-                value={overlaySettings[key as keyof typeof overlaySettings]}
-                onValueChange={(v) => setOverlaySettings({ [key]: v })}
-                trackColor={{ false: Colors.bg_elevated, true: Colors.accent_green + "40" }}
-                thumbColor={overlaySettings[key as keyof typeof overlaySettings] ? Colors.accent_green : Colors.text_secondary}
-                ios_backgroundColor={Colors.bg_elevated}
-              />
-            </View>
-          ))}
-        </Card>
-
-        {/* Actions */}
-        <View style={styles.actions}>
-          <Button title="Export My Data" onPress={() => {}} variant="secondary" fullWidth />
-          {showSignOutConfirm ? (
-            <View style={styles.signOutConfirm}>
-              <Text style={styles.confirmText}>Are you sure you want to sign out?</Text>
-              <View style={styles.confirmButtons}>
-                <Button title="Cancel" onPress={() => setShowSignOutConfirm(false)} variant="ghost" size="sm" />
-                <Button title="Sign Out" onPress={handleSignOut} variant="danger" size="sm" />
+        <View style={styles.account}>
+          {!isAuthenticated ? (
+            <Button label="Sign in" palette={palette} full onPress={() => router.push("/login")} />
+          ) : confirming ? (
+            <View style={styles.confirm}>
+              <Text style={[Type.small, styles.confirmText]}>Sign out of Ayto on this phone?</Text>
+              <View style={styles.row}>
+                <Button label="Cancel" palette={palette} variant="ghost" size="sm" onPress={() => setConfirming(false)} />
+                <Button label="Sign out" palette={palette} variant="danger" size="sm" onPress={handleSignOut} />
               </View>
             </View>
           ) : (
-            <Button title="Sign Out" onPress={() => setShowSignOutConfirm(true)} variant="outline" fullWidth />
+            <Button label="Sign out" palette={palette} variant="outline" full onPress={() => setConfirming(true)} />
           )}
         </View>
 
-        {/* Footer */}
-        <Text style={styles.footer}>Ayto SportIQ v1.0.0</Text>
-        <Text style={styles.footerSub}>Built with ❤️ in India</Text>
-
-        <View style={{ height: 120 }} />
+        <Text style={styles.colophon}>
+          Ayto SportIQ v1.0.0{"\n"}Set in Fraunces and JetBrains Mono. This edition printed in {palette.names.join(", ")}.
+        </Text>
       </ScrollView>
-    </View>
+    </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg_primary },
-  scroll: { paddingTop: 60 },
-  header: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.lg },
-  title: { fontSize: 28, fontWeight: "800", color: Colors.text_primary },
-  avatarSection: { alignItems: "center", marginBottom: Spacing.xl },
-  avatarRing: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 3,
-    borderColor: Colors.accent_green,
-    padding: 3,
-    marginBottom: 16,
-  },
-  avatar: {
-    flex: 1,
-    borderRadius: 42,
-    backgroundColor: "rgba(0,255,135,0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { fontSize: 24, fontWeight: "800", color: Colors.accent_green },
-  playerName: { fontSize: 22, fontWeight: "800", color: Colors.text_primary, marginBottom: 4 },
-  playerLabel: { fontSize: 13, color: Colors.text_secondary },
-  statsRow: { flexDirection: "row", paddingHorizontal: Spacing.lg, gap: 8, marginBottom: Spacing.xl },
-  statCard: { flex: 1, backgroundColor: Colors.bg_surface, borderRadius: 12, borderWidth: 1, borderColor: Colors.border, padding: 14, alignItems: "center" },
-  statValue: { fontSize: 24, fontWeight: "800", color: Colors.text_primary, fontVariant: ["tabular-nums"] },
-  statLabel: { fontSize: 10, fontWeight: "600", color: Colors.text_secondary, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 },
-  sectionTitle: { fontSize: 10, fontWeight: "700", color: Colors.text_secondary, letterSpacing: 2, marginBottom: Spacing.md },
-  sportsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: Spacing.lg, marginBottom: Spacing.xl },
-  sportChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: Radius.full, backgroundColor: Colors.bg_surface, borderWidth: 1, borderColor: Colors.border },
-  sportChipActive: { backgroundColor: "rgba(0,255,135,0.08)", borderColor: Colors.accent_green },
-  sportChipText: { fontSize: 13, fontWeight: "600", color: Colors.text_secondary },
-  sportChipTextActive: { color: Colors.accent_green },
-  settingCard: { marginHorizontal: Spacing.lg, marginBottom: Spacing.md, padding: Spacing.md },
-  settingRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  settingLabel: { fontSize: 14, fontWeight: "600", color: Colors.text_primary },
-  settingDesc: { fontSize: 11, color: Colors.text_secondary, marginTop: 2 },
-  unitToggle: { flexDirection: "row", backgroundColor: Colors.bg_elevated, borderRadius: Radius.full, padding: 3 },
-  unitOption: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: Radius.full },
-  unitOptionActive: { backgroundColor: Colors.accent_green },
-  unitText: { fontSize: 12, fontWeight: "700", color: Colors.text_secondary },
-  unitTextActive: { color: Colors.bg_primary },
-  toggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 8 },
-  toggleLabel: { fontSize: 14, fontWeight: "500", color: Colors.text_secondary },
-  actions: { paddingHorizontal: Spacing.lg, gap: 12, marginTop: Spacing.lg },
-  signOutConfirm: { backgroundColor: "rgba(255,107,107,0.05)", borderRadius: 12, padding: 16, borderWidth: 1, borderColor: "rgba(255,107,107,0.15)" },
-  confirmText: { fontSize: 13, color: Colors.text_secondary, textAlign: "center", marginBottom: 10 },
-  confirmButtons: { flexDirection: "row", justifyContent: "center", gap: 12 },
-  footer: { textAlign: "center", fontSize: 11, color: Colors.text_secondary, marginTop: Spacing.xl, opacity: 0.5 },
-  footerSub: { textAlign: "center", fontSize: 11, color: Colors.text_secondary, opacity: 0.4 },
+  scroll: { paddingHorizontal: Space.gutter, paddingBottom: Space.xxxl, maxWidth: 720, width: "100%", alignSelf: "center" },
+  flex: { flex: 1 },
+  hero: { marginTop: Space.lg, marginBottom: Space.xl },
+  stats: { flexDirection: "row", gap: Space.md, paddingVertical: Space.md, borderTopWidth: 1, borderBottomWidth: 1, borderColor: Paper.rule },
+  wrap: { flexDirection: "row", flexWrap: "wrap", gap: Space.sm },
+  row: { flexDirection: "row", gap: Space.sm },
+  toggle: { flexDirection: "row", alignItems: "center", gap: Space.md, paddingVertical: Space.md },
+  rule: { borderTopWidth: 1, borderTopColor: Paper.rule },
+  account: { marginTop: Space.xxl },
+  confirm: { padding: Space.lg, borderWidth: 1, borderColor: Paper.danger, gap: Space.md, alignItems: "center" },
+  confirmText: { color: Paper.text },
+  colophon: { fontFamily: Fonts.italic, fontSize: 13, lineHeight: 19, color: Paper.faint, textAlign: "center", marginTop: Space.xxl },
 })

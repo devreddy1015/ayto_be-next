@@ -1,293 +1,109 @@
-import React, { useEffect, useRef, useState } from "react"
-import { View, Text, StyleSheet, Animated, Dimensions } from "react-native"
+import { useEffect, useMemo, useState } from "react"
+import { StyleSheet, Text, View } from "react-native"
 import { router } from "expo-router"
-import { Colors, Spacing } from "../../src/theme"
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { Screen } from "../../src/components/riso/RisoSurface"
+import { SweepHeading } from "../../src/components/riso/SweepHeading"
+import { Stat } from "../../src/components/ui/Stat"
+import { getDemo } from "../../src/data/demo"
+import { useSpeed, useSport } from "../../src/hooks/useSport"
+import { pad2 } from "../../src/lib/format"
+import { Fonts, Paper, Space, Type } from "../../src/theme"
 
-const { width } = Dimensions.get("window")
-
-const STAGES = [
-  { id: "path", label: "Extracting shuttle path", icon: "◎" },
-  { id: "pose", label: "Reading your pose", icon: "◈" },
-  { id: "classify", label: "Classifying strokes", icon: "◆" },
-  { id: "report", label: "Building your report", icon: "◉" },
-]
-
-const FUN_STATS = [
-  "Your fastest shot this session: analyzing...",
-  "Tracking shuttle at 1200 fps...",
-  "Comparing to pro benchmarks...",
-  "Crunching biomechanics data...",
-  "Almost there. Stay pumped!",
-]
+const STAGE_MS = 1250
+const REVEAL_MS = 1500
 
 export default function ProcessingScreen() {
-  const [currentStage, setCurrentStage] = useState(0)
-  const [progress, setProgress] = useState(0)
-  const [funStat, setFunStat] = useState(FUN_STATS[0])
-  const [finalSpeed, setFinalSpeed] = useState<number | null>(null)
-
-  const progressAnim = useRef(new Animated.Value(0)).current
-  const stageOpacity = useRef(new Animated.Value(1)).current
-  const stageTranslateY = useRef(new Animated.Value(0)).current
+  const insets = useSafeAreaInsets()
+  const sport = useSport()
+  const { palette } = sport
+  const { format, unit } = useSpeed()
+  const latest = getDemo(sport.id)?.sessions[0] ?? null
+  const reduceMotion = useReducedMotion()
+  const stages = useMemo(
+    () => [`Tracing the ${sport.tracked}`, "Reading your pose", `Naming each ${sport.strokeNoun}`, "Printing the report"],
+    [sport.tracked, sport.strokeNoun],
+  )
+  const total = stages.length * STAGE_MS
+  const [stage, setStage] = useState(0)
+  const [done, setDone] = useState(false)
+  const progress = useSharedValue(0)
 
   useEffect(() => {
-    let stageIndex = 0
-    const stageInterval = setInterval(() => {
-      stageIndex++
-      if (stageIndex < STAGES.length) {
-        Animated.sequence([
-          Animated.parallel([
-            Animated.timing(stageOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-            Animated.timing(stageTranslateY, { toValue: -20, duration: 200, useNativeDriver: true }),
-          ]),
-        ]).start(() => {
-          setCurrentStage(stageIndex)
-          stageOpacity.setValue(0)
-          stageTranslateY.setValue(20)
-          Animated.parallel([
-            Animated.timing(stageOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-            Animated.timing(stageTranslateY, { toValue: 0, duration: 200, useNativeDriver: true }),
-          ]).start()
-        })
-      } else {
-        clearInterval(stageInterval)
-      }
-    }, 1200)
-
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + 0.03
-        if (next >= 1) {
-          clearInterval(progressInterval)
-          return 1
-        }
-        return next
-      })
-    }, 100)
-
-    let statIndex = 0
-    const statInterval = setInterval(() => {
-      statIndex = (statIndex + 1) % FUN_STATS.length
-      setFunStat(FUN_STATS[statIndex])
-    }, 2000)
-
-    const timer = setTimeout(() => {
-      const speed = 287
-      setFinalSpeed(speed)
-      setTimeout(() => {
-        router.replace({ pathname: "/session/[id]", params: { id: "latest" } })
-      }, 1500)
-    }, 5000)
-
-    return () => {
-      clearInterval(stageInterval)
-      clearInterval(progressInterval)
-      clearInterval(statInterval)
-      clearTimeout(timer)
+    // Nothing was analysed for this sport: don't pretend, go home.
+    if (!latest) {
+      router.replace("/(tabs)")
+      return
     }
+    // One UI-thread tween for the bar; JS only wakes up once per stage.
+    progress.value = withTiming(1, { duration: reduceMotion ? 0 : total, easing: Easing.linear })
+    const timers = stages.map((_, i) => setTimeout(() => setStage(i), i * STAGE_MS))
+    timers.push(setTimeout(() => setDone(true), total))
+    timers.push(
+      setTimeout(() => router.replace({ pathname: "/session/[id]", params: { id: "latest" } }), total + REVEAL_MS),
+    )
+    return () => timers.forEach(clearTimeout)
+    // Runs once per visit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0%", "100%"],
-  })
-
-  useEffect(() => {
-    Animated.timing(progressAnim, {
-      toValue: progress,
-      duration: 50,
-      useNativeDriver: false,
-    }).start()
-  }, [progress])
-
-  const currentStageData = STAGES[currentStage]
+  const barStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: progress.value }] }))
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Processing</Text>
-        <Text style={styles.subtitle}>Analyzing your session</Text>
+    <Screen palette={palette}>
+      <View style={[styles.body, { paddingTop: insets.top + Space.xxl, paddingBottom: insets.bottom + Space.xl }]}>
+        <Text style={Type.kicker}>
+          Processing · {sport.name} · {pad2(stage + 1)}/{pad2(stages.length)}
+        </Text>
+        <SweepHeading key={stage} lines={stages[stage]} palette={palette} size="title" style={styles.heading} />
 
-        {/* Stage */}
-        <Animated.View
-          style={[
-            styles.stageContainer,
-            { opacity: stageOpacity, transform: [{ translateY: stageTranslateY }] },
-          ]}
-        >
-          <View style={styles.stageIconContainer}>
-            <Text style={styles.stageIcon}>{currentStageData.icon}</Text>
-          </View>
-          <Text style={styles.stageLabel}>{currentStageData.label}</Text>
-        </Animated.View>
-
-        {/* Progress Bar */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressTrack}>
-            <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
-          </View>
-          <Text style={styles.progressText}>
-            {Math.round(progress * 100)}%
-          </Text>
+        <View style={styles.track} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: stages.length, now: stage + 1 }}>
+          <Animated.View style={[styles.fill, { backgroundColor: palette.plate }, barStyle]} />
         </View>
 
-        {/* Fun Stats */}
-        <View style={styles.funStatContainer}>
-          <Text style={styles.funStat}>{funStat}</Text>
+        <View style={styles.list}>
+          {stages.map((label, i) => {
+            const state = i < stage || done ? "done" : i === stage ? "now" : "next"
+            return (
+              <View key={label} style={[styles.row, i > 0 && styles.rule]}>
+                <Text style={[styles.no, { color: state === "next" ? Paper.faint : palette.ink }]}>{pad2(i + 1)}</Text>
+                <Text style={[Type.body, styles.flex, state === "next" && { color: Paper.faint }]}>{label}</Text>
+                <Text style={[styles.mark, { color: state === "done" ? palette.ink : Paper.faint }]}>
+                  {state === "done" ? "✓" : state === "now" ? "…" : ""}
+                </Text>
+              </View>
+            )
+          })}
         </View>
 
-        {/* Stage Dots */}
-        <View style={styles.stageDots}>
-          {STAGES.map((stage, i) => (
-            <View
-              key={stage.id}
-              style={[
-                styles.stageDot,
-                i < currentStage && styles.stageDotComplete,
-                i === currentStage && styles.stageDotActive,
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Final Speed Reveal */}
-        {finalSpeed && (
-          <Animated.View style={styles.speedReveal}>
-            <Text style={styles.speedRevealLabel}>MAX SPEED</Text>
-            <Text style={styles.speedRevealValue}>{finalSpeed}</Text>
-            <Text style={styles.speedRevealUnit}>km/h</Text>
-          </Animated.View>
+        {done && latest ? (
+          <Stat
+            label={`${sport.metrics[0].label} · this session`}
+            value={format(latest.max_speed_kmh)}
+            unit={unit}
+            size="xl"
+            color={palette.ink}
+            style={styles.reveal}
+          />
+        ) : (
+          <Text style={[Type.deck, styles.reveal]}>Everything runs on this phone. Keep the app open.</Text>
         )}
       </View>
-    </View>
+    </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg_primary,
-    justifyContent: "center",
-  },
-  content: {
-    alignItems: "center",
-    paddingHorizontal: Spacing.xl,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: Colors.text_primary,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: Colors.text_secondary,
-    marginBottom: 48,
-  },
-  stageContainer: {
-    alignItems: "center",
-    marginBottom: 32,
-    minHeight: 140,
-  },
-  stageIconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 32,
-    backgroundColor: "rgba(0,255,135,0.06)",
-    borderWidth: 2,
-    borderColor: "rgba(0,255,135,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  stageIcon: {
-    fontSize: 36,
-    color: Colors.accent_green,
-  },
-  stageLabel: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: Colors.text_primary,
-    letterSpacing: 0.5,
-  },
-  progressContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    width: width - Spacing.xl * 2,
-    marginBottom: 24,
-  },
-  progressTrack: {
-    flex: 1,
-    height: 4,
-    backgroundColor: Colors.bg_surface,
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: Colors.accent_green,
-    borderRadius: 2,
-  },
-  progressText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: Colors.accent_green,
-    fontVariant: ["tabular-nums"] as any,
-    width: 40,
-    textAlign: "right",
-  },
-  funStatContainer: {
-    marginBottom: 32,
-    minHeight: 40,
-    justifyContent: "center",
-  },
-  funStat: {
-    fontSize: 13,
-    color: Colors.text_secondary,
-    textAlign: "center",
-    fontStyle: "italic",
-  },
-  stageDots: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  stageDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.bg_surface,
-  },
-  stageDotComplete: {
-    backgroundColor: Colors.accent_green,
-  },
-  stageDotActive: {
-    backgroundColor: Colors.accent_green,
-    transform: [{ scale: 1.3 }],
-  },
-  speedReveal: {
-    position: "absolute",
-    bottom: -120,
-    alignItems: "center",
-  },
-  speedRevealLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: Colors.text_secondary,
-    letterSpacing: 3,
-    marginBottom: 4,
-  },
-  speedRevealValue: {
-    fontSize: 72,
-    fontWeight: "800",
-    color: Colors.accent_green,
-    fontVariant: ["tabular-nums"] as any,
-  },
-  speedRevealUnit: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: Colors.text_secondary,
-    letterSpacing: 2,
-    marginTop: -8,
-  },
+  body: { flex: 1, paddingHorizontal: Space.gutter, maxWidth: 560, width: "100%", alignSelf: "center" },
+  flex: { flex: 1 },
+  heading: { marginTop: Space.lg, minHeight: 96 },
+  track: { height: 6, backgroundColor: Paper.raised, marginTop: Space.xl, overflow: "hidden" },
+  fill: { ...StyleSheet.absoluteFillObject, transformOrigin: "left" },
+  list: { marginTop: Space.xl, borderTopWidth: 1, borderBottomWidth: 1, borderColor: Paper.rule },
+  row: { flexDirection: "row", alignItems: "center", gap: Space.md, paddingVertical: Space.md },
+  rule: { borderTopWidth: 1, borderTopColor: Paper.rule },
+  no: { fontFamily: Fonts.monoBold, fontSize: 12, width: 24 },
+  mark: { fontFamily: Fonts.monoBold, fontSize: 14, width: 18, textAlign: "right" },
+  reveal: { marginTop: Space.xxl },
 })

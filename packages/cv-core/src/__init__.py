@@ -1,22 +1,29 @@
-"""SportIQ CV Core — Shuttlecock detection, tracking, and speed analysis."""
+"""SportIQ CV Core: shuttle/ball detection, tracking, calibration and speed."""
 
-from .adaptive_tracker import AdaptiveTracker
-from .depth_calib import DepthCalibrator
-from .detector import ShuttleDetector
-from .pipeline import CVPipeline
-from .speed import CourtCalibration, SpeedCalculator
+from .court import CourtCamera, detect_court_corners, motion_plane
+from .pipeline import CVPipeline, FlightResult, FrameResult
+from .speed import CourtCalibration, LaunchFit, SpeedCalculator, fit_launch_speed, speed_at_net
+from .sports import SPORTS, SportProfile, get_sport
 from .tracker import ShuttleTracker
-from .tracknet_detector import TrackNetDetector
-from .tracknet_model import TrackNetV2
+from .trajectory import RectifiedTrack, find_trajectory_turns, rectify_trajectory
 
 __all__ = [
-    "ShuttleDetector",
-    "ShuttleTracker",
-    "AdaptiveTracker",
-    "SpeedCalculator",
-    "CourtCalibration",
     "CVPipeline",
-    "DepthCalibrator",
-    "TrackNetV2",
-    "TrackNetDetector",
+    "FrameResult",
+    "FlightResult",
+    "CourtCamera",
+    "detect_court_corners",
+    "motion_plane",
+    "CourtCalibration",
+    "SpeedCalculator",
+    "LaunchFit",
+    "fit_launch_speed",
+    "speed_at_net",
+    "SPORTS",
+    "SportProfile",
+    "get_sport",
+    "ShuttleTracker",
+    "RectifiedTrack",
+    "rectify_trajectory",
+    "find_trajectory_turns",
 ]

@@ -91,9 +91,9 @@ All processing happens on-device. No cloud dependency during analysis.
 
 **Our moat is the dataset + the on-device inference pipeline.**
 
-- **Computer Vision:** YOLOv8 fine-tuned on shuttle detection + Kalman filter tracking
-- **Pose Analysis:** MediaPipe Holistic → hip-normalized keypoints → biomechanical comparison
-- **Stroke AI:** BiLSTM + Attention classifier, 6 stroke types, <15ms inference on mobile
+- **Computer Vision:** TrackNet-family heatmap tracking + court calibration + physics-based 3D flight fit for launch speed
+- **Pose Analysis:** RTMPose keypoints → hip-normalized, One-Euro-smoothed pose → time-aligned (DTW) technique comparison
+- **Stroke AI:** Multimodal (pose + shuttle + court) Transformer, per-sport stroke taxonomies, <15ms mobile target
 - **All on-device:** Zero cloud calls during analysis — works offline, preserves privacy
 
 **Why now:** Phone cameras just crossed the 60fps threshold at ₹8,000 price point. This was not technically possible in 2019. By 2027 everyone will attempt this — we move now.

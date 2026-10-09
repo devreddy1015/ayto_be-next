@@ -1,113 +1,73 @@
-import React from "react"
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
-import Card from "../ui/Card"
-import Badge from "../ui/Badge"
-import { Colors, Spacing } from "../../theme"
-import type { StrokeType } from "../../types"
+import { memo, useCallback } from "react"
+import { Pressable, StyleSheet, Text, View } from "react-native"
+import { Tag } from "../ui/Tag"
+import { useSpeed } from "../../hooks/useSport"
+import { clock, shortDate } from "../../lib/format"
+import { getSport, strokeColor, strokeLabel } from "../../sports"
+import type { SessionSummary } from "../../types"
+import { Fonts, Paper, Radius, Space, Type } from "../../theme"
 
 interface SessionCardProps {
-  id: string
-  date: string
-  duration: string
-  strokes: number
-  maxSpeed: number
-  sport: string
-  dominantStroke?: StrokeType | null
-  onPress: () => void
+  session: SessionSummary
+  onPress: (id: string) => void
+  /** Prefix the sport name (mixed-sport lists). */
+  showSport?: boolean
 }
 
-export default function SessionCard({
-  date,
-  duration,
-  strokes,
-  maxSpeed,
-  sport,
-  dominantStroke,
-  onPress,
-}: SessionCardProps) {
+export const SessionCard = memo(function SessionCard({ session, onPress, showSport = false }: SessionCardProps) {
+  const sport = getSport(session.sport)
+  const { format, unit } = useSpeed()
+  const press = useCallback(() => onPress(session.id), [onPress, session.id])
+  const dominant = session.dominant_stroke
+  const date = shortDate(session.created_at)
+  const max = format(session.max_speed_kmh)
+
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
-      <Card variant="surface" style={styles.card}>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.sportIcon}>
-              {sport === "badminton" ? "🏸" : sport === "tennis" ? "🎾" : "🏓"}
-            </Text>
-            <View>
-              <Text style={styles.date}>{date}</Text>
-              <Text style={styles.meta}>
-                {duration} · {strokes} strokes
-              </Text>
-            </View>
-          </View>
-          <View style={styles.speedBox}>
-            <Text style={styles.speedValue}>{maxSpeed}</Text>
-            <Text style={styles.speedUnit}>km/h</Text>
-          </View>
-        </View>
-
-        {dominantStroke && (
-          <View style={styles.footer}>
-            <Badge
-              label={dominantStroke.charAt(0).toUpperCase() + dominantStroke.slice(1)}
-              type={dominantStroke}
-              size="sm"
-            />
-          </View>
-        )}
-      </Card>
-    </TouchableOpacity>
+    <Pressable
+      onPress={press}
+      accessibilityRole="button"
+      accessibilityLabel={`${sport.name} session, ${date}, max ${max} ${unit}, ${session.strokes_count} ${sport.strokeNoun}s`}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
+      <View style={[styles.edge, { backgroundColor: sport.palette.plate }]} />
+      <View style={styles.body}>
+        <Text style={Type.kicker} numberOfLines={1}>
+          {showSport ? `${sport.name} · ` : ""}
+          {date}
+        </Text>
+        <Text style={styles.title} numberOfLines={1}>
+          {dominant ? `${strokeLabel(sport, dominant)}-led session` : "Session"}
+        </Text>
+        <Text style={styles.meta}>
+          {clock(session.duration_seconds)} · {session.strokes_count} {sport.strokeNoun}s
+        </Text>
+        {dominant ? (
+          <Tag label={strokeLabel(sport, dominant)} color={strokeColor(sport, dominant)} style={styles.tag} />
+        ) : null}
+      </View>
+      <View style={styles.speed}>
+        <Text style={[Type.metric, { color: sport.palette.ink }]}>{max}</Text>
+        <Text style={Type.unit}>{unit} max</Text>
+      </View>
+    </Pressable>
   )
-}
+})
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: 10,
-    padding: Spacing.md,
-  },
-  header: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    backgroundColor: Paper.stock,
+    borderWidth: 1,
+    borderColor: Paper.rule,
+    borderRadius: Radius.sm,
+    marginBottom: Space.md,
+    overflow: "hidden",
   },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  sportIcon: {
-    fontSize: 22,
-  },
-  date: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: Colors.text_primary,
-  },
-  meta: {
-    fontSize: 11,
-    color: Colors.text_secondary,
-    marginTop: 2,
-  },
-  speedBox: {
-    alignItems: "flex-end",
-  },
-  speedValue: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: Colors.accent_green,
-    fontVariant: ["tabular-nums"],
-  },
-  speedUnit: {
-    fontSize: 9,
-    fontWeight: "600",
-    color: Colors.text_secondary,
-    letterSpacing: 1,
-  },
-  footer: {
-    flexDirection: "row",
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
+  pressed: { backgroundColor: Paper.raised },
+  edge: { width: 4 },
+  body: { flex: 1, padding: Space.lg, paddingRight: Space.sm, gap: 2 },
+  title: { fontFamily: Fonts.display, fontSize: 20, lineHeight: 25, color: Paper.text },
+  meta: { fontFamily: Fonts.mono, fontSize: 12, color: Paper.muted },
+  tag: { marginTop: Space.sm, paddingHorizontal: 0 },
+  speed: { alignItems: "flex-end", justifyContent: "center", paddingRight: Space.lg },
 })

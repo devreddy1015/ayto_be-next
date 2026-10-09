@@ -11,34 +11,24 @@ stages:
     outs:
       - data/processed/frames
 
-  train_detector:
-    cmd: python packages/cv-core/src/train_detector.py
-    deps:
-      - data/processed/frames
-    outs:
-      - models/shuttle_detector.pt
-    metrics:
-      - models/detector_metrics.json:
-          cache: false
-
+  # TrackNetV3 background input + TrackNetV4 motion attention (see research/).
   train_tracknet:
-    cmd: python packages/cv-core/src/train_tracknet.py --data TrackNetV2 --epochs 50 --batch-size 8
+    cmd: python packages/cv-core/src/train_tracknet.py --data TrackNetV2 --background --motion
     deps:
       - TrackNetV2
     outs:
-      - models/tracknetv2.pt
-      - models/tracknetv2_final.pt
+      - models/tracknet.pt
     metrics:
-      - models/tracknetv2_history.json:
+      - models/tracknet_history.json:
           cache: false
 
   train_stroke_classifier:
-    cmd: python packages/ml-models/src/train.py
+    cmd: python packages/ml-models/src/train.py --config packages/ml-models/configs/default.yaml
     deps:
-      - data/processed/frames
+      - data/processed/strokes
     outs:
       - models/stroke_classifier.pt
-      - models/stroke_classifier.tflite
+      - models/stroke_classifier.ckpt
     metrics:
       - models/classifier_metrics.json:
           cache: false

@@ -231,9 +231,16 @@ class JointAngleComputer:
         return _angle_3points(a, b, c)
 
     def compute_all_angles(self, landmarks: np.ndarray) -> dict[str, float]:
-        """Compute all 10 tracked joint angles from (33,4) landmarks."""
+        """Compute the tracked joint angles from (33,4) landmarks.
+
+        Joints whose landmarks the pose backend doesn't provide (visibility
+        exactly 0, e.g. finger tips for RTMPose's COCO-17 output, which the
+        wrist angle needs) are left out instead of computed from zeros.
+        """
         angles: dict[str, float] = {}
         for name, (i, j, k) in JOINT_TRIPLETS.items():
+            if landmarks.shape[1] > 3 and not np.all(landmarks[[i, j, k], 3] > 0):
+                continue
             angles[name] = _angle_3points(landmarks[i, :3], landmarks[j, :3], landmarks[k, :3])
         return angles
 

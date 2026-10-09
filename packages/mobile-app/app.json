@@ -8,7 +8,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0A0A0F",
+    "backgroundColor": "#121011",
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
@@ -17,18 +17,12 @@
         {
           "cameraPermission": "Allow Ayto to access your camera to record your gameplay."
         }
-      ],
-      [
-        "expo-av",
-        {
-          "microphonePermission": false
-        }
       ]
     ],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0A0A0F"
+      "backgroundColor": "#121011"
     },
     "ios": {
       "supportsTablet": true,
@@ -38,7 +32,7 @@
       "package": "ai.sportiq.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A0A0F"
+        "backgroundColor": "#121011"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,

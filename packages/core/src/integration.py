@@ -58,8 +58,9 @@ def merge_pipeline_outputs(
 
     strokes_mapped: list[StrokeEvent] = []
     for ev in stroke_events:
-        speed_val = None
-        if ev.frame_peak < len(cv_results):
+        # Prefer the drag-fitted launch speed of the flight this hit starts.
+        speed_val = getattr(ev, "launch_speed_kmh", None)
+        if speed_val is None and ev.frame_peak < len(cv_results):
             r = cv_results[ev.frame_peak]
             if r and hasattr(r, "speed_kmh"):
                 speed_val = r.speed_kmh

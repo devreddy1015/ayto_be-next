@@ -1,573 +1,528 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SportIQ — Session Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg: #0A0A0F;
-      --surface: rgba(255,255,255,0.04);
-      --border: rgba(255,255,255,0.08);
-      --border-active: rgba(0,245,160,0.25);
-      --primary: #00F5A0;
-      --primary-dim: rgba(0,245,160,0.12);
-      --accent: #FF3D5A;
-      --text: #FFFFFF;
-      --text-secondary: rgba(255,255,255,0.6);
-      --text-tertiary: rgba(255,255,255,0.35);
-      --radius: 16px;
-    }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    .nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      background: rgba(10,10,15,0.85);
-      backdrop-filter: blur(20px);
-      z-index: 100;
-    }
-    .nav-logo {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--primary);
-      letter-spacing: 1px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .nav-logo svg { width: 24px; height: 24px; }
-    .nav-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      letter-spacing: 1px;
-    }
-    .nav-export {
-      background: var(--primary-dim);
-      border: 1px solid var(--border-active);
-      color: var(--primary);
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      letter-spacing: 1px;
-    }
-    .nav-export:hover {
-      background: rgba(0,245,160,0.2);
-      transform: scale(1.03);
-    }
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 24px 24px 80px;
-    }
-    .hero {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    @media (max-width: 700px) {
-      .hero { grid-template-columns: 1fr; }
-    }
-    .hero-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 28px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all 0.3s;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-    }
-    .hero-card:hover {
-      border-color: rgba(0,245,160,0.3);
-      transform: scale(1.02);
-      background: rgba(255,255,255,0.06);
-      box-shadow: 0 4px 24px rgba(0,245,160,0.06);
-    }
-    .hero-value {
-      font-size: 52px;
-      font-weight: 900;
-      color: var(--primary);
-      font-variant-numeric: tabular-nums;
-      line-height: 1;
-      letter-spacing: -1px;
-    }
-    .hero-value.accent { color: var(--accent); }
-    .hero-unit {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-tertiary);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-    .hero-label {
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--text-tertiary);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-top: 4px;
-    }
-    .pie-legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px 12px;
-      justify-content: center;
-      margin-top: 8px;
-    }
-    .pie-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--text-secondary);
-    }
-    .pie-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 3px;
-    }
-    .ring-container {
-      position: relative;
-      width: 100px;
-      height: 100px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .ring-svg {
-      transform: rotate(-90deg);
-    }
-    .ring-value {
-      position: absolute;
-      font-size: 28px;
-      font-weight: 900;
-      color: var(--primary);
-      font-variant-numeric: tabular-nums;
-    }
-    .section {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: var(--radius);
-      padding: 24px;
-      margin-bottom: 16px;
-    }
-    .section-title {
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--text-tertiary);
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-bottom: 20px;
-    }
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .chart-wrap {
-      position: relative;
-      width: 100%;
-      height: 280px;
-    }
-    .chart-wrap canvas { width: 100% !important; height: 100% !important; }
-    .timeline {
-      display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      padding: 4px 0 8px;
-      scrollbar-width: none;
-    }
-    .timeline::-webkit-scrollbar { display: none; }
-    .timeline-card {
-      flex-shrink: 0;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 14px;
-      padding: 16px 18px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      min-width: 90px;
-      transition: all 0.2s;
-    }
-    .timeline-card:hover {
-      border-color: var(--border-active);
-      transform: translateY(-2px);
-    }
-    .tl-badge {
-      padding: 4px 10px;
-      border-radius: 8px;
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 1px;
-    }
-    .tl-speed {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--text);
-      font-variant-numeric: tabular-nums;
-    }
-    .tl-unit {
-      font-size: 9px;
-      font-weight: 600;
-      color: var(--text-tertiary);
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-    .comp-bars { display: flex; flex-direction: column; gap: 14px; }
-    .comp-row { display: grid; grid-template-columns: 100px 1fr; gap: 12px; align-items: center; }
-    .comp-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-align: right; }
-    .comp-track { height: 8px; background: rgba(255,255,255,0.04); border-radius: 4px; position: relative; overflow: hidden; }
-    .comp-bar-you { position: absolute; top: 0; left: 0; bottom: 0; background: var(--primary); border-radius: 4px; opacity: 0.9; transition: width 1.5s ease; }
-    .comp-bar-pro { position: absolute; top: 0; left: 0; bottom: 0; background: var(--accent); opacity: 0.25; border-radius: 4px; }
-    .comp-footer { display: flex; justify-content: center; gap: 28px; margin-top: 12px; }
-    .comp-legend { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; color: var(--text-tertiary); }
-    .comp-leg-dot { width: 8px; height: 8px; border-radius: 4px; }
-    .radar-wrap { width: 100%; max-width: 500px; margin: 0 auto; height: 340px; }
-    .detail-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-    @media (max-width: 500px) { .detail-grid { grid-template-columns: repeat(2, 1fr); } }
-    .detail-item {
-      background: rgba(255,255,255,0.03);
-      border-radius: 12px;
-      padding: 16px 12px;
-      text-align: center;
-      border: 1px solid rgba(255,255,255,0.04);
-    }
-    .detail-val { font-size: 22px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
-    .detail-lbl { font-size: 10px; font-weight: 600; color: var(--text-tertiary); margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
-    .count-up { transition: color 0.3s; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Ayto SportIQ Dashboard</title>
+<meta name="description" content="Session dashboard for Ayto SportIQ: speed, stroke mix, form and pro comparison, printed per sport.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* ── Riso Sweep tokens ─────────────────────────────────────────────
+   Black stock + cream paper ink; each sport supplies three riso inks
+   (set on :root by applySport(), or inline on a gallery card). */
+:root {
+  --bg: #121011; --stock: #1C1819; --raised: #262122;
+  --text: #F4ECE0; --muted: #B4AA9C; --faint: #8A8176;
+  --rule: rgba(244,236,224,.14); --rule-strong: rgba(244,236,224,.32);
+  --danger: #FF665E;
+  --grain-op: .14; --scan: rgba(0,0,0,.26);
+  --plate: #FF48B0; --shadow: #3255A4; --ink: #FF6EC0; --ink2: #6F9BEA; --ink3: #FFE800;
+  --ghost: #FF48B0; --on-plate: #121011; --ink-paper: #B8347F; --glow: rgba(255,72,176,.18);
+  --accent: var(--ink); --you: var(--plate); --pro: var(--ink3);
+  --serif: "Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ease: cubic-bezier(.65, 0, .35, 1);
+  --sweep: 900ms;
+  --dither: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 0h1v1H0zM2 0h1v1H2zM1 1h1v1H1zM3 1h1v1H3zM0 2h1v1H0zM2 2h1v1H2zM1 3h1v1H1zM3 3h1v1H3z' fill='%23000' fill-opacity='.16'/%3E%3C/svg%3E");
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.6 -.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* Derived inks must be re-declared wherever a sport's inks are set (root or a gallery card),
+   because custom properties resolve where they are declared, not where they are used. */
+[style*="--plate"] { --accent: var(--ink); --you: var(--plate); --pro: var(--ink3); }
+@media (prefers-color-scheme: light) {
+  [style*="--plate"] { --accent: var(--ink-paper); --you: var(--ink-paper); --pro: var(--muted); }
+  :root {
+    --bg: #F4ECE0; --stock: #FBF6EE; --raised: #E9DFD0;
+    --text: #1A1718; --muted: #5E554B; --faint: #6B6257;
+    --rule: rgba(26,23,24,.14); --rule-strong: rgba(26,23,24,.34);
+    --danger: #B3261E; --grain-op: .22; --scan: rgba(26,23,24,.05);
+    --accent: var(--ink-paper); --you: var(--ink-paper); --pro: var(--muted);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--bg); color: var(--text); -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  min-height: 100vh; overflow-x: hidden; font: 15px/1.55 var(--sans);
+  background: radial-gradient(140vmax 140vmax at 0 0, var(--glow), transparent 42%) no-repeat, var(--bg);
+}
+/* Heavy grain + scanlines, printed over everything. Static layers, no animation. */
+body::before, body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 40; }
+body::before { background-image: var(--grain); opacity: var(--grain-op); }
+body::after { background: repeating-linear-gradient(0deg, var(--scan) 0 1px, transparent 1px 3px); }
+
+a { color: inherit; }
+[id] { scroll-margin-top: 128px; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.skip { position: absolute; left: -999px; top: 8px; z-index: 60; background: var(--plate); color: var(--on-plate); padding: 8px 12px; font: 700 12px var(--mono); }
+.skip:focus { left: 16px; }
+.wrap { width: min(100% - 32px, 1080px); margin-inline: auto; }
+.kicker { font: 500 11px/1.4 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.deck { font: italic 400 clamp(1.05rem, 3.6vw, 1.3rem)/1.45 var(--serif); color: var(--muted); max-width: 34em; }
+.mono { font-family: var(--mono); }
+.num { font-family: var(--mono); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+
+/* ── Masthead ─────────────────────────────────────────────────────── */
+.mast { position: sticky; top: 0; z-index: 30; background: var(--bg); border-bottom: 1px solid var(--rule-strong); }
+.mast-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0 10px; }
+.brand { font: 700 22px/1 var(--serif); text-decoration: none; white-space: nowrap; }
+.brand span { font: 500 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-left: 6px; }
+.mast .kicker { flex: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 0 0 12px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 12px 4px 4px; border: 1px solid var(--rule); font: 500 12px var(--mono); color: var(--muted); }
+.chip b { display: grid; place-items: center; width: 30px; height: 30px; background: var(--c); color: var(--on-plate); font: 700 12px var(--mono); }
+.chip[aria-pressed="true"] { border-color: var(--plate); color: var(--text); background: var(--stock); }
+.chip i { width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
+
+/* ── Buttons: a solid ink face on a hard offset plate ─────────────── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 0 18px;
+  background: var(--plate); color: var(--on-plate); font: 700 12px var(--mono); letter-spacing: .12em; text-transform: uppercase;
+  box-shadow: 5px 5px 0 var(--shadow); transition: transform .08s, box-shadow .08s; }
+.btn:active { transform: translate(5px, 5px); box-shadow: 0 0 0 var(--shadow); }
+.btn.line { background: transparent; color: var(--accent); box-shadow: none; border: 1.5px solid var(--accent); }
+.btn.sm { min-height: 36px; padding: 0 12px; font-size: 11px; box-shadow: 3px 3px 0 var(--shadow); }
+
+/* ── Gallery heading: Riso Sweep ──────────────────────────────────── */
+.sweep { font-family: var(--serif); font-weight: 700; line-height: 1.06; letter-spacing: -.02em; }
+.sweep .line { display: block; width: fit-content; max-width: 100%; position: relative; margin-bottom: .16em; }
+.sweep .plate { display: inline-block; position: relative; overflow: hidden; padding: .02em .16em .06em; color: var(--on-plate);
+  background: linear-gradient(135deg, rgba(255,255,255,.36), rgba(255,255,255,0) 62%), var(--dither), var(--plate);
+  background-size: auto, 4px 4px, auto;
+  box-shadow: var(--off) var(--off) 0 var(--shadow);
+  text-shadow: var(--mis) var(--mis) 0 var(--shadow); }
+.sweep.ink .plate { background: none; box-shadow: none; padding: 0; color: var(--text); text-shadow: var(--mis) var(--mis) 0 var(--ghost); }
+.sweep .line::before { content: ""; position: absolute; inset: 0; background: var(--shadow); transform: scaleX(0); transform-origin: left; pointer-events: none; z-index: 2; }
+.sweep.ink .line::before { background: var(--plate); }
+.sweep .plate::after { content: ""; position: absolute; inset: -20% 0; pointer-events: none; transform: translateX(-110%);
+  background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,.55) 50%, transparent 62%); }
+.sweep.ink .plate::after { display: none; }
+h1.sweep { font-size: clamp(2.6rem, 11vw, 5.8rem); --off: .11em; --mis: .045em; margin: 14px 0 22px; }
+h2.sweep { font-size: clamp(1.5rem, 5.2vw, 2.2rem); --off: .1em; --mis: .06em; }
+h3.sweep { font-size: clamp(1.7rem, 7vw, 2.2rem); --off: .12em; --mis: .05em; margin: 4px 0 12px; }
+/* States: JS marks headings `pending`, then `play` when they scroll into view. Without JS they simply render. */
+.sweep.pending .plate { clip-path: inset(-.2em 100% -.3em -.2em); }
+.sweep.play .plate { animation: reveal var(--sweep) var(--ease) var(--d, 0ms) both; }
+.sweep.play .line::before { animation: band var(--sweep) var(--ease) var(--d, 0ms) both; }
+.sweep.play .plate::after { animation: lit .65s ease-in-out calc(var(--d, 0ms) + var(--sweep)) both; }
+@keyframes band {
+  0% { transform: scaleX(0); transform-origin: left; }
+  50% { transform: scaleX(1); transform-origin: left; }
+  50.01% { transform: scaleX(1); transform-origin: right; }
+  100% { transform: scaleX(0); transform-origin: right; }
+}
+@keyframes reveal {
+  0%, 50% { clip-path: inset(-.2em 100% -.3em -.2em); }
+  100% { clip-path: inset(-.2em -.35em -.35em -.2em); }
+}
+@keyframes lit { from { transform: translateX(-110%); } to { transform: translateX(110%); } }
+
+/* ── Sections ─────────────────────────────────────────────────────── */
+main { padding: 28px 0 64px; }
+.hero { padding: 8px 0 28px; }
+.status { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; padding: 4px 8px; font: 500 10px var(--mono); letter-spacing: .14em; text-transform: uppercase; border: 1px solid var(--accent); color: var(--accent); }
+.status.live { background: var(--plate); color: var(--on-plate); border-color: var(--plate); }
+.status.soon { border-color: var(--muted); color: var(--muted); }
+.head { margin: 44px 0 18px; padding-top: 14px; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.head .kicker { margin-bottom: 6px; }
+.card { position: relative; background: var(--stock); border: 1px solid var(--rule); padding: 18px; overflow: hidden; }
+.card.lit { background: radial-gradient(420px 420px at 0 0, var(--glow), transparent 60%), var(--stock); }
+.card.accent { border-top: 3px solid var(--plate); }
+.grid3 { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .grid3 { grid-template-columns: 1.2fr 1fr 1fr; } }
+
+.metric .big { font-size: clamp(3.6rem, 16vw, 5rem); line-height: 1; color: var(--accent); display: block; margin: 10px 0 4px; }
+.unit { font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.delta { font: 500 12px var(--mono); color: var(--ink3); margin-top: 10px; }
+@media (prefers-color-scheme: light) { .delta { color: var(--ink-paper); } }
+.mini { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.mini .num { font-size: 1.15rem; }
+
+.mix { display: flex; height: 22px; gap: 2px; margin: 14px 0 12px; }
+.mix span { display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 500 11px var(--mono); color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; }
+
+.ring { display: flex; align-items: center; gap: 18px; margin-top: 12px; }
+.ring svg { width: 112px; height: 112px; flex: none; }
+.ring circle.fg { transition: stroke-dashoffset 1.6s var(--ease); }
+
+.chart { width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font: 500 10px var(--mono); fill: var(--muted); }
+
+.strokes { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+.stroke { border: 1px solid var(--rule); padding: 10px; background: var(--stock); }
+.stroke .tag { font: 700 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+.stroke .num { font-size: 1.4rem; display: block; margin-top: 4px; }
+.stroke .unit { font-size: 10px; }
+
+.ledger { list-style: none; }
+.ledger li { padding: 12px 0; border-top: 1px solid var(--rule); }
+.ledger li:last-child { border-bottom: 1px solid var(--rule); }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.vals { font: 500 12px var(--mono); white-space: nowrap; }
+.track { position: relative; height: 8px; margin-top: 8px; background: var(--raised); }
+.track .you { position: absolute; inset: 0 auto 0 0; background: var(--you); transition: width 1.2s var(--ease); }
+.track .pro { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1.5px; background: var(--pro); }
+.vs { display: grid; gap: 22px; grid-template-columns: 1fr; }
+@media (min-width: 820px) { .vs { grid-template-columns: 1.3fr 1fr; align-items: center; } }
+.radar { max-width: 340px; width: 100%; margin: 0 auto; }
+.radar text { font: 500 10px var(--mono); fill: var(--muted); }
+
+.details { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+@media (min-width: 640px) { .details { grid-template-columns: repeat(4, 1fr); } }
+.details div { background: var(--stock); padding: 16px 14px; }
+.details .num { font-size: 1.7rem; display: block; margin-top: 6px; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag-o { font: 500 10px var(--mono); letter-spacing: .12em; text-transform: uppercase; padding: 4px 8px; border: 1px solid var(--c, var(--accent)); color: var(--c, var(--accent)); }
+
+/* ── Sports gallery ───────────────────────────────────────────────── */
+.group-deck { color: var(--muted); margin: -6px 0 16px; font-size: 14px; }
+.gallery { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .gallery { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1040px) { .gallery { grid-template-columns: repeat(3, 1fr); } }
+.sport { display: flex; flex-direction: column; }
+.sport .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+.sport .status { margin-top: 0; }
+.spec { display: grid; grid-template-columns: 1fr 2fr .8fr; gap: 6px; margin: 16px 0 12px; padding: 8px 0; border-block: 1px solid var(--rule); }
+.spec b { display: block; font: 500 9px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.spec span { font: 500 12px var(--mono); }
+.inks { display: flex; align-items: center; gap: 4px; font: 500 10px var(--mono); color: var(--faint); }
+.inks i { width: 12px; height: 12px; flex: none; }
+.inks span { margin-left: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sport .actions { margin-top: auto; padding-top: 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.sport .open { font: 500 12px var(--mono); color: var(--accent); text-decoration: none; }
+
+footer { border-top: 1px solid var(--rule-strong); padding: 24px 0 40px; font: italic 400 14px/1.6 var(--serif); color: var(--faint); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .sweep.pending .plate, .sweep.play .plate { clip-path: none; animation: none; }
+  .sweep .line::before, .sweep .plate::after { display: none; }
+  .ring circle.fg, .track .you, .btn { transition: none; }
+}
+@media print {
+  body::before, body::after, .mast .chips, .skip, #export { display: none; }
+  .sweep .line::before, .sweep .plate::after { display: none; }
+  .sweep .plate { clip-path: none !important; animation: none !important; }
+}
+</style>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 
-<nav class="nav">
-  <span class="nav-logo">
-    <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="5" stroke="#00F5A0" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="#00F5A0"/></svg>
-    SportIQ
-  </span>
-  <span class="nav-title">BADDY SESSION #1</span>
-  <button class="nav-export">⟳ EXPORT</button>
-</nav>
+<header class="mast">
+  <div class="wrap mast-row">
+    <a class="brand" href="#top" id="top">Ayto<span>SportIQ</span></a>
+    <span class="kicker" id="session-tag">Session</span>
+    <button class="btn sm line" id="export" type="button">Export</button>
+  </div>
+  <nav class="wrap" aria-label="Choose a sport"><div class="chips" id="sport-chips"></div></nav>
+</header>
 
-<div class="container">
+<main id="main" class="wrap">
+  <section class="hero" aria-labelledby="hero-heading">
+    <p class="kicker" id="hero-kicker"></p>
+    <h1 class="sweep" id="hero-heading"></h1>
+    <p class="deck" id="hero-deck"></p>
+    <span class="status" id="hero-status"></span>
+  </section>
 
-  <!-- HERO CARDS -->
-  <div class="hero">
-    <div class="hero-card">
-      <div class="hero-value count-up" data-target="287">0</div>
-      <div class="hero-unit">km/h</div>
-      <div class="hero-label">MAX SPEED</div>
-    </div>
-    <div class="hero-card">
-      <canvas id="pieChart" width="140" height="140" style="max-width:140px;max-height:140px"></canvas>
-      <div class="pie-legend">
-        <span class="pie-item"><span class="pie-dot" style="background:#FF3D5A"></span>Smash 12</span>
-        <span class="pie-item"><span class="pie-dot" style="background:#00F5A0"></span>Clear 6</span>
-        <span class="pie-item"><span class="pie-dot" style="background:#FFB800"></span>Drop 8</span>
-        <span class="pie-item"><span class="pie-dot" style="background:#7C4DFF"></span>Net 4</span>
-        <span class="pie-item"><span class="pie-dot" style="background:#00B8D4"></span>Serve 4</span>
+  <div id="live">
+    <section class="grid3" aria-label="Headline numbers">
+      <div class="card lit accent metric">
+        <p class="kicker" id="m-label">Max speed</p>
+        <span class="num big" id="m-max">0</span>
+        <span class="unit" id="m-unit">km/h</span>
+        <p class="delta" id="m-delta"></p>
+        <div class="mini">
+          <div><p class="kicker">Average</p><span class="num" id="m-avg">0</span> <span class="unit">km/h</span></div>
+          <div><p class="kicker" id="m-strokes-label">Strokes</p><span class="num" id="m-strokes">0</span></div>
+        </div>
       </div>
-      <div class="hero-label">STROKES</div>
-    </div>
-    <div class="hero-card">
-      <div class="ring-container">
-        <svg class="ring-svg" width="100" height="100" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
-          <circle id="ringProgress" cx="50" cy="50" r="44" fill="none" stroke="#00F5A0" stroke-width="6"
-            stroke-dasharray="276.46" stroke-dashoffset="276.46" stroke-linecap="round"
-            style="transition: stroke-dashoffset 2s ease;"/>
-        </svg>
-        <span class="ring-value count-up" data-target="82">0</span>
+      <div class="card">
+        <p class="kicker" id="mix-label">Stroke mix</p>
+        <div class="mix" id="mix" role="img"></div>
+        <div class="legend" id="mix-legend"></div>
       </div>
-      <div class="hero-label">FORM SCORE</div>
+      <div class="card">
+        <p class="kicker">Form score</p>
+        <div class="ring">
+          <svg viewBox="0 0 120 120" role="img" aria-labelledby="form-title">
+            <title id="form-title">Form score</title>
+            <circle cx="60" cy="60" r="50" fill="none" stroke="var(--raised)" stroke-width="12"/>
+            <circle class="fg" id="ring" cx="60" cy="60" r="50" fill="none" stroke="var(--you)" stroke-width="12" stroke-dasharray="314.16" stroke-dashoffset="314.16" transform="rotate(-90 60 60)"/>
+          </svg>
+          <div><span class="num" style="font-size:2.6rem" id="m-form">0</span><span class="unit"> /100</span>
+            <p class="kicker" style="margin-top:6px" id="m-detect"></p></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="head"><div><p class="kicker" id="traj-kicker">01 / Every 2 s</p><h2 class="sweep ink" data-lines="Speed trajectory"></h2></div></div>
+    <div class="card"><div class="chart" id="trajectory" role="img"></div></div>
+
+    <div class="head"><div><p class="kicker">02 / In order</p><h2 class="sweep ink" id="timeline-heading" data-lines="Stroke timeline"></h2></div></div>
+    <div class="strokes" id="timeline"></div>
+
+    <div class="head"><div><p class="kicker" id="pro-kicker">03 / Versus</p><h2 class="sweep ink" data-lines="Side by side"></h2></div>
+      <div class="legend"><span><i style="background:var(--you)"></i>You</span><span><i style="background:var(--pro)"></i><span id="pro-name">Pro</span></span></div></div>
+    <div class="vs">
+      <ul class="ledger" id="ledger"></ul>
+      <svg class="radar" id="radar" viewBox="0 0 320 300" role="img" aria-label="Radar of you against the pro"></svg>
     </div>
+
+    <div class="head"><div><p class="kicker">04 / Session</p><h2 class="sweep ink" data-lines="The details"></h2></div></div>
+    <div class="details" id="details"></div>
   </div>
 
-  <!-- SHUTTLE TRAJECTORY -->
-  <div class="section">
-    <div class="section-title">SHUTTLE SPEED TRAJECTORY</div>
-    <div class="chart-wrap"><canvas id="trajectoryChart"></canvas></div>
-  </div>
-
-  <!-- STROKE TIMELINE -->
-  <div class="section">
-    <div class="section-title">STROKE TIMELINE</div>
-    <div class="timeline" id="timelineEl"></div>
-  </div>
-
-  <!-- VS PRO -->
-  <div class="section">
-    <div class="section-title">VS PRO PLAYER — VIKTOR AXELSEN</div>
-    <div class="comp-bars" id="compBars"></div>
-    <div class="radar-wrap"><canvas id="radarChart"></canvas></div>
-    <div class="comp-footer">
-      <div class="comp-legend"><div class="comp-leg-dot" style="background:var(--primary)"></div>You</div>
-      <div class="comp-legend"><div class="comp-leg-dot" style="background:var(--accent)"></div>Viktor Axelsen</div>
+  <section id="lab" hidden aria-labelledby="lab-heading">
+    <div class="card lit accent">
+      <p class="kicker" id="lab-kicker"></p>
+      <h2 class="sweep ink" id="lab-heading" data-lines="Not live yet." style="margin:8px 0 12px"></h2>
+      <p id="lab-note" style="max-width:40em"></p>
+      <p style="margin-top:18px"><button class="btn" type="button" data-pick="badminton">See the live Badminton dashboard →</button></p>
     </div>
-  </div>
+    <div class="head"><div><p class="kicker">Planned</p><h2 class="sweep ink" data-lines="What we'll measure"></h2></div></div>
+    <ul class="ledger" id="lab-metrics"></ul>
+    <div class="head"><div><p class="kicker" id="lab-strokes-kicker"></p><h2 class="sweep ink" id="lab-strokes-heading" data-lines="Strokes we'll read"></h2></div></div>
+    <div class="tags" id="lab-strokes"></div>
+  </section>
 
-  <!-- SESSION DETAILS -->
-  <div class="section">
-    <div class="section-title">SESSION DETAILS</div>
-    <div class="detail-grid">
-      <div class="detail-item"><div class="detail-val count-up" data-target="28">0</div><div class="detail-lbl">Minutes</div></div>
-      <div class="detail-item"><div class="detail-val count-up" data-target="198">0</div><div class="detail-lbl">Avg km/h</div></div>
-      <div class="detail-item"><div class="detail-val count-up" data-target="34">0</div><div class="detail-lbl">Strokes</div></div>
-      <div class="detail-item"><div class="detail-val count-up" data-target="94">0</div><div class="detail-lbl">Detection %</div></div>
-    </div>
-  </div>
+  <section id="sports" aria-labelledby="gallery-heading">
+    <div class="head" style="margin-top:64px"><div>
+      <p class="kicker" id="gallery-kicker">The collection</p>
+      <h2 class="sweep" id="gallery-heading" data-lines="Every|sport." style="font-size:clamp(2.4rem,10vw,4.6rem);--off:.11em;--mis:.045em"></h2>
+      <p class="deck">One camera, every game. Each sport is printed in its own three inks, and labelled with exactly what's ready.</p>
+    </div></div>
+    <div id="groups"></div>
+  </section>
+</main>
 
-</div>
+<footer><div class="wrap" id="colophon"></div></footer>
 
 <script>
-  Chart.defaults.color = 'rgba(255,255,255,0.6)';
-  Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
-  Chart.defaults.font.family = 'Inter';
-  Chart.defaults.font.size = 11;
-  Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(10,10,15,0.95)';
-  Chart.defaults.plugins.tooltip.titleColor = '#fff';
-  Chart.defaults.plugins.tooltip.bodyColor = 'rgba(255,255,255,0.7)';
-  Chart.defaults.plugins.tooltip.borderColor = 'rgba(0,245,160,0.3)';
-  Chart.defaults.plugins.tooltip.borderWidth = 1;
+"use strict";
+/* Session data hook: a host page can set window.AYTO_SESSION before this script runs.
+   The fallback is the sample badminton session the app also ships with. */
+const SESSION = window.AYTO_SESSION || {
+  id: 1, sport: "badminton", date: "2025-05-25", minutes: 28,
+  maxSpeed: 287, prevMaxSpeed: 264, avgSpeed: 198, strokes: 34, detection: 94, form: 82,
+  stepS: 2, trajectory: [120, 140, 180, 220, 200, 150, 100, 160, 240, 287, 250, 190, 140, 180, 230],
+  mix: [["smash", 12], ["clear", 6], ["drop", 8], ["net", 4], ["serve", 4]],
+  timeline: [["serve", 95, "0:05"], ["smash", 287, "4:12"], ["clear", 210, "5:30"], ["drop", 145, "7:45"],
+             ["net", 60, "9:10"], ["smash", 275, "12:22"], ["clear", 198, "15:40"], ["drop", 130, "18:15"]],
+  pro: { name: "Viktor Axelsen", rows: [["Smash power", 78, 95], ["Wrist snap", 65, 92], ["Footwork", 71, 88], ["Serve accuracy", 55, 85], ["Reaction", 80, 90]] },
+};
 
-  // --- ANIMATE COUNT-UP NUMBERS ---
-  function animateNumbers() {
-    document.querySelectorAll('.count-up').forEach(el => {
-      const target = parseInt(el.getAttribute('data-target'));
-      const duration = 1500;
-      const start = performance.now();
-      function update(ts) {
-        const progress = Math.min((ts - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        el.textContent = Math.round(eased * target);
-        if (progress < 1) requestAnimationFrame(update);
-      }
-      requestAnimationFrame(update);
-    });
-  }
+/* Mirror of packages/mobile-app/src/sports.ts (status is honest: only badminton is live). */
+const SECTIONS = [
+  ["racket", "Racket & paddle", "Net and wall games. One small object, moving very fast."],
+  ["bat", "Bat & ball", "Bat speed for batters, release speed for bowlers."],
+  ["field", "Field & court", "Team sports, measured one player at a time."],
+];
+const STATUS = { live: "Live analysis", beta: "In training", soon: "Coming soon" };
+const SPORTS = [
+  { id: "badminton", name: "Badminton", code: "Bd", section: "racket", status: "live", heading: ["Smash", "harder."], tagline: "The fastest racket sport on earth, measured from your phone.", inks: ["#FF48B0", "#3255A4", "#FF6EC0", "#6F9BEA", "#FFE800", "#FF48B0", "#B8347F"], names: ["Fluorescent Pink", "Medium Blue", "Yellow"], area: ["Court", "13.4 × 6.1 m"], tracked: "shuttle", noun: "stroke", strokes: ["Smash", "Drop", "Clear", "Net", "Serve", "Defence"], metrics: [["Smash speed", "km/h"], ["Strokes", ""], ["Form score", "/100"]], note: "Shuttle tracking, pose, stroke classification, speed and pro comparison all run today." },
+  { id: "tennis", name: "Tennis", code: "Tn", section: "racket", status: "beta", heading: ["Serve", "bigger."], tagline: "Serve speed, groundstroke rhythm and where you stand on court.", inks: ["#FFE916", "#00A95C", "#FFE916", "#3FC487", "#FF6C2F", "#00A95C", "#007A42"], names: ["Fluorescent Yellow", "Green", "Orange"], area: ["Court", "23.77 × 10.97 m"], tracked: "ball", noun: "stroke", strokes: ["Serve", "Forehand", "Backhand", "Volley", "Smash", "Lob", "Drop"], metrics: [["Serve speed", "km/h"], ["Forehand speed", "km/h"], ["Rally length", "shots"]], note: "Court calibration and ball physics are built and the stroke model is training. No analysis yet." },
+  { id: "table_tennis", name: "Table Tennis", code: "Tt", section: "racket", status: "beta", heading: ["Loop", "faster."], tagline: "Spin, speed and footwork at the table.", inks: ["#FF6C2F", "#0078BF", "#FF8A57", "#4AA6E8", "#FFE800", "#FF6C2F", "#AD4920"], names: ["Orange", "Blue", "Yellow"], area: ["Table", "2.74 × 1.525 m"], tracked: "ball", noun: "stroke", strokes: ["Serve", "Forehand", "Backhand", "Push", "Block", "Chop", "Smash", "Lob"], metrics: [["Ball speed", "km/h"], ["Rally length", "shots"], ["Tempo", "shots/min"]], note: "Table geometry and ball physics are built and the stroke model is training. No analysis yet." },
+  { id: "pickleball", name: "Pickleball", code: "Pk", section: "racket", status: "beta", heading: ["Own the", "kitchen."], tagline: "Dinks, drops and owning the kitchen line.", inks: ["#E3ED55", "#00838A", "#E3ED55", "#2FB8BF", "#FF48B0", "#00838A", "#00767C"], names: ["Light Lime", "Teal", "Fluorescent Pink"], area: ["Court", "13.41 × 6.10 m"], tracked: "ball", noun: "shot", strokes: ["Serve", "Forehand", "Backhand", "Dink", "Drop", "Volley", "Smash", "Lob"], metrics: [["Drive speed", "km/h"], ["Drops into the kitchen", "%"], ["Dink rally", "shots"]], note: "Court geometry and ball physics are built and the shot model is training. No analysis yet." },
+  { id: "squash", name: "Squash", code: "Sq", section: "racket", status: "beta", heading: ["Hit the", "nick."], tagline: "Four walls, one ball, nowhere to hide.", inks: ["#F65058", "#484D7A", "#FF7477", "#8E93C9", "#F2CDCF", "#F65058", "#BB3D43"], names: ["Scarlet", "Indigo", "Bisque"], area: ["Court", "9.75 × 6.40 m"], tracked: "ball", noun: "shot", strokes: ["Serve", "Forehand", "Backhand", "Volley", "Drop", "Boast", "Lob"], metrics: [["Ball speed", "km/h"], ["Back to the T", "s"], ["Rally length", "shots"]], note: "Court geometry and ball physics are built and the shot model is training. No analysis yet." },
+  { id: "padel", name: "Padel", code: "Pd", section: "racket", status: "soon", heading: ["Play the", "glass."], tagline: "Glass walls, bandejas and patient points.", inks: ["#62A8E5", "#235BA8", "#7DBBEE", "#5EC8E5", "#FFB511", "#62A8E5", "#235BA8"], names: ["Cornflower", "Lake", "Sunflower"], area: ["Court", "20 × 10 m"], tracked: "ball", noun: "shot", strokes: ["Serve", "Forehand", "Backhand", "Volley", "Bandeja", "Víbora", "Smash", "Lob"], metrics: [["Smash speed", "km/h"], ["Bandeja speed", "km/h"], ["Time at net", "%"]], note: "Court geometry is in. The shot taxonomy and models come next." },
+  { id: "cricket", name: "Cricket", code: "Cr", section: "bat", status: "soon", heading: ["Middle", "it."], tagline: "Bat speed for batters, release speed for bowlers.", inks: ["#FFB511", "#A75154", "#FFB511", "#D97A7D", "#82D8D5", "#A75154", "#A44F52"], names: ["Sunflower", "Brick", "Mint"], area: ["Pitch", "20.12 × 3.05 m"], tracked: "ball", noun: "shot", strokes: ["Drive", "Pull", "Cut", "Sweep", "Defence", "Pace ball", "Spin ball"], metrics: [["Release speed", "km/h"], ["Bat speed", "km/h"], ["Length", "m"]], note: "Next on the roadmap after the racket sports." },
+  { id: "football", name: "Football", code: "Fb", section: "field", status: "soon", heading: ["Strike", "clean."], tagline: "Shot power, first touch and sprint load.", inks: ["#44D62C", "#407060", "#5FE04A", "#6FB79A", "#FFE916", "#44D62C", "#407060"], names: ["Fluorescent Green", "Hunter Green", "Fluorescent Yellow"], area: ["Pitch", "105 × 68 m"], tracked: "ball", noun: "touch", strokes: ["Shot", "Pass", "Cross", "Header", "Dribble", "First touch"], metrics: [["Shot speed", "km/h"], ["Top sprint", "km/h"], ["Touches", ""]], note: "On the roadmap. Single-player drills first, then match footage." },
+  { id: "basketball", name: "Basketball", code: "Bk", section: "field", status: "soon", heading: ["Find your", "arc."], tagline: "Shot arc, release time and range.", inks: ["#FF6F4C", "#3D5588", "#FF8A6C", "#7D95CF", "#BB8B41", "#FF6F4C", "#AD4B34"], names: ["Pumpkin", "Federal Blue", "Flat Gold"], area: ["Court", "28 × 15 m"], tracked: "ball", noun: "shot", strokes: ["Jump shot", "Three", "Free throw", "Layup", "Floater"], metrics: [["Release time", "s"], ["Shot arc", "°"], ["Make rate", "%"]], note: "On the roadmap, after cricket and football." },
+];
+const BY_ID = Object.fromEntries(SPORTS.map((s) => [s.id, s]));
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const pad2 = (n) => String(n).padStart(2, "0");
 
-  // --- ANIMATE RING ---
-  function animateRing() {
-    const ring = document.getElementById('ringProgress');
-    if (!ring) return;
-    const circumference = 2 * Math.PI * 44; // 276.46
-    const targetPct = 82;
-    setTimeout(() => {
-      ring.style.strokeDashoffset = circumference - (targetPct / 100) * circumference;
-    }, 300);
-  }
+/* Inline CSS variables for one sport's three inks. */
+function inkVars(s) {
+  const [plate, shadow, ink, ink2, ink3, ghost, inkPaper] = s.inks;
+  return `--plate:${plate};--shadow:${shadow};--ink:${ink};--ink2:${ink2};--ink3:${ink3};--ghost:${ghost};--ink-paper:${inkPaper};--on-plate:#121011;--glow:${plate}2e;--c:${plate}`;
+}
+const strokeColor = (i) => ["var(--you)", "var(--ink2)", "var(--ink3)"][i % 3];
 
-  // --- PIE CHART ---
-  new Chart(document.getElementById('pieChart'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Smash', 'Clear', 'Drop', 'Net', 'Serve'],
-      datasets: [{
-        data: [12, 6, 8, 4, 4],
-        backgroundColor: ['#FF3D5A', '#00F5A0', '#FFB800', '#7C4DFF', '#00B8D4'],
-        borderColor: 'rgba(10,10,15,1)',
-        borderWidth: 3,
-        hoverBorderColor: 'rgba(0,245,160,0.3)',
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      cutout: '68%',
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ` ${ctx.label}: ${ctx.raw} strokes`
-          }
-        }
-      }
-    }
-  });
+/* ── Riso Sweep headings ───────────────────────────────────────────── */
+const observer = "IntersectionObserver" in window && !REDUCED
+  ? new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (e.isIntersecting) { e.target.classList.replace("pending", "play"); observer.unobserve(e.target); }
+    }), { rootMargin: "0px 0px -5% 0px" })
+  : null;
 
-  // --- TRAJECTORY LINE CHART ---
-  const trajLabels = Array.from({length: 15}, (_,i) => `${i*2}s`);
-  const trajData = [120,140,180,220,200,150,100,160,240,287,250,190,140,180,230];
+function sweep(el, lines) {
+  if (lines) el.dataset.lines = lines.join("|");
+  const parts = (el.dataset.lines || el.textContent).split("|");
+  el.innerHTML = parts.map((t, i) => `<span class="line" style="--d:${i * 110}ms"><span class="plate">${esc(t)}</span></span>`).join(" ");
+  el.classList.remove("play", "pending");
+  if (observer) { void el.offsetWidth; el.classList.add("pending"); observer.observe(el); }
+}
 
-  new Chart(document.getElementById('trajectoryChart'), {
-    type: 'line',
-    data: {
-      labels: trajLabels,
-      datasets: [{
-        label: 'Speed (km/h)',
-        data: trajData,
-        borderColor: '#00F5A0',
-        backgroundColor: 'rgba(0,245,160,0.08)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: 3,
-        pointBackgroundColor: ctx => {
-          const v = ctx.parsed?.y ?? 0;
-          return v > 250 ? '#FF3D5A' : '#00F5A0';
-        },
-        pointBorderColor: '#0A0A0F',
-        pointBorderWidth: 2,
-        pointHoverRadius: 6,
-        borderWidth: 2.5,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ` ${ctx.parsed.y} km/h`
-          }
-        }
-      },
-      scales: {
-        x: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 } }
-        },
-        y: {
-          grid: { color: 'rgba(255,255,255,0.04)' },
-          ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10 }, callback: v => v + ' km/h' },
-          min: 0,
-          max: 320,
-        }
-      },
-      interaction: { intersect: false, mode: 'index' }
-    }
-  });
+/* ── Live session panels ───────────────────────────────────────────── */
+function countUp(el, target, decimals = 0) {
+  if (REDUCED) { el.textContent = target.toFixed(decimals); return; }
+  const t0 = performance.now(), dur = 1200;
+  const step = (now) => {
+    const p = Math.min((now - t0) / dur, 1), eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = (target * eased).toFixed(decimals);
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
-  // --- STROKE TIMELINE (dynamic) ---
-  const strokes = [
-    { type:'Smash', speed:287, color:'#FF3D5A', time:'4:12' },
-    { type:'Clear', speed:210, color:'#00F5A0', time:'5:30' },
-    { type:'Drop', speed:145, color:'#FFB800', time:'7:45' },
-    { type:'Net', speed:60, color:'#7C4DFF', time:'9:10' },
-    { type:'Smash', speed:275, color:'#FF3D5A', time:'12:22' },
-    { type:'Serve', speed:95, color:'#00B8D4', time:'0:05' },
-    { type:'Clear', speed:198, color:'#00F5A0', time:'15:40' },
-    { type:'Drop', speed:130, color:'#FFB800', time:'18:15' },
-  ];
+function renderTrajectory() {
+  const box = $("trajectory"), data = SESSION.trajectory, w = Math.max(280, box.clientWidth), h = w < 500 ? 200 : 260;
+  const L = 36, R = 8, T = 10, B = 24, max = Math.ceil(Math.max(...data) / 100) * 100 + 20;
+  const x = (i) => L + (i * (w - L - R)) / (data.length - 1), y = (v) => T + (1 - v / max) * (h - T - B);
+  const peak = Math.max(...data);
+  const pts = data.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const grid = [0, 100, 200, 300].filter((v) => v <= max).map((v) =>
+    `<line x1="${L}" x2="${w - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)"/><text x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join("");
+  const labels = data.map((_, i) => (i % 3 === 0 ? `<text x="${x(i)}" y="${h - 6}" text-anchor="middle">${i * SESSION.stepS}s</text>` : "")).join("");
+  const dots = data.map((v, i) => `<rect x="${x(i) - 3.5}" y="${y(v) - 3.5}" width="7" height="7" fill="${v === peak ? "var(--ink3)" : "var(--you)"}"${v === peak ? ' stroke="var(--text)"' : ""}/>`).join("");
+  box.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"><title>Speed every ${SESSION.stepS} seconds, peak ${peak} km/h</title>${grid}
+    <polygon points="${L},${y(0)} ${pts} ${w - R},${y(0)}" fill="var(--plate)" fill-opacity=".16"/>
+    <polyline points="${pts}" fill="none" stroke="var(--you)" stroke-width="2.5" stroke-linejoin="round"/>${dots}${labels}</svg>`;
+  box.setAttribute("aria-label", `Speed every ${SESSION.stepS} seconds; peak ${peak} km/h`);
+}
 
-  const tlEl = document.getElementById('timelineEl');
-  strokes.forEach(s => {
-    const card = document.createElement('div');
-    card.className = 'timeline-card';
-    card.innerHTML = `
-      <div class="tl-badge" style="background:${s.color}20; color:${s.color}">${s.type}</div>
-      <div class="tl-speed">${s.speed}</div>
-      <div class="tl-unit">km/h</div>
-    `;
-    tlEl.appendChild(card);
-  });
+function renderRadar(rows) {
+  const cx = 160, cy = 150, r = 105, n = rows.length;
+  const pt = (i, v) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / n; return [cx + Math.cos(a) * r * v, cy + Math.sin(a) * r * v]; };
+  const poly = (k) => rows.map((row, i) => pt(i, row[k] / 100).map((c) => c.toFixed(1)).join(",")).join(" ");
+  const rings = [0.25, 0.5, 0.75, 1].map((v) => `<polygon points="${rows.map((_, i) => pt(i, v).join(",")).join(" ")}" fill="none" stroke="var(--rule)"/>`).join("");
+  const labels = rows.map((row, i) => { const [lx, ly] = pt(i, 1.2); return `<text x="${lx}" y="${ly + 3}" text-anchor="middle">${esc(row[0])}</text>`; }).join("");
+  $("radar").innerHTML = `${rings}<polygon points="${poly(2)}" fill="var(--pro)" fill-opacity=".12" stroke="var(--pro)" stroke-dasharray="4 4"/>
+    <polygon points="${poly(1)}" fill="var(--plate)" fill-opacity=".22" stroke="var(--you)" stroke-width="2"/>${labels}`;
+}
 
-  // --- PRO COMPARISON BARS ---
-  const compData = [
-    { label:'Smash Power', you:78, pro:95 },
-    { label:'Wrist Snap', you:65, pro:92 },
-    { label:'Footwork', you:71, pro:88 },
-    { label:'Serve Accuracy', you:55, pro:85 },
-    { label:'Reaction Speed', you:80, pro:90 },
-  ];
-  const compBarsEl = document.getElementById('compBars');
-  compData.forEach(c => {
-    const row = document.createElement('div');
-    row.className = 'comp-row';
-    row.innerHTML = `
-      <span class="comp-label">${c.label}</span>
-      <div class="comp-track">
-        <div class="comp-bar-you" style="width:0%"></div>
-        <div class="comp-bar-pro" style="width:${c.pro}%"></div>
-      </div>
-    `;
-    compBarsEl.appendChild(row);
-    setTimeout(() => {
-      row.querySelector('.comp-bar-you').style.width = c.you + '%';
-    }, 200);
-  });
+function renderLive(sport) {
+  const S = SESSION, change = ((S.maxSpeed - S.prevMaxSpeed) / S.prevMaxSpeed) * 100;
+  $("session-tag").textContent = `Session #${S.id} · ${sport.name}`;
+  $("m-label").textContent = sport.metrics[0][0];
+  countUp($("m-max"), S.maxSpeed); countUp($("m-avg"), S.avgSpeed); countUp($("m-strokes"), S.strokes); countUp($("m-form"), S.form);
+  $("m-delta").textContent = `${change >= 0 ? "▲" : "▼"} ${Math.abs(change).toFixed(1)}% vs previous session`;
+  $("m-strokes-label").textContent = `${sport.noun}s`;
+  $("m-detect").textContent = `${S.detection}% of frames tracked`;
+  $("ring").style.strokeDashoffset = 314.16;
+  requestAnimationFrame(() => requestAnimationFrame(() => { $("ring").style.strokeDashoffset = 314.16 * (1 - S.form / 100); }));
 
-  // --- RADAR CHART ---
-  new Chart(document.getElementById('radarChart'), {
-    type: 'radar',
-    data: {
-      labels: ['Smash Power', 'Wrist Snap', 'Footwork', 'Serve Acc', 'Reaction'],
-      datasets: [
-        {
-          label: 'You',
-          data: [78, 65, 71, 55, 80],
-          borderColor: '#00F5A0',
-          backgroundColor: 'rgba(0,245,160,0.08)',
-          borderWidth: 2,
-          pointBackgroundColor: '#00F5A0',
-          pointRadius: 4,
-        },
-        {
-          label: 'V. Axelsen',
-          data: [95, 92, 88, 85, 90],
-          borderColor: '#FF3D5A',
-          backgroundColor: 'rgba(255,61,90,0.05)',
-          borderWidth: 1.5,
-          borderDash: [4, 4],
-          pointBackgroundColor: '#FF3D5A',
-          pointRadius: 3,
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        r: {
-          beginAtZero: false,
-          min: 20,
-          max: 100,
-          grid: { color: 'rgba(255,255,255,0.06)' },
-          angleLines: { color: 'rgba(255,255,255,0.06)' },
-          pointLabels: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } },
-          ticks: { display: false },
-        }
-      }
-    }
-  });
+  const total = S.mix.reduce((n, m) => n + m[1], 0), label = (id) => id.charAt(0).toUpperCase() + id.slice(1);
+  $("mix-label").textContent = `${label(sport.noun)} mix · ${total}`;
+  $("mix").innerHTML = S.mix.map((m, i) => `<span style="flex:${m[1]};background:${i < 3 ? strokeColor(i) : `repeating-linear-gradient(45deg, ${strokeColor(i)} 0 3px, transparent 3px 6px)`}"></span>`).join("");
+  $("mix").setAttribute("aria-label", S.mix.map((m) => `${label(m[0])} ${m[1]}`).join(", "));
+  $("mix-legend").innerHTML = S.mix.map((m, i) => `<span><i style="background:${strokeColor(i)}"></i>${label(m[0])} ${m[1]}</span>`).join("");
 
-  // --- INIT ANIMATIONS ---
-  window.addEventListener('load', () => {
-    animateNumbers();
-    animateRing();
-  });
+  $("traj-kicker").textContent = `01 / Every ${S.stepS} s`;
+  renderTrajectory();
+
+  sweep($("timeline-heading"), [`${label(sport.noun)} timeline`]);
+  const order = Object.fromEntries(S.mix.map((m, i) => [m[0], i]));
+  $("timeline").innerHTML = [...S.timeline].sort((a, b) => a[2].localeCompare(b[2], undefined, { numeric: true }))
+    .map(([type, kmh, time]) => `<div class="stroke"><span class="tag" style="color:${strokeColor(order[type] ?? 0)}">${esc(label(type))}</span><span class="num">${kmh}</span><span class="unit">km/h · ${esc(time)}</span></div>`).join("");
+
+  $("pro-name").textContent = S.pro.name;
+  $("pro-kicker").textContent = `03 / Versus ${S.pro.name}`;
+  $("ledger").innerHTML = S.pro.rows.map(([name, you, pro]) => `<li><div class="row"><span>${esc(name)}</span><span class="vals"><span style="color:var(--accent)">${you}</span> / ${pro}</span></div>
+    <div class="track"><span class="you" style="width:0%" data-w="${you}"></span><span class="pro" style="left:${pro}%"></span></div></li>`).join("");
+  requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll(".track .you").forEach((b) => { b.style.width = b.dataset.w + "%"; })));
+  renderRadar(S.pro.rows);
+
+  $("details").innerHTML = [["Minutes", S.minutes], ["Avg km/h", S.avgSpeed], [`${label(sport.noun)}s`, S.strokes], ["Detection %", S.detection]]
+    .map(([k, v]) => `<div><p class="kicker">${esc(k)}</p><span class="num">${v}</span></div>`).join("");
+}
+
+function renderLab(sport) {
+  $("session-tag").textContent = `${sport.name} · ${STATUS[sport.status]}`;
+  $("lab-kicker").textContent = `Status · ${STATUS[sport.status]}`;
+  sweep($("lab-heading"), [`${sport.name} isn't live yet.`]);
+  $("lab-note").textContent = sport.note;
+  $("lab-metrics").innerHTML = sport.metrics.map(([name, unit]) => `<li><div class="row"><span>${esc(name)}</span><span class="vals" style="color:var(--faint)">— ${esc(unit)} · planned</span></div></li>`).join("");
+  $("lab-strokes-kicker").textContent = `${pad2(sport.strokes.length)} classes`;
+  sweep($("lab-strokes-heading"), [`${sport.noun.charAt(0).toUpperCase() + sport.noun.slice(1)}s we'll read`]);
+  $("lab-strokes").innerHTML = sport.strokes.map((s, i) => `<span class="tag-o" style="--c:${["var(--accent)", "var(--ink2)", "var(--ink3)"][i % 3]}">${esc(s)}</span>`).join("");
+}
+
+/* ── Sport selection ───────────────────────────────────────────────── */
+function applySport(id, push) {
+  const sport = BY_ID[id] || BY_ID.badminton;
+  const root = document.documentElement;
+  inkVars(sport).split(";").forEach((decl) => { const [k, v] = decl.split(":"); root.style.setProperty(k, v); });
+  document.querySelectorAll("#sport-chips .chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.pick === sport.id)));
+  $("hero-kicker").textContent = `${sport.name} · ${sport.code} · ${sport.area[0]} ${sport.area[1]}`;
+  sweep($("hero-heading"), sport.heading);
+  $("hero-deck").textContent = sport.tagline;
+  const st = $("hero-status");
+  st.className = `status ${sport.status}`;
+  st.textContent = (sport.status === "live" ? "● " : "") + STATUS[sport.status];
+  const live = sport.status === "live" && sport.id === SESSION.sport;
+  $("live").hidden = !live; $("lab").hidden = live;
+  if (live) renderLive(sport); else renderLab(sport);
+  $("colophon").textContent = `Ayto SportIQ · Set in Fraunces and JetBrains Mono · This edition printed in ${sport.names.join(", ")}.`;
+  document.querySelectorAll(".sport [data-primary]").forEach((b) => { b.hidden = b.dataset.primary === sport.id; });
+  if (push) history.replaceState(null, "", `?sport=${sport.id}`);
+  current = sport;
+}
+let current = null;
+
+function renderChips() {
+  $("sport-chips").innerHTML = SPORTS.map((s) => `<button class="chip" type="button" data-pick="${s.id}" aria-pressed="false" style="--c:${s.inks[0]}"><b>${s.code}</b>${esc(s.name)}${s.status === "live" ? '<i aria-label="live"></i>' : ""}</button>`).join("");
+}
+
+function renderGallery() {
+  const live = SPORTS.filter((s) => s.status === "live").length;
+  $("gallery-kicker").textContent = `The collection · ${pad2(SPORTS.length)} sports · ${live} live`;
+  $("groups").innerHTML = SECTIONS.map(([id, title, deck], gi) => {
+    const list = SPORTS.filter((s) => s.section === id);
+    if (!list.length) return "";
+    return `<div class="head" style="${inkVars(list[0])}"><div><p class="kicker">${pad2(gi + 1)} / ${list.length} ${list.length === 1 ? "sport" : "sports"}</p><h2 class="sweep ink" data-lines="${esc(title)}"></h2></div></div>
+      <p class="group-deck">${esc(deck)}</p>
+      <div class="gallery">${list.map((s) => `<article class="card lit sport" style="${inkVars(s)}" aria-labelledby="h-${s.id}">
+        <div class="top"><p class="kicker">No. ${pad2(SPORTS.indexOf(s) + 1)} — ${s.code}</p><span class="status ${s.status}">${s.status === "live" ? "● " : ""}${STATUS[s.status]}</span></div>
+        <h3 class="sweep" id="h-${s.id}" data-lines="${esc(s.name)}"></h3>
+        <p class="deck" style="font-size:1.05rem">${esc(s.tagline)}</p>
+        <div class="spec"><div><b>Tracks</b><span>${s.tracked}</span></div><div><b>${s.area[0]}</b><span>${s.area[1]}</span></div><div><b>${s.noun}s</b><span>${s.strokes.length}</span></div></div>
+        <div class="inks"><i style="background:${s.inks[0]}"></i><i style="background:${s.inks[1]}"></i><i style="background:${s.inks[4]}"></i><span>${s.names.join(" · ")}</span></div>
+        <div class="actions"><button class="btn sm" type="button" data-pick="${s.id}" data-primary="${s.id}">Open dashboard</button><a class="open" href="?sport=${s.id}" data-pick="${s.id}">${s.status === "live" ? "Live now →" : "What's ready →"}</a></div>
+      </article>`).join("")}</div>`;
+  }).join("");
+  document.querySelectorAll("#groups .sweep").forEach((el) => sweep(el));
+}
+
+/* ── Boot ──────────────────────────────────────────────────────────── */
+renderChips();
+renderGallery();
+document.querySelectorAll("h2.sweep[data-lines]").forEach((el) => { if (!el.closest("#groups")) sweep(el); });
+sweep($("gallery-heading"));
+const fromUrl = new URLSearchParams(location.search).get("sport");
+applySport(BY_ID[fromUrl] ? fromUrl : SESSION.sport, false);
+
+document.addEventListener("click", (e) => {
+  const pick = e.target.closest("[data-pick]");
+  if (!pick) return;
+  e.preventDefault();
+  applySport(pick.dataset.pick, true);
+  if (!pick.closest(".mast")) window.scrollTo({ top: 0, behavior: REDUCED ? "auto" : "smooth" });
+});
+
+let resizeTimer = 0;
+addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("live").hidden) renderTrajectory(); }, 150); });
+
+$("export").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify({ sport: current.id, session: current.id === SESSION.sport ? SESSION : null }, null, 2)], { type: "application/json" });
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `ayto-${current.id}-session.json` });
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
 </script>
 </body>
 </html>

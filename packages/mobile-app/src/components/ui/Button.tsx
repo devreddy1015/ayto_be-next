@@ -1,174 +1,119 @@
-import React from "react"
-import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  ViewStyle,
-  TextStyle,
-} from "react-native"
+import { memo, useCallback } from "react"
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native"
 import * as Haptics from "expo-haptics"
-import { Colors, Spacing, Radius } from "../../theme"
-import type { ImpactFeedbackStyle } from "expo-haptics"
+import { Plate } from "../riso/Plate"
+import type { RisoPalette } from "../../sports"
+import { Fonts, Offset, Paper } from "../../theme"
+
+type Variant = "solid" | "outline" | "ghost" | "danger"
+type Size = "sm" | "md" | "lg"
 
 interface ButtonProps {
-  title: string
+  label: string
   onPress: () => void
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger"
-  size?: "sm" | "md" | "lg"
+  palette: RisoPalette
+  variant?: Variant
+  size?: Size
   disabled?: boolean
   loading?: boolean
-  style?: ViewStyle
-  textStyle?: TextStyle
-  fullWidth?: boolean
-  icon?: string
+  full?: boolean
+  /** A trailing glyph such as "→". */
+  trailing?: string
+  accessibilityHint?: string
+  style?: StyleProp<ViewStyle>
 }
 
-export default function Button({
-  title,
+const HEIGHT: Record<Size, number> = { sm: 36, md: 48, lg: 56 }
+const FONT: Record<Size, number> = { sm: 11, md: 13, lg: 14 }
+const DANGER_SHADOW = "#7A2622"
+
+export function tapHaptic() {
+  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {})
+}
+
+/** Print button: a solid ink face on a hard offset plate that presses down onto it. */
+const Button = memo(function Button({
+  label,
   onPress,
-  variant = "primary",
+  palette,
+  variant = "solid",
   size = "md",
   disabled = false,
   loading = false,
+  full = false,
+  trailing,
+  accessibilityHint,
   style,
-  textStyle,
-  fullWidth = false,
-  icon,
 }: ButtonProps) {
-  const handlePress = () => {
-    if (!disabled && !loading) {
-      Haptics.impactAsync("light" as ImpactFeedbackStyle)
-      onPress()
-    }
-  }
+  const inactive = disabled || loading
+  const handlePress = useCallback(() => {
+    tapHaptic()
+    onPress()
+  }, [onPress])
 
-  const buttonStyles = [
-    styles.base,
-    styles[variant],
-    styles[`size_${size}`],
-    fullWidth && styles.fullWidth,
-    disabled && styles.disabled,
-    style,
-  ]
-
-  const labelStyles = [
-    styles.label,
-    styles[`label_${variant}`],
-    styles[`label_${size}`],
-    disabled && styles.labelDisabled,
-    textStyle,
-  ]
+  const plated = variant === "solid" || variant === "danger"
+  const face = variant === "danger" ? Paper.danger : variant === "solid" ? palette.plate : "transparent"
+  const textColor = plated ? palette.onPlate : variant === "outline" ? palette.ink : Paper.text
 
   return (
-    <TouchableOpacity
-      style={buttonStyles}
+    <Pressable
       onPress={handlePress}
-      activeOpacity={0.8}
-      disabled={disabled || loading}
+      disabled={inactive}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: inactive, busy: loading }}
+      hitSlop={size === "sm" ? 6 : 0}
+      style={[full && styles.full, inactive && styles.inactive, style]}
     >
-      {loading ? (
-        <ActivityIndicator
-          color={variant === "primary" ? Colors.bg_primary : Colors.accent_green}
-          size="small"
-        />
-      ) : (
-        <>
-          {icon && <Text style={styles.icon}>{icon}</Text>}
-          <Text style={labelStyles}>{title}</Text>
-        </>
-      )}
-    </TouchableOpacity>
+      {({ pressed }) => {
+        const content = (
+          <View style={[styles.face, { minHeight: HEIGHT[size] }, size === "sm" && styles.faceSm]}>
+            {loading ? (
+              <ActivityIndicator color={textColor} size="small" />
+            ) : (
+              <Text style={[styles.label, { color: textColor, fontSize: FONT[size] }, variant === "ghost" && styles.ghost]}>
+                {label}
+                {trailing ? `  ${trailing}` : ""}
+              </Text>
+            )}
+          </View>
+        )
+        if (plated) {
+          return (
+            <Plate
+              color={face}
+              shadow={variant === "danger" ? DANGER_SHADOW : palette.shadow}
+              offset={size === "sm" ? Offset.sm : Offset.md}
+              pressed={pressed}
+            >
+              {content}
+            </Plate>
+          )
+        }
+        return (
+          <View
+            style={[
+              variant === "outline" && { borderWidth: 1.5, borderColor: palette.ink },
+              pressed && styles.pressedFlat,
+            ]}
+          >
+            {content}
+          </View>
+        )
+      }}
+    </Pressable>
   )
-}
+})
+
+export default Button
 
 const styles = StyleSheet.create({
-  base: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: Radius.lg,
-    gap: 8,
-  },
-  primary: {
-    backgroundColor: Colors.accent_green,
-  },
-  secondary: {
-    backgroundColor: Colors.bg_elevated,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  outline: {
-    backgroundColor: "transparent",
-    borderWidth: 1.5,
-    borderColor: Colors.accent_green,
-  },
-  ghost: {
-    backgroundColor: "transparent",
-  },
-  danger: {
-    backgroundColor: "rgba(255,107,107,0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(255,107,107,0.3)",
-  },
-  size_sm: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    minHeight: 36,
-  },
-  size_md: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    minHeight: 48,
-  },
-  size_lg: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
-    minHeight: 56,
-  },
-  fullWidth: {
-    width: "100%",
-  },
-  disabled: {
-    opacity: 0.4,
-  },
-  label: {
-    fontWeight: "700",
-    letterSpacing: 1,
-  },
-  label_primary: {
-    color: Colors.bg_primary,
-    fontSize: 15,
-  },
-  label_secondary: {
-    color: Colors.text_primary,
-    fontSize: 15,
-  },
-  label_outline: {
-    color: Colors.accent_green,
-    fontSize: 15,
-  },
-  label_ghost: {
-    color: Colors.text_secondary,
-    fontSize: 14,
-  },
-  label_danger: {
-    color: Colors.accent_coral,
-    fontSize: 15,
-  },
-  label_sm: {
-    fontSize: 12,
-  },
-  label_md: {
-    fontSize: 14,
-  },
-  label_lg: {
-    fontSize: 16,
-  },
-  labelDisabled: {
-    opacity: 0.5,
-  },
-  icon: {
-    fontSize: 18,
-  },
+  full: { alignSelf: "stretch" },
+  inactive: { opacity: 0.45 },
+  face: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
+  faceSm: { paddingHorizontal: 12 },
+  label: { fontFamily: Fonts.monoBold, letterSpacing: 1.2, textTransform: "uppercase" },
+  ghost: { textDecorationLine: "underline" },
+  pressedFlat: { backgroundColor: "rgba(244,236,224,0.08)" },
 })

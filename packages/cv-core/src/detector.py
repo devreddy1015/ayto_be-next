@@ -1,8 +1,8 @@
-"""YOLOv8n shuttle detection module.
+"""YOLO fallback detector for the shuttle/ball.
 
-Provides ShuttleDetector class for detecting shuttlecocks in video frames
-using a YOLOv8n model. Returns bounding boxes, confidence scores, and
-center coordinates for each detection.
+Only used when no trained TrackNet is available. Single-frame box detectors
+miss most fast, tiny shuttles (YOLOv7 F1 68.0 vs TrackNetV3 97.5 on the same
+benchmark), so treat this path as a cold-start convenience.
 """
 from __future__ import annotations
 
@@ -30,7 +30,8 @@ class ShuttleDetector:
         DEFAULT_IMG_SIZE: Default input image size for inference.
     """
 
-    CLASSES = ["shuttle", "shuttlecock"]
+    # A fine-tuned model's own classes, plus COCO's "sports ball" for stock weights.
+    CLASSES = ["shuttle", "shuttlecock", "ball", "sports ball"]
     DEFAULT_CONF = 0.35
     DEFAULT_IMG_SIZE = 640
 
@@ -100,24 +101,9 @@ class ShuttleDetector:
         return detections
 
     def detect_shuttle(self, frame: np.ndarray) -> dict[str, Any] | None:
-        """Detect the most likely shuttlecock in a frame.
+        """Return the most confident shuttle/ball detection, or None.
 
-        Filters detections for shuttle/shuttlecock classes. If none found,
-        falls back to the smallest detected object (likely shuttle-sized).
-        Handles no-detection gracefully by returning None.
-
-        Args:
-            frame: BGR image as numpy array (H, W, 3).
-
-        Returns:
-            Best shuttle detection dict, or None if nothing detected.
+        Other classes (people, rackets) are never used as a stand-in.
         """
-        detections = self.detect(frame)
-        shuttle_dets = [d for d in detections if d["class"].lower() in self.CLASSES]
-        if not shuttle_dets:
-            small_dets = sorted(
-                detections,
-                key=lambda d: (d["bbox"][2] - d["bbox"][0]) * (d["bbox"][3] - d["bbox"][1]),
-            )
-            return small_dets[0] if small_dets else None
-        return max(shuttle_dets, key=lambda d: d["confidence"])
+        candidates = [d for d in self.detect(frame) if d["class"].lower() in self.CLASSES]
+        return max(candidates, key=lambda d: d["confidence"]) if candidates else None
