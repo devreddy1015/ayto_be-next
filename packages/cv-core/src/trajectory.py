@@ -51,7 +51,11 @@ def _segments(n: int, breaks: list[int] | None) -> list[tuple[int, int]]:
 
 
 def _local_fit(t: np.ndarray, p: np.ndarray, at: float) -> np.ndarray:
-    deg = 2 if len(t) >= 4 else 1
+    # Cubic where there are enough neighbours. Right after a hit the object
+    # decelerates at tens of g, which a quadratic cannot follow: its
+    # systematic error there is several pixels and swamps detector noise,
+    # so real launch detections get rejected as outliers.
+    deg = 3 if len(t) >= 7 else (2 if len(t) >= 4 else 1)
     tc = t - at
     coeffs = np.polyfit(tc, p, deg)  # (deg+1, 2): one column per coordinate
     return coeffs[-1]
@@ -96,15 +100,32 @@ def rectify_trajectory(
             preds = np.full((len(idx), 2), np.nan)
             for j, f in enumerate(idx):
                 near = idx[(np.abs(idx - f) <= window) & (idx != f)]
-                if len(near) >= 3:
+                # Only test frames the fit interpolates. At a segment edge (a
+                # hit) every neighbour lies on one side, so the quadratic
+                # extrapolates a sharply decelerating flight and the real
+                # detection looks like an outlier.
+                if len(near) >= 3 and near.min() < f < near.max():
                     preds[j] = _local_fit(near.astype(float), pos[near], float(f))
             resid = np.linalg.norm(pos[idx] - preds, axis=1)
             finite = np.isfinite(resid)
             if finite.sum() < 3:
                 break
-            mad = np.median(np.abs(resid[finite] - np.median(resid[finite])))
-            thresh = max(min_threshold_px, 3.0 * 1.4826 * mad + np.median(resid[finite]))
-            bad = idx[finite & (resid > thresh)]
+            # Compare each residual with its neighbours', not with the whole
+            # segment's. Just after a hit the flight decelerates far too
+            # sharply for a quadratic (a shuttle leaves the racket at ~80 g),
+            # so every residual there is large and a single segment-wide
+            # threshold would reject the real detections that carry the
+            # launch speed. Clutter still stands out from its own
+            # surroundings, which is what this tests for.
+            flagged = np.zeros(len(idx), dtype=bool)
+            for j in np.flatnonzero(finite):
+                local = resid[finite & (np.abs(idx - idx[j]) <= window)]
+                if len(local) < 5:
+                    continue
+                med = float(np.median(local))
+                mad = float(np.median(np.abs(local - med)))
+                flagged[j] = resid[j] > max(min_threshold_px, med + 3.0 * 1.4826 * mad)
+            bad = idx[flagged]
             if len(bad) == 0:
                 break
             valid[bad - a] = False
@@ -120,8 +141,10 @@ def rectify_trajectory(
             after = idx[idx > f]
             if len(before) == 0 or len(after) == 0:
                 if status[f] == REPLACED:
-                    status[f] = MISSING
-                    pos[f] = np.nan
+                    # Nothing to interpolate from at the segment edge. Keep the
+                    # raw detection (pos[f] is untouched) rather than dropping
+                    # the frames just after a hit, which carry the launch speed.
+                    status[f] = OBSERVED
                 continue
             gap = after[0] - before[-1] - 1
             if status[f] == MISSING and gap > max_gap:

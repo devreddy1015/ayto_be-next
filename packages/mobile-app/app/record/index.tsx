@@ -1,320 +1,270 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react"
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { Platform, StyleSheet, Text, View } from "react-native"
+import { router } from "expo-router"
 import { CameraView, useCameraPermissions } from "expo-camera"
 import * as Haptics from "expo-haptics"
-import { router } from "expo-router"
-import { StatusBar } from "expo-status-bar"
-import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Plate } from "../../src/components/riso/Plate"
-import { Screen } from "../../src/components/riso/RisoSurface"
-import { SweepHeading } from "../../src/components/riso/SweepHeading"
-import { BackButton } from "../../src/components/ui/BackButton"
-import Button from "../../src/components/ui/Button"
-import { Tag } from "../../src/components/ui/Tag"
-import { useSpeed, useSport } from "../../src/hooks/useSport"
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated"
+import { Badge, Note } from "../../src/components/ui/Bits"
+import { Icon } from "../../src/components/ui/Icon"
+import { Reveal } from "../../src/components/ui/Motion"
+import { Button, IconButton, Tappable } from "../../src/components/ui/Press"
+import { Card, Screen } from "../../src/components/ui/Surface"
+import { useSport } from "../../src/hooks/useSport"
 import { clock } from "../../src/lib/format"
-import { LIVE_SPORT, STATUS_LABEL, strokeLabel, type RisoPalette, type Sport } from "../../src/sports"
 import { useSessionStore } from "../../src/store/sessionStore"
 import { useUserStore } from "../../src/store/userStore"
-import { Fonts, Offset, Paper, Space, Type } from "../../src/theme"
+import { Fonts, Motion, Paper, Radius, Shadow, Space, Type } from "../../src/theme"
+import { useReducedMotion } from "../../src/hooks/useMotion"
 
-const OVERLAY = "rgba(18,16,17,0.78)"
-
-function haptic(style: Haptics.ImpactFeedbackStyle) {
-  if (Platform.OS !== "web") Haptics.impactAsync(style).catch(() => {})
-}
+type Phase = "idle" | "recording" | "saving"
 
 export default function RecordScreen() {
+  const insets = useSafeAreaInsets()
   const sport = useSport()
-  return sport.status === "live" ? <Recorder sport={sport} /> : <NotLive sport={sport} />
-}
-
-/** Honest blocker for sports without analysis: nothing to record into yet. */
-function NotLive({ sport }: { sport: Sport }) {
-  const insets = useSafeAreaInsets()
-  const setSport = useUserStore((s) => s.setSportPreference)
-  return (
-    <Screen palette={sport.palette}>
-      <View style={[styles.notLive, { paddingTop: insets.top + Space.md, paddingBottom: insets.bottom + Space.xl }]}>
-        <BackButton />
-        <View style={styles.notLiveBody}>
-          <Text style={Type.kicker}>
-            {sport.name} · {STATUS_LABEL[sport.status]}
-          </Text>
-          <SweepHeading lines={["Not", "yet."]} palette={sport.palette} size="hero" />
-          <Text style={Type.body}>
-            {sport.name} analysis isn't live, so there is nothing to record into yet. {sport.statusNote}
-          </Text>
-        </View>
-        <Button label={`Record ${LIVE_SPORT.name} instead`} trailing="→" palette={sport.palette} full onPress={() => setSport(LIVE_SPORT.id)} />
-      </View>
-    </Screen>
-  )
-}
-
-const Countdown = memo(function Countdown({ n, palette }: { n: number; palette: RisoPalette }) {
-  const reduceMotion = useReducedMotion()
-  const scale = useSharedValue(reduceMotion ? 1 : 1.35)
-  useEffect(() => {
-    if (!reduceMotion) scale.value = withTiming(1, { duration: 320, easing: Easing.out(Easing.cubic) })
-  }, [reduceMotion, scale])
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
-  return (
-    <Animated.View style={style}>
-      <Plate color={palette.plate} shadow={palette.shadow} offset={Offset.lg} faceStyle={styles.countFace}>
-        <Text style={[styles.countText, { color: palette.onPlate }]}>{n}</Text>
-      </Plate>
-    </Animated.View>
-  )
-})
-
-/** Viewfinder corners: frame the play area, nothing drawn over the middle. */
-const FramingGuide = memo(function FramingGuide({ label, color }: { label: string; color: string }) {
-  return (
-    <View pointerEvents="none" style={styles.guide}>
-      <View style={styles.guideBox}>
-        {(["tl", "tr", "bl", "br"] as const).map((corner) => (
-          <View key={corner} style={[styles.corner, styles[corner], { borderColor: color }]} />
-        ))}
-      </View>
-      <Text style={[Type.kicker, styles.guideText]}>Fit the whole {label.toLowerCase()} in frame</Text>
-    </View>
-  )
-})
-
-function Recorder({ sport }: { sport: Sport }) {
-  const insets = useSafeAreaInsets()
   const { palette } = sport
+  const reduce = useReducedMotion()
   const [permission, requestPermission] = useCameraPermissions()
-  const [countdown, setCountdown] = useState<number | null>(null)
-  const [showHud, setShowHud] = useState(true)
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null)
-  const recordingState = useSessionStore((s) => s.recordingState)
-  const elapsed = useSessionStore((s) => s.elapsedSeconds)
-  const hud = useSessionStore((s) => s.hud)
-  const overlay = useUserStore((s) => s.overlaySettings)
-  const { format, unit } = useSpeed()
+  const camera = useRef<CameraView>(null)
+  const [phase, setPhase] = useState<Phase>("idle")
+  const [seconds, setSeconds] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+  const capture = useUserStore((s) => s.capture)
+  const showGuide = useUserStore((s) => s.overlaySettings.showFramingGuide)
+  const setClip = useSessionStore((s) => s.setClip)
 
-  const stopTimer = useCallback(() => {
-    if (timer.current) clearInterval(timer.current)
-    timer.current = null
-  }, [])
+  const pulse = useSharedValue(0)
 
-  // Leaving the screen (back, or on to processing) always clears timers and the session.
-  useEffect(
-    () => () => {
-      stopTimer()
-      useSessionStore.getState().resetSession()
-    },
-    [stopTimer],
-  )
-
-  const runClock = useCallback(() => {
-    stopTimer()
-    timer.current = setInterval(() => useSessionStore.getState().tick(), 1000)
-  }, [stopTimer])
-
-  const start = useCallback(() => {
-    const { setRecordingState } = useSessionStore.getState()
-    setRecordingState("countdown")
-    haptic(Haptics.ImpactFeedbackStyle.Heavy)
-    let n = 3
-    setCountdown(n)
-    stopTimer()
-    timer.current = setInterval(() => {
-      n -= 1
-      if (n > 0) {
-        setCountdown(n)
-        return
-      }
-      setCountdown(null)
-      setRecordingState("recording")
-      runClock()
-      haptic(Haptics.ImpactFeedbackStyle.Heavy)
-    }, 1000)
-  }, [runClock, stopTimer])
-
-  const pauseResume = useCallback(() => {
-    const { recordingState: state, setRecordingState } = useSessionStore.getState()
-    if (state === "recording") {
-      stopTimer()
-      setRecordingState("paused")
-      haptic(Haptics.ImpactFeedbackStyle.Light)
-    } else if (state === "paused") {
-      setRecordingState("recording")
-      runClock()
+  useEffect(() => {
+    if (phase !== "recording" || reduce) {
+      pulse.value = 0
+      return
     }
-  }, [runClock, stopTimer])
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 700, easing: Easing.out(Easing.quad) }),
+        withTiming(0, { duration: 700, easing: Easing.in(Easing.quad) }),
+      ),
+      -1,
+    )
+  }, [phase, pulse, reduce])
+
+  useEffect(() => {
+    if (phase !== "recording") return
+    const timer = setInterval(() => setSeconds((s) => s + 1), 1000)
+    return () => clearInterval(timer)
+  }, [phase])
+
+  const dotStyle = useAnimatedStyle(() => ({ opacity: 0.45 + pulse.value * 0.55 }))
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + pulse.value * 0.08 }],
+    opacity: 0.25 + pulse.value * 0.2,
+  }))
+
+  const start = useCallback(async () => {
+    setError(null)
+    setSeconds(0)
+    setPhase("recording")
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {})
+    try {
+      // Actually record. Web has no recordAsync in expo-camera, so there the
+      // clip is skipped and the flow still reaches the report.
+      const result = await camera.current?.recordAsync({ maxDuration: 600 })
+      if (result?.uri) setClip({ uri: result.uri, sport: sport.id, seconds })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Recording failed")
+    }
+  }, [sport.id, seconds, setClip])
 
   const finish = useCallback(() => {
-    stopTimer()
+    setPhase("saving")
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {})
+    try {
+      camera.current?.stopRecording()
+    } catch {
+      // Nothing was recording; the flow continues either way.
+    }
     router.replace("/record/processing")
-  }, [stopTimer])
+  }, [])
 
-  if (!permission) return <View style={styles.camera} />
+  if (!permission) {
+    // Permission state is still resolving: show the bare mesh, not a flash of
+    // the denied screen.
+    return (
+      <Screen palette={palette}>
+        <View style={styles.root} />
+      </Screen>
+    )
+  }
 
   if (!permission.granted) {
     return (
       <Screen palette={palette}>
-        <View style={[styles.notLive, { paddingTop: insets.top + Space.md, paddingBottom: insets.bottom + Space.xl }]}>
-          <BackButton />
-          <View style={styles.notLiveBody}>
-            <Text style={Type.kicker}>Camera access</Text>
-            <SweepHeading lines={["Camera,", "please."]} palette={palette} size="hero" />
-            <Text style={Type.body}>
-              Ayto watches the {sport.tracked} through your camera. All processing happens on-device.
-            </Text>
+        <View style={[styles.gate, { paddingTop: insets.top + Space.xl, paddingBottom: insets.bottom + Space.xl }]}>
+          <Reveal>
+            <IconButton name="close" label="Close" palette={palette} onPress={() => router.back()} />
+          </Reveal>
+          <View style={styles.gateBody}>
+            <Reveal index={1}>
+              <View style={[styles.gateIcon, { backgroundColor: palette.soft }]}>
+                <Icon name="record" size={32} color={palette.ink} weight={1.6} />
+              </View>
+            </Reveal>
+            <Reveal index={2}>
+              <Text style={[Type.title, styles.centered]}>Ayto needs the camera.</Text>
+              <Text style={[Type.bodyMuted, styles.centered, styles.gateDeck]}>
+                That is the only sensor it uses. The clip stays on this phone.
+              </Text>
+            </Reveal>
           </View>
-          <Button label="Allow camera" palette={palette} size="lg" full onPress={requestPermission} />
+          <Reveal index={3} style={styles.gateActions}>
+            <Button label="Allow camera" palette={palette} size="lg" full onPress={requestPermission} />
+            <Button label="Not now" palette={palette} variant="ghost" full onPress={() => router.back()} />
+          </Reveal>
         </View>
       </Screen>
     )
   }
 
-  const rolling = recordingState === "recording" || recordingState === "paused"
-  const idle = recordingState === "idle"
-  const paused = recordingState === "paused"
-
   return (
-    <View style={styles.camera}>
-      <StatusBar style="light" />
-      <CameraView style={StyleSheet.absoluteFill} facing="back" mode="video" />
+    <View style={styles.root}>
+      <CameraView
+        ref={camera}
+        style={StyleSheet.absoluteFill}
+        facing="back"
+        mode="video"
+        videoQuality={capture.quality === "1080p" ? "1080p" : "720p"}
+      />
 
-      {showHud && overlay.showFramingGuide && !rolling ? <FramingGuide label={sport.playArea.label} color={palette.plate} /> : null}
+      {showGuide ? (
+        <View style={styles.guide} pointerEvents="none">
+          <View style={[styles.guideBox, { borderColor: "rgba(255,255,255,0.55)" }]} />
+          <Text style={styles.guideText}>Fit the whole {sport.playArea.label.toLowerCase()} inside the frame</Text>
+        </View>
+      ) : null}
 
-      {/* Top bar */}
-      <View style={[styles.topBar, { paddingTop: insets.top + Space.sm }]}>
-        <BackButton glyph="✕" label="Close camera" />
-        {rolling ? (
-          <View style={styles.recChip} accessibilityLiveRegion="polite">
-            <View style={[styles.recDot, { backgroundColor: paused ? Paper.muted : Paper.danger }]} />
-            <Text style={styles.recTime}>{clock(elapsed)}</Text>
+      <View style={[styles.top, { paddingTop: insets.top + Space.md }]}>
+        <IconButton name="close" label="Close" variant="glass" onPress={() => router.back()} />
+        {phase === "recording" ? (
+          <View style={styles.timer}>
+            <Animated.View style={[styles.recDot, dotStyle]} />
+            <Text style={styles.timerText}>{clock(seconds)}</Text>
           </View>
         ) : (
-          <Tag label={`${sport.name} · live`} color={palette.plate} onColor={palette.onPlate} variant="solid" />
+          <Badge label={`${sport.name} · ${capture.fps} fps`} />
         )}
-        <Pressable
-          onPress={() => setShowHud((v) => !v)}
-          accessibilityRole="switch"
-          accessibilityState={{ checked: showHud }}
-          accessibilityLabel="Overlay"
-          style={styles.hudToggle}
-        >
-          <Text style={[styles.hudText, showHud && { color: palette.ink }]}>HUD</Text>
-        </Pressable>
+        <IconButton
+          name="settings"
+          label="Capture settings"
+          variant="glass"
+          onPress={() => router.push("/settings")}
+        />
       </View>
 
-      {showHud && overlay.showSpeedBadge && rolling ? (
-        <View style={[styles.speed, { top: insets.top + 72, borderColor: palette.plate }]}>
-          <Text style={[Type.metric, { color: palette.ink }]}>{hud.speedKmh === null ? "—" : format(hud.speedKmh)}</Text>
-          <Text style={Type.unit}>{unit}</Text>
-          <Text style={[Type.unit, styles.speedNote]}>{hud.speedKmh === null ? "after session" : `${sport.tracked} · live`}</Text>
-        </View>
-      ) : null}
-
-      {showHud && overlay.showStrokeLabel && rolling && hud.stroke ? (
-        <View style={styles.strokeLabel}>
-          <Tag label={strokeLabel(sport, hud.stroke)} color={palette.plate} onColor={palette.onPlate} variant="solid" />
-        </View>
-      ) : null}
-
-      {countdown !== null ? (
-        <View style={styles.countdown}>
-          <Countdown key={countdown} n={countdown} palette={palette} />
-        </View>
-      ) : null}
-
-      {/* Controls */}
       <View style={[styles.bottom, { paddingBottom: insets.bottom + Space.xl }]}>
-        {idle ? (
-          <Pressable onPress={start} accessibilityRole="button" accessibilityLabel="Start recording" style={styles.recordRing}>
-            <View style={styles.recordInner} />
-          </Pressable>
-        ) : rolling ? (
-          <View style={styles.controls}>
-            <Pressable
-              onPress={pauseResume}
-              accessibilityRole="button"
-              accessibilityLabel={paused ? "Resume" : "Pause"}
-              style={styles.control}
-            >
-              {paused ? (
-                <View style={styles.play} />
-              ) : (
-                <View style={styles.pause}>
-                  <View style={styles.pauseBar} />
-                  <View style={styles.pauseBar} />
-                </View>
-              )}
-            </Pressable>
-            <Pressable onPress={finish} accessibilityRole="button" accessibilityLabel="Stop and analyse" style={styles.stop}>
-              <View style={styles.stopInner} />
-            </Pressable>
+        {error ? (
+          <Card variant="glass" style={styles.errorCard}>
+            <Text style={[Type.small, { color: Paper.danger }]}>{error}</Text>
+          </Card>
+        ) : phase === "idle" ? (
+          <Reveal>
+            <Card variant="glass" elevation="sm" padded={false} style={styles.hint}>
+              <Note palette={palette} icon="info">
+                Ayto records the clip now. Analysis runs later — it is not live yet.
+              </Note>
+            </Card>
+          </Reveal>
+        ) : null}
+
+        <View style={styles.controls}>
+          <View style={styles.controlSide} />
+          <Tappable
+            onPress={phase === "recording" ? finish : start}
+            label={phase === "recording" ? "Stop recording" : "Start recording"}
+            scaleTo={0.9}
+          >
+            <View style={styles.shutterWrap}>
+              <Animated.View style={[styles.shutterRing, { borderColor: palette.accent }, ringStyle]} />
+              <View style={[styles.shutter, phase === "recording" && styles.shutterOn]}>
+                <View
+                  style={[
+                    phase === "recording" ? styles.shutterSquare : styles.shutterDot,
+                    { backgroundColor: palette.accent },
+                  ]}
+                />
+              </View>
+            </View>
+          </Tappable>
+          <View style={styles.controlSide}>
+            {phase === "recording" ? (
+              <Text style={styles.sideHint} numberOfLines={2}>
+                Tap to finish
+              </Text>
+            ) : null}
           </View>
-        ) : (
-          <View style={styles.recordRing} />
-        )}
-        <Text style={[Type.kicker, styles.hint]}>
-          {idle ? "Tap to start" : recordingState === "countdown" ? "Get ready" : paused ? "Paused" : "Recording"}
-        </Text>
+        </View>
       </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  camera: { flex: 1, backgroundColor: "#000" },
-  notLive: { flex: 1, paddingHorizontal: Space.gutter, justifyContent: "space-between" },
-  notLiveBody: { gap: Space.lg },
-  topBar: {
+  root: { flex: 1, backgroundColor: "#0A0908" },
+  gate: { flex: 1, paddingHorizontal: Space.gutter, maxWidth: 520, width: "100%", alignSelf: "center" },
+  gateBody: { flex: 1, alignItems: "center", justifyContent: "center", gap: Space.lg },
+  gateIcon: { width: 84, height: 84, borderRadius: 42, alignItems: "center", justifyContent: "center" },
+  centered: { textAlign: "center" },
+  gateDeck: { marginTop: Space.sm },
+  gateActions: { gap: Space.xs },
+  guide: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", gap: Space.md },
+  guideBox: { width: "84%", aspectRatio: 1.5, borderWidth: 1.5, borderRadius: Radius.lg, borderStyle: "dashed" },
+  guideText: { fontFamily: Fonts.bodyMed, fontSize: 13, color: "rgba(255,255,255,0.8)" },
+  top: {
     position: "absolute",
+    top: 0,
     left: 0,
     right: 0,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Space.gutter,
+  },
+  timer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.sm,
     paddingHorizontal: Space.lg,
+    paddingVertical: Space.sm,
+    borderRadius: Radius.pill,
+    backgroundColor: "rgba(10,9,8,0.55)",
   },
-  recChip: { flexDirection: "row", alignItems: "center", gap: Space.sm, backgroundColor: OVERLAY, paddingHorizontal: Space.md, paddingVertical: 6 },
-  recDot: { width: 8, height: 8 },
-  recTime: { fontFamily: Fonts.monoBold, fontSize: 14, color: Paper.text },
-  hudToggle: { width: 48, height: 40, alignItems: "center", justifyContent: "center", backgroundColor: OVERLAY },
-  hudText: { fontFamily: Fonts.mono, fontSize: 10, letterSpacing: 1.2, color: Paper.muted },
-  guide: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", padding: Space.xxl },
-  guideBox: { width: "100%", aspectRatio: 0.62, maxHeight: "70%" },
-  corner: { position: "absolute", width: 28, height: 28 },
-  tl: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3 },
-  tr: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3 },
-  bl: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3 },
-  br: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3 },
-  guideText: { marginTop: Space.md, color: Paper.text, backgroundColor: OVERLAY, paddingHorizontal: Space.sm, paddingVertical: 4 },
-  speed: { position: "absolute", right: Space.lg, alignItems: "flex-end", backgroundColor: OVERLAY, borderLeftWidth: 3, padding: Space.md },
-  speedNote: { fontSize: 9, marginTop: 2 },
-  strokeLabel: { position: "absolute", bottom: 190, alignSelf: "center" },
-  countdown: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.35)" },
-  countFace: { width: 140, height: 140, alignItems: "center", justifyContent: "center" },
-  countText: { fontFamily: Fonts.monoBold, fontSize: 88, lineHeight: 100 },
-  bottom: { position: "absolute", left: 0, right: 0, bottom: 0, alignItems: "center" },
-  recordRing: { width: 78, height: 78, borderRadius: 39, borderWidth: 3, borderColor: Paper.text, alignItems: "center", justifyContent: "center" },
-  recordInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: Paper.danger },
-  controls: { flexDirection: "row", alignItems: "center", gap: Space.xl },
-  control: { width: 58, height: 58, alignItems: "center", justifyContent: "center", backgroundColor: OVERLAY, borderWidth: 1, borderColor: Paper.ruleStrong },
-  pause: { flexDirection: "row", gap: 6 },
-  pauseBar: { width: 5, height: 20, backgroundColor: Paper.text },
-  play: {
-    width: 0,
-    height: 0,
-    marginLeft: 4,
-    borderTopWidth: 11,
-    borderBottomWidth: 11,
-    borderLeftWidth: 18,
-    borderTopColor: "transparent",
-    borderBottomColor: "transparent",
-    borderLeftColor: Paper.text,
+  recDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: "#E4584F" },
+  timerText: { fontFamily: Fonts.display, fontSize: 16, color: "#FFFFFF", letterSpacing: 0.4 },
+  bottom: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: Space.gutter, gap: Space.lg },
+  hint: { overflow: "hidden" },
+  errorCard: { paddingVertical: Space.md },
+  controls: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  controlSide: { width: 76, alignItems: "center" },
+  sideHint: { fontFamily: Fonts.bodyMed, fontSize: 12, color: "rgba(255,255,255,0.75)", textAlign: "center" },
+  shutterWrap: { width: 86, height: 86, alignItems: "center", justifyContent: "center" },
+  shutterRing: { position: "absolute", width: 86, height: 86, borderRadius: 43, borderWidth: 3 },
+  shutter: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Paper.veilStrong,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Shadow.md,
   },
-  stop: { width: 70, height: 70, borderRadius: 35, borderWidth: 3, borderColor: Paper.danger, alignItems: "center", justifyContent: "center" },
-  stopInner: { width: 26, height: 26, backgroundColor: Paper.danger },
-  hint: { marginTop: Space.md, color: Paper.text },
+  shutterOn: { backgroundColor: "#FFFFFF" },
+  shutterDot: { width: 54, height: 54, borderRadius: 27 },
+  shutterSquare: { width: 28, height: 28, borderRadius: 7 },
 })

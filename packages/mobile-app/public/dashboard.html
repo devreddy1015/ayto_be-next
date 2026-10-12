@@ -32,15 +32,20 @@
 }
 /* Derived inks must be re-declared wherever a sport's inks are set (root or a gallery card),
    because custom properties resolve where they are declared, not where they are used. */
-[style*="--plate"] { --accent: var(--ink); --you: var(--plate); --pro: var(--ink3); }
+[style*="--plate"] { --accent: var(--ink); --you: var(--plate); --pro: var(--ink3);
+  --ink2-text: var(--ink2); --ink3-text: var(--ink3); }
 @media (prefers-color-scheme: light) {
-  [style*="--plate"] { --accent: var(--ink-paper); --you: var(--ink-paper); --pro: var(--muted); }
+  /* --ink2/--ink3 are tuned for the black stock and fall to 1.1-2.6:1 on
+     cream, so small text uses the darkened paper inks instead (>= 4.6:1). */
+  [style*="--plate"] { --accent: var(--ink-paper); --you: var(--ink-paper); --pro: var(--muted);
+    --ink2-text: var(--ink-paper2); --ink3-text: var(--ink-paper3); }
   :root {
     --bg: #F4ECE0; --stock: #FBF6EE; --raised: #E9DFD0;
     --text: #1A1718; --muted: #5E554B; --faint: #6B6257;
     --rule: rgba(26,23,24,.14); --rule-strong: rgba(26,23,24,.34);
     --danger: #B3261E; --grain-op: .22; --scan: rgba(26,23,24,.05);
     --accent: var(--ink-paper); --you: var(--ink-paper); --pro: var(--muted);
+    --ink2-text: var(--ink-paper2); --ink3-text: var(--ink-paper3);
   }
 }
 
@@ -81,6 +86,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .chip i { width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
 
 /* ── Buttons: a solid ink face on a hard offset plate ─────────────── */
+[hidden] { display: none !important; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 0 18px;
   background: var(--plate); color: var(--on-plate); font: 700 12px var(--mono); letter-spacing: .12em; text-transform: uppercase;
   box-shadow: 5px 5px 0 var(--shadow); transition: transform .08s, box-shadow .08s; }
@@ -330,15 +336,15 @@ const SECTIONS = [
 ];
 const STATUS = { live: "Live analysis", beta: "In training", soon: "Coming soon" };
 const SPORTS = [
-  { id: "badminton", name: "Badminton", code: "Bd", section: "racket", status: "live", heading: ["Smash", "harder."], tagline: "The fastest racket sport on earth, measured from your phone.", inks: ["#FF48B0", "#3255A4", "#FF6EC0", "#6F9BEA", "#FFE800", "#FF48B0", "#B8347F"], names: ["Fluorescent Pink", "Medium Blue", "Yellow"], area: ["Court", "13.4 × 6.1 m"], tracked: "shuttle", noun: "stroke", strokes: ["Smash", "Drop", "Clear", "Net", "Serve", "Defence"], metrics: [["Smash speed", "km/h"], ["Strokes", ""], ["Form score", "/100"]], note: "Shuttle tracking, pose, stroke classification, speed and pro comparison all run today." },
-  { id: "tennis", name: "Tennis", code: "Tn", section: "racket", status: "beta", heading: ["Serve", "bigger."], tagline: "Serve speed, groundstroke rhythm and where you stand on court.", inks: ["#FFE916", "#00A95C", "#FFE916", "#3FC487", "#FF6C2F", "#00A95C", "#007A42"], names: ["Fluorescent Yellow", "Green", "Orange"], area: ["Court", "23.77 × 10.97 m"], tracked: "ball", noun: "stroke", strokes: ["Serve", "Forehand", "Backhand", "Volley", "Smash", "Lob", "Drop"], metrics: [["Serve speed", "km/h"], ["Forehand speed", "km/h"], ["Rally length", "shots"]], note: "Court calibration and ball physics are built and the stroke model is training. No analysis yet." },
-  { id: "table_tennis", name: "Table Tennis", code: "Tt", section: "racket", status: "beta", heading: ["Loop", "faster."], tagline: "Spin, speed and footwork at the table.", inks: ["#FF6C2F", "#0078BF", "#FF8A57", "#4AA6E8", "#FFE800", "#FF6C2F", "#AD4920"], names: ["Orange", "Blue", "Yellow"], area: ["Table", "2.74 × 1.525 m"], tracked: "ball", noun: "stroke", strokes: ["Serve", "Forehand", "Backhand", "Push", "Block", "Chop", "Smash", "Lob"], metrics: [["Ball speed", "km/h"], ["Rally length", "shots"], ["Tempo", "shots/min"]], note: "Table geometry and ball physics are built and the stroke model is training. No analysis yet." },
-  { id: "pickleball", name: "Pickleball", code: "Pk", section: "racket", status: "beta", heading: ["Own the", "kitchen."], tagline: "Dinks, drops and owning the kitchen line.", inks: ["#E3ED55", "#00838A", "#E3ED55", "#2FB8BF", "#FF48B0", "#00838A", "#00767C"], names: ["Light Lime", "Teal", "Fluorescent Pink"], area: ["Court", "13.41 × 6.10 m"], tracked: "ball", noun: "shot", strokes: ["Serve", "Forehand", "Backhand", "Dink", "Drop", "Volley", "Smash", "Lob"], metrics: [["Drive speed", "km/h"], ["Drops into the kitchen", "%"], ["Dink rally", "shots"]], note: "Court geometry and ball physics are built and the shot model is training. No analysis yet." },
-  { id: "squash", name: "Squash", code: "Sq", section: "racket", status: "beta", heading: ["Hit the", "nick."], tagline: "Four walls, one ball, nowhere to hide.", inks: ["#F65058", "#484D7A", "#FF7477", "#8E93C9", "#F2CDCF", "#F65058", "#BB3D43"], names: ["Scarlet", "Indigo", "Bisque"], area: ["Court", "9.75 × 6.40 m"], tracked: "ball", noun: "shot", strokes: ["Serve", "Forehand", "Backhand", "Volley", "Drop", "Boast", "Lob"], metrics: [["Ball speed", "km/h"], ["Back to the T", "s"], ["Rally length", "shots"]], note: "Court geometry and ball physics are built and the shot model is training. No analysis yet." },
-  { id: "padel", name: "Padel", code: "Pd", section: "racket", status: "soon", heading: ["Play the", "glass."], tagline: "Glass walls, bandejas and patient points.", inks: ["#62A8E5", "#235BA8", "#7DBBEE", "#5EC8E5", "#FFB511", "#62A8E5", "#235BA8"], names: ["Cornflower", "Lake", "Sunflower"], area: ["Court", "20 × 10 m"], tracked: "ball", noun: "shot", strokes: ["Serve", "Forehand", "Backhand", "Volley", "Bandeja", "Víbora", "Smash", "Lob"], metrics: [["Smash speed", "km/h"], ["Bandeja speed", "km/h"], ["Time at net", "%"]], note: "Court geometry is in. The shot taxonomy and models come next." },
-  { id: "cricket", name: "Cricket", code: "Cr", section: "bat", status: "soon", heading: ["Middle", "it."], tagline: "Bat speed for batters, release speed for bowlers.", inks: ["#FFB511", "#A75154", "#FFB511", "#D97A7D", "#82D8D5", "#A75154", "#A44F52"], names: ["Sunflower", "Brick", "Mint"], area: ["Pitch", "20.12 × 3.05 m"], tracked: "ball", noun: "shot", strokes: ["Drive", "Pull", "Cut", "Sweep", "Defence", "Pace ball", "Spin ball"], metrics: [["Release speed", "km/h"], ["Bat speed", "km/h"], ["Length", "m"]], note: "Next on the roadmap after the racket sports." },
-  { id: "football", name: "Football", code: "Fb", section: "field", status: "soon", heading: ["Strike", "clean."], tagline: "Shot power, first touch and sprint load.", inks: ["#44D62C", "#407060", "#5FE04A", "#6FB79A", "#FFE916", "#44D62C", "#407060"], names: ["Fluorescent Green", "Hunter Green", "Fluorescent Yellow"], area: ["Pitch", "105 × 68 m"], tracked: "ball", noun: "touch", strokes: ["Shot", "Pass", "Cross", "Header", "Dribble", "First touch"], metrics: [["Shot speed", "km/h"], ["Top sprint", "km/h"], ["Touches", ""]], note: "On the roadmap. Single-player drills first, then match footage." },
-  { id: "basketball", name: "Basketball", code: "Bk", section: "field", status: "soon", heading: ["Find your", "arc."], tagline: "Shot arc, release time and range.", inks: ["#FF6F4C", "#3D5588", "#FF8A6C", "#7D95CF", "#BB8B41", "#FF6F4C", "#AD4B34"], names: ["Pumpkin", "Federal Blue", "Flat Gold"], area: ["Court", "28 × 15 m"], tracked: "ball", noun: "shot", strokes: ["Jump shot", "Three", "Free throw", "Layup", "Floater"], metrics: [["Release time", "s"], ["Shot arc", "°"], ["Make rate", "%"]], note: "On the roadmap, after cricket and football." },
+  { id: "badminton", name: "Badminton", code: "Bd", section: "racket", status: "live", heading: ["Smash", "harder."], tagline: "The fastest racket sport on earth, measured from your phone.", inks: ["#FF48B0", "#3255A4", "#FF6EC0", "#6F9BEA", "#FFE800", "#FF48B0", "#B8347F", "#2063DC", "#756B00"], names: ["Fluorescent Pink", "Medium Blue", "Yellow"], area: ["Court", "13.4 × 6.1 m"], tracked: "shuttle", noun: "stroke", nounPl: "strokes", strokes: ["Smash", "Drop", "Clear", "Net", "Serve", "Defence"], metrics: [["Smash speed", "km/h"], ["Strokes", ""], ["Form score", "/100"]], note: "Shuttle tracking, pose, stroke classification, speed and pro comparison are built and tested. Running them on a clip inside the app is still in development." },
+  { id: "tennis", name: "Tennis", code: "Tn", section: "racket", status: "beta", heading: ["Serve", "bigger."], tagline: "Serve speed, groundstroke rhythm and where you stand on court.", inks: ["#FFE916", "#00A95C", "#FFE916", "#3FC487", "#FF6C2F", "#00A95C", "#007A42", "#257751", "#C13900"], names: ["Fluorescent Yellow", "Green", "Orange"], area: ["Court", "23.77 × 10.97 m"], tracked: "ball", noun: "stroke", nounPl: "strokes", strokes: ["Serve", "Forehand", "Backhand", "Volley", "Smash", "Lob", "Drop"], metrics: [["Serve speed", "km/h"], ["Forehand speed", "km/h"], ["Rally length", "shots"]], note: "Court calibration and ball physics are built and the stroke model is training. No analysis yet." },
+  { id: "table_tennis", name: "Table Tennis", code: "Tt", section: "racket", status: "beta", heading: ["Loop", "faster."], tagline: "Spin, speed and footwork at the table.", inks: ["#FF6C2F", "#0078BF", "#FF8A57", "#4AA6E8", "#FFE800", "#FF6C2F", "#AD4920", "#166EAE", "#756B00"], names: ["Orange", "Blue", "Yellow"], area: ["Table", "2.74 × 1.525 m"], tracked: "ball", noun: "stroke", nounPl: "strokes", strokes: ["Serve", "Forehand", "Backhand", "Push", "Block", "Chop", "Smash", "Lob"], metrics: [["Ball speed", "km/h"], ["Rally length", "shots"], ["Tempo", "shots/min"]], note: "Table geometry and ball physics are built and the stroke model is training. No analysis yet." },
+  { id: "pickleball", name: "Pickleball", code: "Pk", section: "racket", status: "beta", heading: ["Own the", "kitchen."], tagline: "Dinks, drops and owning the kitchen line.", inks: ["#E3ED55", "#00838A", "#E3ED55", "#2FB8BF", "#FF48B0", "#00838A", "#00767C", "#1E7478", "#CE0075"], names: ["Light Lime", "Teal", "Fluorescent Pink"], area: ["Court", "13.41 × 6.10 m"], tracked: "ball", noun: "shot", nounPl: "shots", strokes: ["Serve", "Forehand", "Backhand", "Dink", "Drop", "Volley", "Smash", "Lob"], metrics: [["Drive speed", "km/h"], ["Drops into the kitchen", "%"], ["Dink rally", "shots"]], note: "Court geometry and ball physics are built and the shot model is training. No analysis yet." },
+  { id: "squash", name: "Squash", code: "Sq", section: "racket", status: "beta", heading: ["Hit the", "nick."], tagline: "Four walls, one ball, nowhere to hide.", inks: ["#F65058", "#484D7A", "#FF7477", "#8E93C9", "#F2CDCF", "#F65058", "#BB3D43", "#5B62B1", "#C3333B"], names: ["Scarlet", "Indigo", "Bisque"], area: ["Court", "9.75 × 6.40 m"], tracked: "ball", noun: "shot", nounPl: "shots", strokes: ["Serve", "Forehand", "Backhand", "Volley", "Drop", "Boast", "Lob"], metrics: [["Ball speed", "km/h"], ["Back to the T", "s"], ["Rally length", "shots"]], note: "Court geometry and ball physics are built and the shot model is training. No analysis yet." },
+  { id: "padel", name: "Padel", code: "Pd", section: "racket", status: "soon", heading: ["Play the", "glass."], tagline: "Glass walls, bandejas and patient points.", inks: ["#62A8E5", "#235BA8", "#7DBBEE", "#5EC8E5", "#FFB511", "#62A8E5", "#235BA8", "#16728B", "#8D6100"], names: ["Cornflower", "Lake", "Sunflower"], area: ["Court", "20 × 10 m"], tracked: "ball", noun: "shot", nounPl: "shots", strokes: ["Serve", "Forehand", "Backhand", "Volley", "Bandeja", "Víbora", "Smash", "Lob"], metrics: [["Smash speed", "km/h"], ["Bandeja speed", "km/h"], ["Time at net", "%"]], note: "Court geometry is in. The shot taxonomy and models come next." },
+  { id: "cricket", name: "Cricket", code: "Cr", section: "bat", status: "soon", heading: ["Middle", "it."], tagline: "Bat speed for batters, release speed for bowlers.", inks: ["#FFB511", "#A75154", "#FFB511", "#D97A7D", "#82D8D5", "#A75154", "#A44F52", "#C0373B", "#247471"], names: ["Sunflower", "Brick", "Mint"], area: ["Pitch", "20.12 × 3.05 m"], tracked: "ball", noun: "shot", nounPl: "shots", strokes: ["Drive", "Pull", "Cut", "Sweep", "Defence", "Pace ball", "Spin ball"], metrics: [["Release speed", "km/h"], ["Bat speed", "km/h"], ["Length", "m"]], note: "Next on the roadmap after the racket sports." },
+  { id: "football", name: "Football", code: "Fb", section: "field", status: "soon", heading: ["Strike", "clean."], tagline: "Shot power, first touch and sprint load.", inks: ["#44D62C", "#407060", "#5FE04A", "#6FB79A", "#FFE916", "#44D62C", "#407060", "#3A745C", "#746900"], names: ["Fluorescent Green", "Hunter Green", "Fluorescent Yellow"], area: ["Pitch", "105 × 68 m"], tracked: "ball", noun: "touch", nounPl: "touches", strokes: ["Shot", "Pass", "Cross", "Header", "Dribble", "First touch"], metrics: [["Shot speed", "km/h"], ["Top sprint", "km/h"], ["Touches", ""]], note: "On the roadmap. Single-player drills first, then match footage." },
+  { id: "basketball", name: "Basketball", code: "Bk", section: "field", status: "soon", heading: ["Find your", "arc."], tagline: "Shot arc, release time and range.", inks: ["#FF6F4C", "#3D5588", "#FF8A6C", "#7D95CF", "#BB8B41", "#FF6F4C", "#AD4B34", "#4466B8", "#87642F"], names: ["Pumpkin", "Federal Blue", "Flat Gold"], area: ["Court", "28 × 15 m"], tracked: "ball", noun: "shot", nounPl: "shots", strokes: ["Jump shot", "Three", "Free throw", "Layup", "Floater"], metrics: [["Release time", "s"], ["Shot arc", "°"], ["Make rate", "%"]], note: "On the roadmap, after cricket and football." },
 ];
 const BY_ID = Object.fromEntries(SPORTS.map((s) => [s.id, s]));
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -348,10 +354,17 @@ const pad2 = (n) => String(n).padStart(2, "0");
 
 /* Inline CSS variables for one sport's three inks. */
 function inkVars(s) {
-  const [plate, shadow, ink, ink2, ink3, ghost, inkPaper] = s.inks;
-  return `--plate:${plate};--shadow:${shadow};--ink:${ink};--ink2:${ink2};--ink3:${ink3};--ghost:${ghost};--ink-paper:${inkPaper};--on-plate:#121011;--glow:${plate}2e;--c:${plate}`;
+  const [plate, shadow, ink, ink2, ink3, ghost, inkPaper, inkPaper2, inkPaper3] = s.inks;
+  return `--plate:${plate};--shadow:${shadow};--ink:${ink};--ink2:${ink2};--ink3:${ink3};--ghost:${ghost};--ink-paper:${inkPaper};--ink-paper2:${inkPaper2};--ink-paper3:${inkPaper3};--on-plate:#121011;--glow:${plate}2e;--c:${plate}`;
 }
-const strokeColor = (i) => ["var(--you)", "var(--ink2)", "var(--ink3)"][i % 3];
+// Readable on the cream stock in light mode, where --ink2/--ink3 fall to
+// 1.2:1. In dark mode --ink2-text/--ink3-text resolve back to --ink2/--ink3.
+const strokeTextColor = (i) => ["var(--you)", "var(--ink2-text)", "var(--ink3-text)"][i % 3];
+// Only 3 inks, so entries 3+ are hatched. Bar and legend must share this or
+// two different strokes get identical swatches.
+const strokeFill = (i) => i < 3
+  ? strokeTextColor(i)
+  : `repeating-linear-gradient(45deg, ${strokeTextColor(i)} 0 3px, transparent 3px 6px)`;
 
 /* ── Riso Sweep headings ───────────────────────────────────────────── */
 const observer = "IntersectionObserver" in window && !REDUCED
@@ -412,16 +425,16 @@ function renderLive(sport) {
   $("m-label").textContent = sport.metrics[0][0];
   countUp($("m-max"), S.maxSpeed); countUp($("m-avg"), S.avgSpeed); countUp($("m-strokes"), S.strokes); countUp($("m-form"), S.form);
   $("m-delta").textContent = `${change >= 0 ? "▲" : "▼"} ${Math.abs(change).toFixed(1)}% vs previous session`;
-  $("m-strokes-label").textContent = `${sport.noun}s`;
+  $("m-strokes-label").textContent = sport.nounPl;
   $("m-detect").textContent = `${S.detection}% of frames tracked`;
   $("ring").style.strokeDashoffset = 314.16;
   requestAnimationFrame(() => requestAnimationFrame(() => { $("ring").style.strokeDashoffset = 314.16 * (1 - S.form / 100); }));
 
   const total = S.mix.reduce((n, m) => n + m[1], 0), label = (id) => id.charAt(0).toUpperCase() + id.slice(1);
   $("mix-label").textContent = `${label(sport.noun)} mix · ${total}`;
-  $("mix").innerHTML = S.mix.map((m, i) => `<span style="flex:${m[1]};background:${i < 3 ? strokeColor(i) : `repeating-linear-gradient(45deg, ${strokeColor(i)} 0 3px, transparent 3px 6px)`}"></span>`).join("");
+  $("mix").innerHTML = S.mix.map((m, i) => `<span style="flex:${m[1]};background:${strokeFill(i)}"></span>`).join("");
   $("mix").setAttribute("aria-label", S.mix.map((m) => `${label(m[0])} ${m[1]}`).join(", "));
-  $("mix-legend").innerHTML = S.mix.map((m, i) => `<span><i style="background:${strokeColor(i)}"></i>${label(m[0])} ${m[1]}</span>`).join("");
+  $("mix-legend").innerHTML = S.mix.map((m, i) => `<span><i style="background:${strokeFill(i)};outline:1px solid ${strokeTextColor(i)}"></i>${label(m[0])} ${m[1]}</span>`).join("");
 
   $("traj-kicker").textContent = `01 / Every ${S.stepS} s`;
   renderTrajectory();
@@ -429,7 +442,7 @@ function renderLive(sport) {
   sweep($("timeline-heading"), [`${label(sport.noun)} timeline`]);
   const order = Object.fromEntries(S.mix.map((m, i) => [m[0], i]));
   $("timeline").innerHTML = [...S.timeline].sort((a, b) => a[2].localeCompare(b[2], undefined, { numeric: true }))
-    .map(([type, kmh, time]) => `<div class="stroke"><span class="tag" style="color:${strokeColor(order[type] ?? 0)}">${esc(label(type))}</span><span class="num">${kmh}</span><span class="unit">km/h · ${esc(time)}</span></div>`).join("");
+    .map(([type, kmh, time]) => `<div class="stroke"><span class="tag" style="color:${strokeTextColor(order[type] ?? 0)}">${esc(label(type))}</span><span class="num">${kmh}</span><span class="unit">km/h · ${esc(time)}</span></div>`).join("");
 
   $("pro-name").textContent = S.pro.name;
   $("pro-kicker").textContent = `03 / Versus ${S.pro.name}`;
@@ -449,13 +462,15 @@ function renderLab(sport) {
   $("lab-note").textContent = sport.note;
   $("lab-metrics").innerHTML = sport.metrics.map(([name, unit]) => `<li><div class="row"><span>${esc(name)}</span><span class="vals" style="color:var(--faint)">— ${esc(unit)} · planned</span></div></li>`).join("");
   $("lab-strokes-kicker").textContent = `${pad2(sport.strokes.length)} classes`;
-  sweep($("lab-strokes-heading"), [`${sport.noun.charAt(0).toUpperCase() + sport.noun.slice(1)}s we'll read`]);
-  $("lab-strokes").innerHTML = sport.strokes.map((s, i) => `<span class="tag-o" style="--c:${["var(--accent)", "var(--ink2)", "var(--ink3)"][i % 3]}">${esc(s)}</span>`).join("");
+  sweep($("lab-strokes-heading"), [`${sport.nounPl.charAt(0).toUpperCase() + sport.nounPl.slice(1)} we'll read`]);
+  $("lab-strokes").innerHTML = sport.strokes.map((s, i) => `<span class="tag-o" style="--c:${["var(--accent)", "var(--ink2-text)", "var(--ink3-text)"][i % 3]}">${esc(s)}</span>`).join("");
 }
 
 /* ── Sport selection ───────────────────────────────────────────────── */
 function applySport(id, push) {
-  const sport = BY_ID[id] || BY_ID.badminton;
+  // Own keys only: ?sport=constructor would otherwise hand us Object and
+  // throw in inkVars(), which stops boot and leaves the page dead.
+  const sport = Object.hasOwn(BY_ID, id) ? BY_ID[id] : BY_ID.badminton;
   const root = document.documentElement;
   inkVars(sport).split(";").forEach((decl) => { const [k, v] = decl.split(":"); root.style.setProperty(k, v); });
   document.querySelectorAll("#sport-chips .chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.pick === sport.id)));
@@ -491,7 +506,7 @@ function renderGallery() {
         <div class="top"><p class="kicker">No. ${pad2(SPORTS.indexOf(s) + 1)} — ${s.code}</p><span class="status ${s.status}">${s.status === "live" ? "● " : ""}${STATUS[s.status]}</span></div>
         <h3 class="sweep" id="h-${s.id}" data-lines="${esc(s.name)}"></h3>
         <p class="deck" style="font-size:1.05rem">${esc(s.tagline)}</p>
-        <div class="spec"><div><b>Tracks</b><span>${s.tracked}</span></div><div><b>${s.area[0]}</b><span>${s.area[1]}</span></div><div><b>${s.noun}s</b><span>${s.strokes.length}</span></div></div>
+        <div class="spec"><div><b>Tracks</b><span>${s.tracked}</span></div><div><b>${s.area[0]}</b><span>${s.area[1]}</span></div><div><b>${s.nounPl}</b><span>${s.strokes.length}</span></div></div>
         <div class="inks"><i style="background:${s.inks[0]}"></i><i style="background:${s.inks[1]}"></i><i style="background:${s.inks[4]}"></i><span>${s.names.join(" · ")}</span></div>
         <div class="actions"><button class="btn sm" type="button" data-pick="${s.id}" data-primary="${s.id}">Open dashboard</button><a class="open" href="?sport=${s.id}" data-pick="${s.id}">${s.status === "live" ? "Live now →" : "What's ready →"}</a></div>
       </article>`).join("")}</div>`;
@@ -505,7 +520,7 @@ renderGallery();
 document.querySelectorAll("h2.sweep[data-lines]").forEach((el) => { if (!el.closest("#groups")) sweep(el); });
 sweep($("gallery-heading"));
 const fromUrl = new URLSearchParams(location.search).get("sport");
-applySport(BY_ID[fromUrl] ? fromUrl : SESSION.sport, false);
+applySport(Object.hasOwn(BY_ID, fromUrl ?? "") ? fromUrl : SESSION.sport, false);
 
 document.addEventListener("click", (e) => {
   const pick = e.target.closest("[data-pick]");

@@ -4,11 +4,11 @@
     "slug": "sportiq",
     "owner": "notesetnonematch",
     "scheme": "sportiq",
-    "version": "1.0.0",
+    "version": "0.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#121011",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F7F4EF",
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
@@ -22,7 +22,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#121011"
+      "backgroundColor": "#F7F4EF"
     },
     "ios": {
       "supportsTablet": true,
@@ -32,7 +32,7 @@
       "package": "ai.sportiq.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#121011"
+        "backgroundColor": "#F7F4EF"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -44,7 +44,13 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "output": "single",
+      "name": "Ayto SportIQ",
+      "shortName": "Ayto",
+      "themeColor": "#F7F4EF",
+      "backgroundColor": "#F7F4EF",
+      "description": "Sports analysis from one phone camera."
     },
     "experiments": {
       "typedRoutes": true

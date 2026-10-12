@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import ClassVar
 
 import cv2
 import numpy as np
@@ -70,10 +71,22 @@ def fit_homography(src: np.ndarray, dst: np.ndarray) -> np.ndarray:
     return h / h[2, 2]
 
 
-def fit_projection(world: np.ndarray, image: np.ndarray) -> np.ndarray:
+def fit_projection(
+    world: np.ndarray, image: np.ndarray, return_conditioning: bool = False,
+) -> np.ndarray | tuple[np.ndarray, float]:
     """Normalised DLT camera matrix P (3x4) from >= 6 world/image pairs.
 
     The world points must not all lie on one plane.
+
+    Args:
+        world: (N, 3) court points.
+        image: (N, 2) pixels.
+        return_conditioning: Also return sigma_min / sigma_max of the
+            normalised design matrix, in [0, 1]. The DLT degenerates as this
+            approaches 0 — notably when the camera lies near the line through
+            the two off-plane points (a side-on view at net height), where
+            tap noise of a pixel or two wrecks the vertical axis while
+            ``reprojection_error_px`` stays near zero.
     """
     world = np.asarray(world, dtype=float)
     image = np.asarray(image, dtype=float)
@@ -88,10 +101,14 @@ def fit_projection(world: np.ndarray, image: np.ndarray) -> np.ndarray:
     for xw, (u, v, _) in zip(w, m):
         rows.append(np.concatenate([np.zeros(4), -xw, v * xw]))
         rows.append(np.concatenate([xw, np.zeros(4), -u * xw]))
-    _, _, vt = np.linalg.svd(np.asarray(rows))
+    _, sv, vt = np.linalg.svd(np.asarray(rows))
     p = vt[-1].reshape(3, 4)
     p = np.linalg.inv(ti) @ p @ tw
-    return p / np.linalg.norm(p[2, :3])
+    p = p / np.linalg.norm(p[2, :3])
+    if return_conditioning:
+        cond = float(sv[-2] / sv[0]) if sv[0] > 0 else 0.0
+        return p, cond
+    return p
 
 
 def focal_from_homography(h: np.ndarray, image_size: tuple[int, int]) -> float | None:
@@ -160,12 +177,25 @@ class CourtCamera:
     Attributes:
         projection: 3x4 camera matrix mapping court metres to pixels.
         sport: Sport profile whose court frame the matrix refers to.
-        reprojection_error_px: RMS error of the calibration keypoints.
+        reprojection_error_px: RMS error of the calibration keypoints. Note
+            this stays near zero for a 6-point DLT even when the geometry is
+            degenerate, so it is not a calibration-quality check on its own.
+        calibration_path: ``"dlt6"`` or ``"homography"`` — which fit was used.
     """
 
     projection: np.ndarray
     sport: SportProfile
     reprojection_error_px: float = 0.0
+    calibration_path: str = "dlt6"
+
+    #: Below this sigma_min/sigma_max the 6-point DLT is too ill-conditioned
+    #: to trust and the 4-corner homography path is used instead. Measured
+    #: with 2 px of tap noise on a badminton court: ordinary placements score
+    #: 4-5e-2 and both paths recover the camera centre to within 0.2 m, while
+    #: a side-on camera at net height (on the line through the post tops)
+    #: scores 1.3e-3 and the DLT's centre error is 0.95 m against the
+    #: homography's 0.21 m.
+    MIN_DLT_CONDITIONING: ClassVar[float] = 5e-3
 
     # -- construction ------------------------------------------------------
     @classmethod
@@ -189,15 +219,19 @@ class CourtCamera:
         image = np.array([image_points[n] for n in names], dtype=float)
 
         off_plane = np.abs(world[:, 2]) > 1e-9
+        ground = ~off_plane
+        p, source = None, "homography"
         if len(names) >= 6 and off_plane.any():
-            p = fit_projection(world, image)
-            if p[2] @ np.append(world.mean(axis=0), 1.0) < 0:
-                p = -p
-        else:
-            ground = ~off_plane
+            candidate, cond = fit_projection(world, image, return_conditioning=True)
+            if cond >= cls.MIN_DLT_CONDITIONING or ground.sum() < 4:
+                p, source = candidate, "dlt6"
+                if p[2] @ np.append(world.mean(axis=0), 1.0) < 0:
+                    p = -p
+        if p is None:
             hmat = fit_homography(world[ground, :2], image[ground])
             p = projection_from_homography(hmat, image_size)
         cam = cls(projection=p, sport=profile)
+        cam.calibration_path = source
         cam.reprojection_error_px = float(
             np.sqrt(np.mean(np.sum((cam.project(world) - image) ** 2, axis=1)))
         )
@@ -233,10 +267,22 @@ class CourtCamera:
         return pts[:, :2] / pts[:, 2:3]
 
     def image_to_ground(self, pixels: np.ndarray) -> np.ndarray:
-        """Map (N,2) pixels on the ground (e.g. feet) to (N,2) court metres."""
+        """Map (N,2) pixels on the court plane (z=0) to (N,2) court metres.
+
+        For table tennis z=0 is the table top, not the floor the players
+        stand on, so use :meth:`image_to_plane` with the sport's
+        ``floor_z_m`` for anything standing on the floor (e.g. feet).
+        """
         pts = _to_h(np.atleast_2d(np.asarray(pixels, dtype=float)))
         g = np.linalg.solve(self.ground_homography, pts.T).T
         return g[:, :2] / g[:, 2:3]
+
+    def image_to_plane(self, pixels: np.ndarray, z: float = 0.0) -> np.ndarray:
+        """Map (N,2) pixels to (N,2) court metres on the horizontal plane at ``z``."""
+        if z == 0.0:
+            return self.image_to_ground(pixels)
+        lifted = self.lift_to_plane(pixels, np.array([0.0, 0.0, 1.0]), float(z))
+        return np.asarray(lifted)[:, :2]
 
     def rays(self, pixels: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Camera centre and unit ray directions (N,3) for (N,2) pixels."""

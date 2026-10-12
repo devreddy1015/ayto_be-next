@@ -3,7 +3,7 @@ import { Paper } from "../../src/theme"
 
 const SCREEN_OPTIONS = {
   headerShown: false,
-  contentStyle: { backgroundColor: Paper.bg },
+  contentStyle: { backgroundColor: Paper.canvas },
   animation: "fade",
 } as const
 

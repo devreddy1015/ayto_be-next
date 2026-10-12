@@ -1,254 +1,458 @@
-import { useCallback } from "react"
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
+import { useCallback, useMemo } from "react"
+import { StyleSheet, Text, View } from "react-native"
 import { router } from "expo-router"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Bars } from "../../src/components/data/Bars"
-import { Screen } from "../../src/components/riso/RisoSurface"
-import { SweepHeading } from "../../src/components/riso/SweepHeading"
-import { SessionCard } from "../../src/components/session/SessionCard"
+import Animated, { useAnimatedStyle } from "react-native-reanimated"
 import { SportSwitcher } from "../../src/components/sport/SportSwitcher"
-import Button from "../../src/components/ui/Button"
-import Card from "../../src/components/ui/Card"
-import { SectionHead } from "../../src/components/ui/SectionHead"
-import { Stat } from "../../src/components/ui/Stat"
-import { StatusTag, Tag } from "../../src/components/ui/Tag"
+import { Badge, Divider, Empty, Note, SectionHead } from "../../src/components/ui/Bits"
+import { FanDeck, type FanCard } from "../../src/components/ui/FanDeck"
+import { Icon, type IconName } from "../../src/components/ui/Icon"
+import { Reveal, useEnter } from "../../src/components/ui/Motion"
+import { Button, IconButton, Tappable } from "../../src/components/ui/Press"
+import { Counter, Stat } from "../../src/components/ui/Stat"
+import { Card, Page } from "../../src/components/ui/Surface"
 import { getDemo, type DemoBook } from "../../src/data/demo"
-import { drillsFor } from "../../src/data/drills"
 import { useSpeed, useSport } from "../../src/hooks/useSport"
-import { capitalize, dateline, greeting, shortDate } from "../../src/lib/format"
-import { LIVE_SPORT, STATUS_LABEL, strokeColor, strokeLabel, type Sport } from "../../src/sports"
+import { clock, shortDate } from "../../src/lib/format"
+import {
+  SPORTS,
+  getSport,
+  type AnalysisStatus,
+  type Sport,
+  type SportId,
+  type SportSection,
+} from "../../src/sports"
 import { useUserStore } from "../../src/store/userStore"
 import { Fonts, Paper, Radius, Space, Type } from "../../src/theme"
 
-const openSession = (id: string) => router.push({ pathname: "/session/[id]", params: { id } })
+/** The five sports on the deck. Badminton sits in the middle: the fan deals outwards from there. */
+const DECK: readonly SportId[] = ["table_tennis", "tennis", "badminton", "pickleball", "squash"]
+
+const SPORT_ICON: Record<SportId, IconName> = {
+  badminton: "zap",
+  tennis: "target",
+  table_tennis: "activity",
+  pickleball: "sparkle",
+  squash: "shield",
+  padel: "compare",
+  cricket: "trophy",
+  football: "play",
+  basketball: "trending",
+}
+
+/**
+ * How far along each sport is, in the athlete's words.
+ *
+ * Deliberately not `STATUS_LABEL`, which calls the first tier "Live analysis":
+ * the badminton pipeline passes its tests in the Python packages, but no clip
+ * has ever been through it inside this app, so "live" would overclaim.
+ */
+const READINESS: Record<AnalysisStatus, string> = {
+  live: "Built & tested",
+  beta: "In training",
+  soon: "On the roadmap",
+}
+
+const COUNT: Record<AnalysisStatus, number> = {
+  live: SPORTS.filter((sport) => sport.status === "live").length,
+  beta: SPORTS.filter((sport) => sport.status === "beta").length,
+  soon: SPORTS.filter((sport) => sport.status === "soon").length,
+}
+
+const TODAY: readonly { status: AnalysisStatus; icon: IconName }[] = [
+  { status: "live", icon: "check" },
+  { status: "beta", icon: "activity" },
+  { status: "soon", icon: "sparkle" },
+]
+
+/** The second line of the greeting, in the language of the sport you're on. */
+const ASK: Record<SportSection, string> = {
+  racket: "ready to hit?",
+  bat: "ready to middle one?",
+  field: "ready to play?",
+}
+
+const CHART_HEIGHT = 104
+
+interface Readout {
+  value: number
+  unit: string
+  decimals: number
+}
+
+/**
+ * Every sample session stores its headline number in km/h. Most sports read it
+ * as a speed and honour the km/h / mph preference, but basketball's headline
+ * metric is a release time — so take the unit from the sport rather than
+ * assuming, and keep the one decimal the generator uses for the slower sports.
+ */
+function readout(sport: Sport, kmh: number, speed: ReturnType<typeof useSpeed>): Readout {
+  const metric = sport.metrics[0]
+  const isSpeed = metric.unit === "km/h"
+  const value = isSpeed ? speed.format(kmh) : kmh
+  return {
+    value,
+    unit: isSpeed ? speed.unit : metric.unit,
+    decimals: Number.isInteger(value) ? 0 : 1,
+  }
+}
+
+/**
+ * Which direction counts as an improvement.
+ *
+ * Eight of the nine headline metrics are speeds, where a bigger number is the
+ * better result. Basketball's is a release time in seconds, where it is the
+ * other way round — so "best" and the week-on-week delta have to ask the
+ * metric rather than assume that up is good.
+ */
+function lowerIsBetter(sport: Sport): boolean {
+  return sport.metrics[0].unit === "s"
+}
 
 export default function HomeScreen() {
-  const insets = useSafeAreaInsets()
   const sport = useSport()
+  const { palette } = sport
   const profile = useUserStore((s) => s.profile)
   const setSport = useUserStore((s) => s.setSportPreference)
-  const demo = sport.status === "live" ? getDemo(sport.id) : null
-  const name = profile?.name.split(" ")[0]
+  const demo = getDemo(sport.id)
+
+  const name = profile?.name.trim().split(" ")[0] || "there"
+
+  const deck = useMemo<FanCard[]>(
+    () =>
+      DECK.map((id) => {
+        const card = getSport(id)
+        return {
+          key: card.id,
+          title: card.name,
+          caption: READINESS[card.status],
+          icon: SPORT_ICON[card.id],
+          palette: card.palette,
+          onPress: () => setSport(card.id),
+        }
+      }),
+    [setSport],
+  )
 
   return (
-    <Screen palette={sport.palette}>
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + Space.md }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Masthead */}
-        <View style={styles.masthead}>
-          <View>
-            <Text style={styles.wordmark}>
-              Ayto <Text style={[Type.kicker, { color: sport.palette.ink }]}>SportIQ</Text>
-            </Text>
-            <Text style={Type.kicker}>
-              {dateline()} · {greeting()}
-              {name ? `, ${name}` : ""}
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => router.push("/profile")}
-            accessibilityRole="button"
-            accessibilityLabel="Profile"
-            style={[styles.avatar, { borderColor: sport.palette.plate }]}
-          >
-            <Text style={[styles.avatarText, { color: sport.palette.ink }]}>{(name ?? "A").charAt(0).toUpperCase()}</Text>
-          </Pressable>
+    <Page palette={palette} bottomInset={96}>
+      <Reveal style={styles.head}>
+        <View
+          style={styles.greeting}
+          accessible
+          accessibilityRole="header"
+          accessibilityLabel={`Hi ${name}, ${ASK[sport.section]}`}
+        >
+          <Text style={Type.hero}>Hi {name},</Text>
+          <Text style={[Type.hero, { color: palette.deep }]}>{ASK[sport.section]}</Text>
         </View>
+        <IconButton
+          name="settings"
+          label="Settings"
+          palette={palette}
+          onPress={() => router.push("/settings")}
+        />
+      </Reveal>
 
-        <SportSwitcher activeId={sport.id} onSelect={setSport} />
+      {/* The deck deals itself out on a spring — a Reveal on top would fight it.
+          It also runs full-bleed, so the outermost cards clear the gutter. */}
+      <FanDeck cards={deck} delay={140} style={styles.deck} />
 
-        {/* Hero */}
-        <View style={styles.hero}>
-          <Text style={[Type.kicker, styles.heroKicker, { color: sport.palette.ink }]}>
-            {sport.name} · {sport.code}
-          </Text>
-          <SweepHeading key={sport.id} lines={sport.heading} palette={sport.palette} size="hero" />
-          <Text style={[Type.deck, styles.deck]}>{sport.tagline}</Text>
-          <StatusTag status={sport.status} palette={sport.palette} />
+      {/* The rail carries its own gutter, so it sits outside the page padding. */}
+      <Reveal index={2} style={styles.rail}>
+        <SportSwitcher />
+      </Reveal>
+
+      {demo ? (
+        <>
+          <Reveal index={3} style={styles.block}>
+            <SectionHead
+              title="Last session"
+              palette={palette}
+              action={{ label: "All", onPress: () => router.push("/(tabs)/history") }}
+            />
+            <LastSession sport={sport} demo={demo} />
+          </Reveal>
+
+          <Reveal index={4} style={styles.block}>
+            <SectionHead
+              title="This week"
+              caption={`${sport.metrics[0].label}, day by day`}
+              palette={palette}
+            />
+            <Week sport={sport} demo={demo} />
+          </Reveal>
+        </>
+      ) : (
+        <Reveal index={3} style={styles.block}>
+          <Empty
+            title="No sample sessions for this sport yet."
+            caption="Pick another sport from the deck above."
+            icon="grid"
+            palette={palette}
+          />
+        </Reveal>
+      )}
+
+      <Reveal index={5} style={styles.block}>
+        <SectionHead
+          title="What Ayto can do today"
+          caption={`Across all ${SPORTS.length} sports`}
+          palette={palette}
+        />
+        <View style={styles.tiles}>
+          {TODAY.map((tier, i) => (
+            <View
+              key={tier.status}
+              style={styles.tileWrap}
+              accessible
+              accessibilityLabel={`${COUNT[tier.status]} sports ${READINESS[tier.status].toLowerCase()}`}
+            >
+              <Card padded={false} elevation="sm" style={styles.tile}>
+                <View style={[styles.tileIcon, { backgroundColor: palette.soft }]}>
+                  <Icon name={tier.icon} size={15} color={palette.ink} weight={2.2} />
+                </View>
+                <Counter value={COUNT[tier.status]} delay={340 + i * 90} style={Type.metric} />
+                <Text style={styles.tileLabel}>{READINESS[tier.status]}</Text>
+              </Card>
+            </View>
+          ))}
         </View>
+        <Note palette={palette}>
+          Built &amp; tested means the tracking, pose and stroke code passes its tests in our Python
+          packages. No footage has been through it inside this app yet, so every number on this
+          screen is sample data.
+        </Note>
+      </Reveal>
 
-        {demo ? <LiveEdition sport={sport} demo={demo} /> : <LabEdition sport={sport} onSwitch={setSport} />}
-
-        <DrillOfTheDay sport={sport} />
-      </ScrollView>
-    </Screen>
+      <Reveal index={6} style={styles.cta}>
+        <Button
+          label="Record a session"
+          palette={palette}
+          size="lg"
+          icon="record"
+          full
+          onPress={() => router.push("/record")}
+        />
+        <Text style={[Type.small, styles.ctaNote]}>Your footage stays on this phone.</Text>
+      </Reveal>
+    </Page>
   )
 }
 
-/** Live sports: real numbers from the latest session. */
-function LiveEdition({ sport, demo }: { sport: Sport; demo: DemoBook }) {
-  const { format, unit } = useSpeed()
+/** The most recent sample session, as one tappable card. */
+function LastSession({ sport, demo }: { sport: Sport; demo: DemoBook }) {
+  const speed = useSpeed()
   const { palette } = sport
-  const [last, prev] = demo.sessions
-  const change = prev ? ((last.max_speed_kmh - prev.max_speed_kmh) / prev.max_speed_kmh) * 100 : null
-  const weekly = demo.weekly.map((d) => format(d.kmh))
-  const best = Math.max(...weekly)
+  const [last, previous] = demo.sessions
+  const peak = readout(sport, last.max_speed_kmh, speed)
+  const average = readout(sport, last.avg_speed_kmh, speed)
+
+  // Sample books run best-session-first, so this lands positive — but it is
+  // still computed, because each sport generates its own numbers.
+  const change = previous
+    ? ((last.max_speed_kmh - previous.max_speed_kmh) / previous.max_speed_kmh) * 100
+    : null
+  // The delta's arrow means "went the right way", not "went up".
+  const improved = change !== null && (lowerIsBetter(sport) ? change <= 0 : change >= 0)
+
+  const open = useCallback(
+    () => router.push({ pathname: "/session/[id]", params: { id: last.id } }),
+    [last.id],
+  )
 
   return (
-    <>
-      <Card accent={palette.plate} style={styles.lastCard}>
-        <Text style={Type.kicker}>Last session · {shortDate(last.created_at)}</Text>
+    <Tappable onPress={open} label={`Open the session from ${shortDate(last.created_at)}`}>
+      <Card elevation="lg">
+        <View style={styles.cardHead}>
+          <Text style={Type.kicker}>{shortDate(last.created_at)}</Text>
+          <Badge label="Sample" tone="accent" palette={palette} dot />
+        </View>
+
         <Stat
           label={sport.metrics[0].label}
-          value={format(last.max_speed_kmh)}
-          unit={unit}
+          value={peak.value}
+          unit={peak.unit}
+          decimals={peak.decimals}
           size="xl"
-          color={palette.ink}
+          color={palette.deep}
+          palette={palette}
+          delay={160}
+          // The sign is spelled out rather than left to the arrow and the
+          // colour, which a screen reader never sees.
           delta={
             change === null
               ? undefined
-              : { text: `${Math.abs(change).toFixed(1)}% vs previous`, up: change >= 0, color: change >= 0 ? palette.ink3 : Paper.danger }
+              : {
+                  text: `${change >= 0 ? "+" : ""}${change.toFixed(1)}% vs ${shortDate(previous.created_at)}`,
+                  up: improved,
+                }
           }
-          style={styles.lastStat}
+          style={styles.peak}
         />
-        <View style={styles.row3}>
-          <Stat label="Average" value={format(last.avg_speed_kmh)} unit={unit} size="sm" style={styles.flex} />
-          <Stat label={`${sport.strokeNoun}s`} value={last.strokes_count} size="sm" style={styles.flex} />
-          <Stat label="Form" value={demo.report.form} unit="/100" size="sm" style={styles.flex} />
+
+        <Divider style={styles.cardRule} />
+
+        <View style={styles.statRow}>
+          <Stat
+            label="Average"
+            value={average.value}
+            unit={average.unit}
+            decimals={average.decimals}
+            size="sm"
+            delay={240}
+            style={styles.statCell}
+          />
+          <Stat
+            label={sport.strokeNounPlural}
+            value={last.strokes_count}
+            size="sm"
+            delay={300}
+            style={styles.statCell}
+          />
+          <Stat label="Duration" value={clock(last.duration_seconds)} size="sm" style={styles.statCell} />
         </View>
-        <Button
-          label="Record a session"
-          trailing="●"
-          palette={palette}
-          size="lg"
-          full
-          onPress={() => router.push("/record")}
-          accessibilityHint="Opens the camera"
-          style={styles.record}
-        />
-        <View style={styles.row2}>
-          <Button label="Drills" palette={palette} variant="outline" size="sm" full style={styles.flex} onPress={() => router.push("/drills")} />
-          <Button label="Vs pro" palette={palette} variant="outline" size="sm" full style={styles.flex} onPress={() => router.push("/compare")} />
+
+        <View style={styles.open}>
+          <Text style={[Type.label, { color: palette.ink }]}>Open this session</Text>
+          <Icon name="chevronRight" size={15} color={palette.ink} weight={2.2} />
         </View>
       </Card>
-
-      <SectionHead
-        kicker={`02 / ${sport.metrics[0].label}`}
-        title="This week"
-        palette={palette}
-        right={<Text style={[Type.kicker, { color: palette.ink3 }]}>Best {best}</Text>}
-      />
-      <Bars
-        values={weekly}
-        labels={demo.weekly.map((d) => d.day)}
-        max={best * 1.1}
-        color={palette.plate}
-        highlight={{ threshold: best, color: palette.ink3 }}
-        accessibilityLabel={`Top ${sport.metrics[0].label.toLowerCase()} per day this week, best ${best} ${unit}`}
-      />
-
-      <SectionHead
-        kicker="03 / Archive"
-        title="Recent sessions"
-        palette={palette}
-        right={
-          <Pressable onPress={() => router.push("/history")} accessibilityRole="link" hitSlop={10}>
-            <Text style={[Type.kicker, { color: palette.ink }]}>All →</Text>
-          </Pressable>
-        }
-      />
-      {demo.sessions.slice(0, 3).map((session) => (
-        <SessionCard key={session.id} session={session} onPress={openSession} />
-      ))}
-    </>
+    </Tappable>
   )
 }
 
-/** Sports in training or on the roadmap: say so plainly, show what's coming, no numbers. */
-function LabEdition({ sport, onSwitch }: { sport: Sport; onSwitch: (id: Sport["id"]) => void }) {
+/** Seven sample days as columns that grow in left to right. */
+function Week({ sport, demo }: { sport: Sport; demo: DemoBook }) {
+  const speed = useSpeed()
   const { palette } = sport
-  const switchToLive = useCallback(() => onSwitch(LIVE_SPORT.id), [onSwitch])
-  return (
-    <>
-      <Card accent={palette.plate} style={styles.lastCard}>
-        <Text style={Type.kicker}>Status · {STATUS_LABEL[sport.status]}</Text>
-        <Text style={[Type.heading, styles.labTitle]}>{sport.name} analysis isn't live yet.</Text>
-        <Text style={Type.small}>{sport.statusNote}</Text>
-        <Button
-          label={`Switch to ${LIVE_SPORT.name}`}
-          trailing="→"
-          palette={palette}
-          full
-          onPress={switchToLive}
-          accessibilityHint={`${LIVE_SPORT.name} has full analysis today`}
-          style={styles.record}
-        />
-        <Button label="All sports" palette={palette} variant="outline" size="sm" full onPress={() => router.push("/sports")} />
-      </Card>
+  const days = demo.weekly.map((entry) => ({ day: entry.day, ...readout(sport, entry.kmh, speed) }))
+  const high = Math.max(...days.map((d) => d.value))
+  const low = Math.min(...days.map((d) => d.value))
+  // One precision for the whole row, so the labels line up.
+  const places = days.some((d) => d.decimals === 1) ? 1 : 0
+  // Column heights follow the value, but the best day is whichever end of the
+  // range the metric rewards — for a release time that is the shortest column.
+  const inverted = lowerIsBetter(sport)
+  const bestValue = inverted ? low : high
 
-      <SectionHead kicker="02 / Planned" title="What we'll measure" palette={palette} />
-      <View style={styles.planned}>
-        {sport.metrics.map((metric, i) => (
-          <View key={metric.id} style={[styles.plannedRow, i > 0 && styles.plannedRule]}>
-            <Text style={[Type.body, styles.flex]}>{metric.label}</Text>
-            <Text style={styles.plannedValue}>— {metric.unit}</Text>
-          </View>
-        ))}
+  // Floored well above zero: a week of speeds varies by a few per cent, and a
+  // true zero baseline would draw seven columns of identical height. The note
+  // under the chart says so, and every column is labelled with its value.
+  const ratio = (value: number) => (high === low ? 1 : 0.3 + 0.7 * ((value - low) / (high - low)))
+
+  return (
+    <Card elevation="md">
+      <View style={styles.cardHead}>
+        <Text style={Type.subhead}>
+          Best {bestValue.toFixed(places)} {days[0].unit}
+        </Text>
+        <Badge label="Sample" tone="accent" palette={palette} dot />
       </View>
 
-      <SectionHead kicker={`03 / ${sport.strokes.length} classes`} title={`${capitalize(sport.strokeNoun)}s we'll read`} palette={palette} />
-      <View style={styles.tags}>
-        {sport.strokes.map((stroke) => (
-          <Tag key={stroke.id} label={stroke.label} color={strokeColor(sport, stroke.id)} variant="outline" />
-        ))}
-      </View>
-    </>
-  )
-}
-
-function DrillOfTheDay({ sport }: { sport: Sport }) {
-  const drills = drillsFor(sport.id)
-  if (drills.length === 0) return null
-  const drill = drills[new Date().getDate() % drills.length]
-  const { palette } = sport
-  return (
-    <>
-      <SectionHead kicker="04 / Practice" title="Drill of the day" palette={palette} />
-      <Pressable
-        onPress={() => router.push("/drills")}
-        accessibilityRole="button"
-        accessibilityHint="Opens the drill book"
-        style={({ pressed }) => [styles.drill, pressed && { backgroundColor: Paper.raised }]}
+      {/* Keyed by sport so switching sports re-deals the columns rather than
+          snapping them to their new heights. */}
+      <View
+        key={sport.id}
+        style={styles.chart}
+        accessible
+        accessibilityLabel={`${sport.metrics[0].label} per day in ${days[0].unit}: ${days
+          .map((d) => `${d.day} ${d.value.toFixed(places)}`)
+          .join(", ")}`}
       >
-        <View style={styles.drillTop}>
-          <Tag label={strokeLabel(sport, drill.stroke)} color={strokeColor(sport, drill.stroke)} />
-          <Text style={Type.kicker}>
-            {drill.minutes} min · {drill.level}
-          </Text>
-        </View>
-        <Text style={[Type.heading, styles.drillTitle]}>{drill.title}</Text>
-        <Text style={Type.small}>{drill.description}</Text>
-        <Text style={[Type.kicker, styles.drillLink, { color: palette.ink }]}>Open the drill book →</Text>
-      </Pressable>
-    </>
+        {days.map((d, i) => (
+          <Column
+            key={d.day}
+            day={d.day}
+            label={d.value.toFixed(places)}
+            ratio={ratio(d.value)}
+            color={palette.accent}
+            best={d.value === bestValue}
+            delay={260 + i * 70}
+          />
+        ))}
+      </View>
+
+      <Text style={[Type.small, styles.chartNote]}>
+        Columns are scaled to this week, not to zero.
+        {inverted ? " A shorter column is the better result for this metric." : null}
+      </Text>
+    </Card>
+  )
+}
+
+function Column({
+  day,
+  label,
+  ratio,
+  color,
+  best,
+  delay,
+}: {
+  day: string
+  label: string
+  ratio: number
+  color: string
+  best: boolean
+  delay: number
+}) {
+  const t = useEnter(delay)
+  const grow = useAnimatedStyle(() => ({ height: CHART_HEIGHT * ratio * t.value }))
+
+  return (
+    <View style={styles.column}>
+      <Text style={[styles.columnValue, best && styles.columnStrong]} numberOfLines={1}>
+        {label}
+      </Text>
+      <View style={styles.columnTrack}>
+        <Animated.View style={[styles.columnFill, { backgroundColor: color }, !best && styles.columnFade, grow]} />
+      </View>
+      <Text style={[styles.columnDay, best && styles.columnStrong]} numberOfLines={1}>
+        {day}
+      </Text>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: Space.gutter, paddingBottom: Space.xxxl, maxWidth: 720, width: "100%", alignSelf: "center" },
-  flex: { flex: 1 },
-  masthead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: Space.lg },
-  wordmark: { fontFamily: Fonts.display, fontSize: 24, lineHeight: 28, color: Paper.text },
-  avatar: { width: 40, height: 40, borderWidth: 1.5, alignItems: "center", justifyContent: "center", borderRadius: Radius.sm },
-  avatarText: { fontFamily: Fonts.monoBold, fontSize: 16 },
-  hero: { marginTop: Space.xxl, marginBottom: Space.xl, gap: Space.md },
-  heroKicker: { marginBottom: Space.xs },
-  deck: { maxWidth: 460 },
-  lastCard: { gap: Space.sm },
-  lastStat: { marginTop: Space.sm },
-  row3: { flexDirection: "row", gap: Space.md, marginTop: Space.md, paddingTop: Space.md, borderTopWidth: 1, borderTopColor: Paper.rule },
-  row2: { flexDirection: "row", gap: Space.md, marginTop: Space.xs },
-  record: { marginTop: Space.lg },
-  labTitle: { marginTop: Space.xs },
-  planned: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: Paper.rule },
-  plannedRow: { flexDirection: "row", alignItems: "center", paddingVertical: Space.md },
-  plannedRule: { borderTopWidth: 1, borderTopColor: Paper.rule },
-  plannedValue: { fontFamily: Fonts.mono, fontSize: 12, color: Paper.faint },
-  tags: { flexDirection: "row", flexWrap: "wrap", gap: Space.sm },
-  drill: { backgroundColor: Paper.stock, borderWidth: 1, borderColor: Paper.rule, borderRadius: Radius.sm, padding: Space.lg, gap: Space.sm },
-  drillTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  drillTitle: { marginTop: Space.xs },
-  drillLink: { marginTop: Space.sm },
+  head: { flexDirection: "row", alignItems: "flex-start", gap: Space.md },
+  greeting: { flex: 1 },
+  deck: { marginHorizontal: -Space.gutter, marginTop: Space.lg },
+  rail: { marginHorizontal: -Space.gutter, marginTop: Space.xs },
+  block: { marginTop: Space.xxl, gap: Space.md },
+  cardHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: Space.sm },
+  peak: { marginTop: Space.lg },
+  cardRule: { marginVertical: Space.lg },
+  statRow: { flexDirection: "row", gap: Space.md },
+  statCell: { flex: 1 },
+  open: { flexDirection: "row", alignItems: "center", gap: Space.xxs, marginTop: Space.lg },
+  chart: { flexDirection: "row", alignItems: "flex-end", gap: Space.xs, marginTop: Space.lg },
+  column: { flex: 1, alignItems: "center", gap: Space.xs },
+  columnTrack: {
+    height: CHART_HEIGHT,
+    width: "100%",
+    justifyContent: "flex-end",
+    backgroundColor: Paper.sunken,
+    borderRadius: Radius.xs,
+    overflow: "hidden",
+  },
+  columnFill: { width: "100%", borderRadius: Radius.xs },
+  columnFade: { opacity: 0.32 },
+  columnValue: { fontFamily: Fonts.bodySemi, fontSize: 10.5, lineHeight: 14, color: Paper.faint },
+  columnDay: { fontFamily: Fonts.bodyMed, fontSize: 11, lineHeight: 15, color: Paper.faint },
+  columnStrong: { color: Paper.ink },
+  chartNote: { marginTop: Space.md },
+  tiles: { flexDirection: "row", gap: Space.sm },
+  tileWrap: { flex: 1 },
+  tile: { padding: Space.md, gap: Space.xxs, alignItems: "flex-start" },
+  tileIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: Space.xs,
+  },
+  tileLabel: { fontFamily: Fonts.bodyMed, fontSize: 12, lineHeight: 16, color: Paper.muted },
+  cta: { marginTop: Space.xxl, gap: Space.md },
+  ctaNote: { textAlign: "center" },
 })

@@ -56,3 +56,6 @@ runs/
 Thumbs.db
 
 /generated/prisma
+
+# Single-file web build (regenerate with expo export + the inline step)
+packages/mobile-app/ayto-app.html

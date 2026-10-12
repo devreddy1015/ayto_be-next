@@ -1,10 +1,14 @@
 """Pose keypoint extraction: RTMPose (preferred) or MediaPipe BlazePose.
 
-RTMPose is far more accurate than BlazePose on COCO single-person val
-(RTMPose-t 72.1 / -s 77.1 / -m 82.4 AP vs BlazePose-Full 35.4 AP) and fast on
-phones (RTMPose-s 13.9 ms FP16 on a Snapdragon 865, ncnn). It runs through the
-optional ``rtmlib`` package (ONNX Runtime; models download on first use).
-BlazePose stays as the fallback when rtmlib isn't installed.
+RTMPose reports much higher accuracy than BlazePose on COCO single-person val
+(RTMPose-t 72.1 / -s 77.1 / -m 82.4 AP vs BlazePose-Full 35.4 AP, and
+RTMPose-s 13.9 ms FP16 on a Snapdragon 865, ncnn). Those figures are
+[primary, unresolved]: adversarial verification could not confirm the
+comparison, and they were measured with COCO models behind an RTMDet-nano
+detector, not the YOLOX presets rtmlib ships. No figure here was measured on
+Ayto's own footage or on the target device. It runs through the optional
+``rtmlib`` package (ONNX Runtime; models download on first use). BlazePose
+stays as the fallback when rtmlib isn't installed.
 
 Whatever the backend, frames come out in the 33-landmark BlazePose layout,
 ``(33, 4)`` rows of ``[x, y, z, visibility]`` with x, y normalised to [0, 1],
@@ -71,15 +75,25 @@ def coco17_to_blazepose(
     return out
 
 
-def _select_main_person(keypoints: np.ndarray, scores: np.ndarray) -> int:
+# COCO-17 shoulders and hips. Without these the torso scale is meaningless,
+# so normalisation and wrist velocity produce noise.
+_TORSO_JOINTS = (5, 6, 11, 12)
+
+
+def _select_main_person(keypoints: np.ndarray, scores: np.ndarray) -> int | None:
     """Index of the player to analyse: the largest confident skeleton.
 
     With the camera behind the near baseline that's the near-court player.
+    Returns None when no candidate is confident enough to use: rtmlib falls
+    back to a full-image box when its detector finds nobody, so "a skeleton
+    came back" does not mean "somebody is there".
     """
-    best, best_area = 0, -1.0
+    best, best_area = None, -1.0
     for i, (kp, sc) in enumerate(zip(keypoints, scores)):
         good = kp[sc > 0.3]
         if len(good) < 5:
+            continue
+        if len(sc) > max(_TORSO_JOINTS) and np.min(sc[list(_TORSO_JOINTS)]) <= 0.3:
             continue
         span = good.max(axis=0) - good.min(axis=0)
         area = float(span[0] * span[1])
@@ -94,8 +108,10 @@ class PoseExtractor:
     Args:
         backend: ``"auto"`` (RTMPose if rtmlib is installed, else MediaPipe),
             ``"rtmpose"`` or ``"mediapipe"``.
-        rtmpose_mode: rtmlib preset: ``"lightweight"`` (RTMPose-t class),
-            ``"balanced"`` (-m class) or ``"performance"``.
+        rtmpose_mode: rtmlib preset: ``"lightweight"`` (YOLOX-tiny +
+            RTMPose-s), ``"balanced"`` (YOLOX-m + RTMPose-m) or
+            ``"performance"`` (YOLOX-x + RTMPose-x, 384x288). RTMPose-t is
+            not reachable through rtmlib's presets.
         static_image_mode: MediaPipe only; treat frames independently.
         min_detection_confidence: Detector threshold (MediaPipe).
         min_tracking_confidence: Tracker threshold (MediaPipe).
@@ -119,14 +135,22 @@ class PoseExtractor:
         if backend in ("auto", "rtmpose"):
             try:
                 from rtmlib import Body
-
-                self._impl = Body(mode=rtmpose_mode, backend="onnxruntime", device=device)
-                self.backend = "rtmpose"
             except ImportError:
                 if backend == "rtmpose":
                     raise ImportError(
                         "rtmlib is required for RTMPose: pip install rtmlib"
                     ) from None
+            else:
+                try:
+                    # Body() downloads its ONNX weights on first use, so this
+                    # can raise URLError, OSError, BadZipFile or an
+                    # onnxruntime error, none of which are ImportError.
+                    self._impl = Body(mode=rtmpose_mode, backend="onnxruntime", device=device)
+                    self.backend = "rtmpose"
+                except Exception as e:
+                    if backend == "rtmpose":
+                        raise RuntimeError(f"RTMPose backend unavailable: {e}") from e
+                    print(f"RTMPose unavailable ({e}); falling back to MediaPipe")
 
         if self.backend is None and backend in ("auto", "mediapipe"):
             self._init_mediapipe(
@@ -156,18 +180,25 @@ class PoseExtractor:
             except Exception:
                 pass
         if hasattr(mp, "tasks"):
-            from mediapipe.tasks import python as mp_python
-            from mediapipe.tasks.python import vision
+            try:
+                from mediapipe.tasks import python as mp_python
+                from mediapipe.tasks.python import vision
 
-            options = vision.PoseLandmarkerOptions(
-                base_options=mp_python.BaseOptions(model_asset_buffer=_default_pose_model()),
-                running_mode=vision.RunningMode.IMAGE,
-                num_poses=1,
-                min_pose_detection_confidence=det_conf,
-                min_tracking_confidence=track_conf,
-            )
-            self._impl = vision.PoseLandmarker.create_from_options(options)
-            self.backend = "mediapipe-tasks"
+                # _default_pose_model() downloads the .task bundle.
+                options = vision.PoseLandmarkerOptions(
+                    base_options=mp_python.BaseOptions(
+                        model_asset_buffer=_default_pose_model(),
+                    ),
+                    running_mode=vision.RunningMode.IMAGE,
+                    num_poses=1,
+                    min_pose_detection_confidence=det_conf,
+                    min_tracking_confidence=track_conf,
+                )
+                self._impl = vision.PoseLandmarker.create_from_options(options)
+                self.backend = "mediapipe-tasks"
+            except Exception:
+                # Caller raises "No pose backend available".
+                return
 
     def extract_raw(self, frame: np.ndarray) -> np.ndarray | None:
         """Return the main player's (33, 4) landmarks for a BGR frame, or None."""
@@ -176,6 +207,8 @@ class PoseExtractor:
             if keypoints is None or len(keypoints) == 0:
                 return None
             i = _select_main_person(np.asarray(keypoints), np.asarray(scores))
+            if i is None:
+                return None  # nobody in frame; smooth_sequence carries forward
             h, w = frame.shape[:2]
             return coco17_to_blazepose(np.asarray(keypoints[i]), np.asarray(scores[i]), (w, h))
 

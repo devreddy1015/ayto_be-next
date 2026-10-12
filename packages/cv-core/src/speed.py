@@ -160,11 +160,28 @@ class SpeedCalculator:
         """Calibrate the pixel scale from the court width in pixels."""
         self.calibration.calibrate_from_court_width(pixel_width, real_width_meters)
 
-    def compute_speed(self, pos: tuple[float, ...]) -> float | None:
+    def break_track(self) -> None:
+        """Forget the previous position, so the next one only seeds the track.
+
+        Call this whenever the tracked object is lost or re-acquired. Without
+        it the jump from the old track to the new one is scored as a single
+        frame of motion and clamped to ``max_speed_kmh``.
+        """
+        self._prev_pos = None
+        self._smoothed_speed = 0.0
+
+    def compute_speed(self, pos: tuple[float, ...], frames: int = 1) -> float | None:
         """Add a position and return the smoothed speed in km/h.
 
         Raw speeds are clamped to ``max_speed_kmh``; anything below
         MIN_MEANINGFUL_SPEED_KMH counts as stationary.
+
+        Args:
+            pos: The new position, in the same units as the last one.
+            frames: How many frames have passed since the previous position.
+                Live capture drops frames when the pipeline falls behind, and
+                scoring that displacement as one frame's motion would inflate
+                the speed in proportion to the number of frames dropped.
 
         Returns:
             Smoothed speed, or None if uncalibrated or this is the first position.
@@ -176,7 +193,7 @@ class SpeedCalculator:
             return None
 
         dist = math.dist(pos, self._prev_pos) / self.calibration.pixels_per_meter
-        speed_kmh = min(dist * self.fps * KMH_PER_MS, self.max_speed_kmh)
+        speed_kmh = min(dist * self.fps / max(1, frames) * KMH_PER_MS, self.max_speed_kmh)
         if speed_kmh < MIN_MEANINGFUL_SPEED_KMH:
             speed_kmh = 0.0
 
@@ -257,7 +274,8 @@ def fit_launch_speed(
         positions_m: (N, D) metric positions, D = 2 or 3.
         drag_k: Quadratic-drag constant (1/m) of the projectile.
         max_speed_kmh: Upper bound of the search.
-        hit_time_s: If given, extrapolate the fitted speed back to this time.
+        hit_time_s: If given, the returned speed is the speed at this time
+            rather than at the first usable sample.
         window_s: Length of flight to use after the first sample.
 
     Returns:
@@ -281,8 +299,15 @@ def fit_launch_speed(
         direction = -direction
     s = (p - p[0]) @ direction
 
+    # Fit the speed at the hit directly by shifting the model's clock back to
+    # it, rather than fitting at the first sample and extrapolating. The
+    # closed-form extrapolation v0 / (1 - k v0 tau) blows up as k v0 tau -> 1,
+    # so it had to be switched off above 0.9, which made the reported speed
+    # jump by ~10x across that threshold and then fall back.
+    tau = max(0.0, t_first - hit_time_s) if hit_time_s is not None else 0.0
+
     def sse(v0: float) -> float:
-        model = _drag_distance(t, v0, drag_k)
+        model = _drag_distance(t + tau, v0, drag_k) - _drag_distance(tau, v0, drag_k)
         s0 = float(np.mean(s - model))
         return float(np.sum((s - s0 - model) ** 2))
 
@@ -299,11 +324,6 @@ def fit_launch_speed(
             a = c
     v0 = (a + b) / 2
     rms = math.sqrt(sse(v0) / len(t))
-
-    if hit_time_s is not None:
-        tau = t_first - hit_time_s
-        if 0 < tau and drag_k * v0 * tau < 0.9:
-            v0 = v0 / (1 - drag_k * v0 * tau)
     return LaunchFit(speed_ms=float(min(v0, hi)), rms_m=rms, n_points=len(t))
 
 
@@ -396,6 +416,42 @@ def simulate_flight(
             t += h
         out[i] = (x, y, z)
     return out
+
+
+def first_bounce_index(
+    points_m: np.ndarray,
+    floor_z_m: float = 0.0,
+    max_height_m: float = 0.5,
+    min_rise_m: float = 0.05,
+) -> int | None:
+    """Index of the first bounce in a lifted 3D flight, or None.
+
+    A bounce is the first low point where the object stops falling and
+    starts rising again. A single gravity + drag arc cannot span it, so a
+    ball-sport flight must be fitted only up to this index.
+
+    Note this finds floor bounces, not wall rebounds (squash, padel), where
+    the vertical velocity does not flip.
+
+    Args:
+        points_m: (N, 3) metric positions, oldest first.
+        floor_z_m: Height of the floor in the court frame.
+        max_height_m: Only look for a bounce below this height above the floor.
+        min_rise_m: How far the object must come back up to count as a bounce.
+    """
+    pts = np.asarray(points_m, dtype=float)
+    if pts.ndim != 2 or pts.shape[1] < 3 or len(pts) < 5:
+        return None
+    z = pts[:, 2]
+    for i in range(2, len(z) - 2):
+        if not np.isfinite(z[i - 1:i + 3]).all():
+            continue
+        falling = z[i - 1] > z[i] and z[i - 2] > z[i - 1]
+        low = z[i] < floor_z_m + max_height_m
+        rising = np.nanmax(z[i + 1:i + 5]) - z[i] >= min_rise_m
+        if falling and low and rising:
+            return i
+    return None
 
 
 def fit_flight_physics(

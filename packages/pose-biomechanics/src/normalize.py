@@ -120,6 +120,7 @@ class OneEuroFilter:
         return self._x.copy()
 
     def reset(self) -> None:
+        """Forget the filter state, so the next sample starts a new track."""
         self._x = self._dx = None
 
 
@@ -128,6 +129,7 @@ def smooth_sequence(
     alpha: float = TEMPORAL_SMOOTH_ALPHA,
     method: str = "one_euro",
     fps: float = 30.0,
+    max_carry_frames: int = 3,
 ) -> list[np.ndarray | None]:
     """Reduce keypoint jitter over time.
 
@@ -135,11 +137,18 @@ def smooth_sequence(
     the raw frame. A missing frame (``None``) carries the previous smoothed
     value forward, so one dropped detection doesn't create a discontinuity.
 
+    Carry-forward stops after ``max_carry_frames``. Beyond that the player is
+    gone rather than briefly occluded, and holding a stale pose would report
+    the gap as a detected pose and turn the re-acquisition into a one-frame
+    velocity spike (a false stroke at full confidence).
+
     Args:
         keypoints_sequence: List of (33, 4) arrays or None.
         alpha: EMA factor, used only with ``method="ema"``.
         method: ``"one_euro"`` (default) or ``"ema"``.
         fps: Frame rate, used by the One-Euro filter.
+        max_carry_frames: Longest run of missing frames to hold the last pose
+            through. Longer gaps stay None and restart the filter.
 
     Returns:
         Smoothed list of the same length and shape.
@@ -149,11 +158,20 @@ def smooth_sequence(
     euro = OneEuroFilter(fps) if method == "one_euro" else None
     smoothed: list[np.ndarray | None] = []
     prev: np.ndarray | None = None
+    gap = 0
 
     for kps in keypoints_sequence:
         if kps is None:
-            smoothed.append(prev.copy() if prev is not None else None)
+            gap += 1
+            if prev is not None and gap <= max_carry_frames:
+                smoothed.append(prev.copy())
+            else:
+                smoothed.append(None)
+                prev = None
+                if euro is not None:
+                    euro.reset()
             continue
+        gap = 0
         current = kps.copy()
         if euro is not None:
             current[:, :3] = euro(kps[:, :3])
@@ -169,9 +187,12 @@ def normalize_and_smooth(
     alpha: float = TEMPORAL_SMOOTH_ALPHA,
     method: str = "one_euro",
     fps: float = 30.0,
+    max_carry_frames: int = 3,
 ) -> list[np.ndarray | None]:
     """Normalize then temporally smooth a full sequence (the model-input pipeline)."""
-    return smooth_sequence(normalize_sequence(keypoints_sequence), alpha, method, fps)
+    return smooth_sequence(
+        normalize_sequence(keypoints_sequence), alpha, method, fps, max_carry_frames,
+    )
 
 
 class PoseNormalizer:
