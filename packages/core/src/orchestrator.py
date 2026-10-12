@@ -104,7 +104,7 @@ def _run_real_pipeline(
         kps_seq = normalize_and_smooth(raw_kps, fps=fps)
         angles_seq = JointAngleComputer().compute_angle_sequence(kps_seq)
         pose_events = StrokeDetector(fps=fps).detect(kps_seq)
-    except (ImportError, RuntimeError) as e:
+    except Exception as e:  # noqa: BLE001 - never let pose kill the analysis
         print(f"Pose pipeline unavailable: {e}")
         raw_kps = []
 
@@ -119,7 +119,9 @@ def _run_real_pipeline(
         frames = cv_pipe.results
         turns = [r.frame for r in frames if r.stroke_detected]
         visible = np.array([r.confidence > 0 for r in frames])
-        hits = fuse_hits(pose_events, turns, fps, shuttle_visible=visible)
+        speed = np.array([r.speed_kmh for r in frames], dtype=float)
+        hits = fuse_hits(pose_events, turns, fps, shuttle_visible=visible,
+                         shuttle_speed=speed)
 
         anchors: dict[int, tuple[float, float]] = {}
         if cv_pipe.camera is not None and cv_pipe.frame_size is not None:
@@ -128,7 +130,11 @@ def _run_real_pipeline(
                 kp = raw_kps[hit.frame] if hit.frame < len(raw_kps) else None
                 if hit.hitter == "player" and kp is not None and kp[[27, 28], 3].min() > 0.3:
                     feet = kp[[27, 28], :2].mean(axis=0) * (w, h)
-                    anchors[hit.frame] = tuple(cv_pipe.camera.image_to_ground(feet[None])[0])
+                    # The feet are on the floor, which is not the court plane
+                    # for table tennis (z=0 is the table top, 0.76 m up).
+                    anchors[hit.frame] = tuple(
+                        cv_pipe.camera.image_to_plane(feet[None], cv_pipe.sport.floor_z_m)[0]
+                    )
         cv_pipe.reanalyse(hit_frames=[hit.frame for hit in hits], anchors=anchors)
         cv_results = [
             SimpleNamespace(

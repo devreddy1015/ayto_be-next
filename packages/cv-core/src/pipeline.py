@@ -32,6 +32,7 @@ try:
         KMH_PER_MS,
         CourtCalibration,
         SpeedCalculator,
+        first_bounce_index,
         fit_flight_physics,
         fit_launch_speed,
         speed_at_net,
@@ -45,6 +46,7 @@ except ImportError:  # imported as a top-level module (src/ on sys.path)
         KMH_PER_MS,
         CourtCalibration,
         SpeedCalculator,
+        first_bounce_index,
         fit_flight_physics,
         fit_launch_speed,
         speed_at_net,
@@ -174,9 +176,15 @@ class CVPipeline:
             normal = np.array([*facing / np.linalg.norm(facing), 0.0])
             self._live_plane = (normal, float(normal[:2] @ net_centre))
         else:
-            self.speed_calc = SpeedCalculator(fps=fps, max_speed_kmh=self.sport.max_speed_kmh)
+            self.speed_calc = SpeedCalculator(
+                fps=fps,
+                calibration=CourtCalibration(court_length_m=self.sport.court_length_m),
+                max_speed_kmh=self.sport.max_speed_kmh,
+            )
+            self._live_plane = None
         self._live_track: list[tuple[float, float]] = []
         self._last_live_hit = -10**9
+        self._last_frame_idx: int | None = None
 
     def calibrate(
         self,
@@ -197,6 +205,11 @@ class CVPipeline:
             self.calibration_source = "auto-lines"
         elif self.camera is None:
             self.calibration_source = "rough"
+        if self.camera is not None:
+            # _live_plane and the metric SpeedCalculator are built in
+            # _reset_live, which has already run with no camera by the time
+            # process_video calls us.
+            self._reset_live(self.fps)
         return self.calibration_source
 
     def _detect(self, frame: np.ndarray) -> tuple[tuple[float, float] | None, float]:
@@ -221,6 +234,21 @@ class CVPipeline:
             h, w = frame.shape[:2]
             self.speed_calc.calibration.calibrate_auto(w, h)
 
+        # Live capture drops frames when the pipeline falls behind. Advance
+        # the tracker through the gap so its fixed dt stays honest, and tell
+        # the speed calculator how long the step really was.
+        gap = 1
+        if self._last_frame_idx is not None and frame_idx > self._last_frame_idx:
+            gap = frame_idx - self._last_frame_idx
+        self._last_frame_idx = frame_idx
+        for _ in range(min(gap, self.tracker.MAX_OCCLUSION_FRAMES + 1) - 1):
+            coasted = self.tracker.update(None)
+            if coasted is None:
+                self._live_track.clear()
+            else:
+                self._live_track.append(coasted)
+                del self._live_track[:-7]
+
         raw, conf = self._detect(frame)
         tracked = self.tracker.update(raw)
         speed = float("nan")
@@ -229,15 +257,20 @@ class CVPipeline:
             point: tuple[float, ...] = tracked
             if self.camera is not None:
                 point = tuple(self.camera.lift_to_plane(np.array([tracked]), *self._live_plane)[0])
+            if self.tracker.hits <= 1:
+                self.speed_calc.break_track()  # new track: don't score the jump
             if np.all(np.isfinite(point)):  # a NaN would poison the EMA for good
-                computed = self.speed_calc.compute_speed(point)
+                computed = self.speed_calc.compute_speed(point, frames=gap)
                 if computed is not None:
                     speed = computed
+            else:
+                self.speed_calc.break_track()
             self._live_track.append(tracked)
             del self._live_track[:-7]
             hit = self._live_turn(frame_idx)
         else:
             self._live_track.clear()
+            self.speed_calc.break_track()
 
         return FrameResult(
             frame=frame_idx,
@@ -345,7 +378,10 @@ class CVPipeline:
         self.fps = fps
         min_gap = max(1, int(self.MIN_HIT_GAP_S * fps))
         if hit_frames is None:
-            coarse = rectify_trajectory(raw, max_gap=4)
+            # iterations=0: inpaint short gaps only. The outlier pass has no hit
+            # breaks to work with here, so it reads every reversal as a run of
+            # outliers and smooths the turn away before we can find it.
+            coarse = rectify_trajectory(raw, max_gap=4, iterations=0)
             hit_frames = find_trajectory_turns(
                 coarse.positions, self.TURN_ANGLE_DEG, min_gap=min_gap,
             )
@@ -378,17 +414,45 @@ class CVPipeline:
                 if i == 0 and a not in hits:
                     continue  # partial flight before the first hit: no launch
 
-                seeds = [self._seed(seg_t[ok], pts, times[a]) for pts in lifted]
+                if self.sport.wall_rebounds:
+                    # The ball comes off a wall between hits. That reverses it
+                    # without flipping its vertical velocity, so there is no
+                    # bounce for first_bounce_index to cut at and a single arc
+                    # fitted across the rebound would pass the reprojection
+                    # gate while being wrong. Report nothing instead.
+                    self.flights.append(FlightResult(
+                        start_frame=a, end_frame=b - 1, launch_speed_kmh=None,
+                        net_speed_kmh=None, method="unsupported-wall-rebound",
+                        reprojection_rms_px=None,
+                    ))
+                    continue
+
+                # A ball bounces between hits and a single gravity + drag arc
+                # cannot span that, so fit only up to the first bounce. The
+                # robust loss would otherwise absorb the post-bounce points
+                # and still pass the reprojection gate, with a biased speed.
+                hi, hi_ok = len(seg), ok.sum()
+                if self.sport.bounces:
+                    bounce = first_bounce_index(lifted[0], self.sport.floor_z_m)
+                    if bounce is not None and bounce >= 3:
+                        hi, hi_ok = int(np.flatnonzero(ok)[bounce]), bounce
+
+                seeds = [self._seed(seg_t[ok][:hi_ok], pts[:hi_ok], times[a])
+                         for pts in lifted]
                 physics = fit_flight_physics(
-                    self.camera.projection, seg_t, seg, [sd for sd in seeds if sd],
+                    self.camera.projection, seg_t[:hi], seg[:hi],
+                    [sd for sd in seeds if sd],
                     self.sport.drag_k, hit_time_s=times[a],
                 )
                 if physics is not None and physics.reprojection_rms_px < self.MAX_REPROJ_PX:
-                    metric[a:b] = physics.positions_m
+                    # Only where the object was seen: the fit covers 0.6 s but
+                    # returns a simulated point for every frame in the segment,
+                    # so dead time would otherwise get a speed.
+                    metric[a:b][:hi][ok[:hi]] = physics.positions_m[ok[:hi]]
                     launch, method = physics.speed_kmh, "physics"
                     rms = physics.reprojection_rms_px
                 else:
-                    fit = fit_launch_speed(seg_t, metric[a:b], self.sport.drag_k,
+                    fit = fit_launch_speed(seg_t[:hi], metric[a:b][:hi], self.sport.drag_k,
                                            self.sport.max_speed_kmh, hit_time_s=times[a])
                     launch = fit.speed_kmh if fit else None
                     method, rms = f"plane-{source}", None
@@ -486,21 +550,46 @@ class CVPipeline:
         self._results_to_dataframe().to_csv(output, index=False)
         return output
 
+    #: Calibration sources that cannot support a metric speed. "rough" is a
+    #: guess from the frame diagonal, so a km/h derived from it is a number
+    #: with no claim behind it.
+    UNMETRIC_CALIBRATION = ("none", "rough")
+
+    @property
+    def speed_is_metric(self) -> bool:
+        """Whether this clip's calibration can support a speed in km/h at all."""
+        return self.calibration_source not in self.UNMETRIC_CALIBRATION
+
     def get_summary(self) -> dict[str, Any]:
-        """Detection rate, speed statistics, hits and per-flight speeds."""
+        """Detection rate, speed statistics, hits and per-flight speeds.
+
+        Speeds are ``None``, never ``0.0``, when there is nothing to report:
+        an empty clip and a stationary shuttle are different facts, and so are
+        "no speed" and "zero speed". Without a real calibration every speed is
+        ``None`` — a frame-diagonal guess cannot produce km/h worth printing.
+        """
         total = len(self.results)
         detected = sum(1 for r in self.results if r.confidence > 0)
-        speeds = [r.speed_kmh for r in self.results if np.isfinite(r.speed_kmh) and r.speed_kmh > 0]
-        launches = [f.launch_speed_kmh for f in self.flights if f.launch_speed_kmh is not None]
+        speeds = (
+            [r.speed_kmh for r in self.results if np.isfinite(r.speed_kmh) and r.speed_kmh > 0]
+            if self.speed_is_metric
+            else []
+        )
+        launches = (
+            [f.launch_speed_kmh for f in self.flights if f.launch_speed_kmh is not None]
+            if self.speed_is_metric
+            else []
+        )
         return {
             "sport": self.sport.name,
             "calibration": self.calibration_source,
+            "speed_is_metric": self.speed_is_metric,
             "total_frames": total,
             "detected_frames": detected,
             "detection_rate": detected / total if total else 0.0,
-            "avg_speed_kmh": float(np.mean(speeds)) if speeds else 0.0,
-            "max_speed_kmh": max(speeds) if speeds else 0.0,
-            "min_speed_kmh": min(speeds) if speeds else 0.0,
+            "avg_speed_kmh": float(np.mean(speeds)) if speeds else None,
+            "max_speed_kmh": max(speeds) if speeds else None,
+            "min_speed_kmh": min(speeds) if speeds else None,
             "strokes_detected": sum(1 for r in self.results if r.stroke_detected),
             "max_launch_speed_kmh": max(launches) if launches else None,
             "flights": [asdict(f) for f in self.flights],

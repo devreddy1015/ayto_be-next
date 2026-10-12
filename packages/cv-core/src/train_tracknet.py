@@ -63,6 +63,13 @@ def train(
     save_path.mkdir(parents=True, exist_ok=True)
     best_loss = float("inf")
     history: list[dict] = []
+    # One match directory leaves the validation split empty, which would make
+    # val_loss a constant 0.0: the epoch-0 weights would be kept forever and
+    # the LR halved on a plateau that never happened.
+    has_val = len(val_loader) > 0
+    if not has_val:
+        print("WARNING: validation split is empty (need >= 2 match directories). "
+              "Selecting the checkpoint on training loss instead.")
 
     for epoch in range(epochs):
         t0 = time.time()
@@ -78,11 +85,15 @@ def train(
         train_loss /= max(len(train_loader), 1)
 
         model.eval()
-        with torch.no_grad():
-            val_loss = sum(
-                weighted_bce(model(x.to(device)), y.to(device)).item() for x, y in val_loader
-            ) / max(len(val_loader), 1)
-        scheduler.step(val_loss)
+        if has_val:
+            with torch.no_grad():
+                val_loss = sum(
+                    weighted_bce(model(x.to(device)), y.to(device)).item() for x, y in val_loader
+                ) / len(val_loader)
+        else:
+            val_loss = float("nan")
+        monitor = val_loss if has_val else train_loss
+        scheduler.step(monitor)
 
         lr_now = optimizer.param_groups[0]["lr"]
         history.append(
@@ -91,13 +102,19 @@ def train(
         print(f"epoch {epoch:3d} | train {train_loss:.5f} | val {val_loss:.5f} | "
               f"lr {lr_now:.1e} | {time.time() - t0:.0f}s")
 
-        if val_loss < best_loss:
-            best_loss = val_loss
+        if monitor < best_loss:
+            best_loss = monitor
             torch.save({"config": config, "state_dict": model.state_dict()},
                        save_path / "tracknet.pt")
+        # Always keep the last epoch too, so a run is never lost to a bad
+        # monitor.
+        torch.save({"config": config, "state_dict": model.state_dict()},
+                   save_path / "tracknet_last.pt")
 
     with open(save_path / "tracknet_history.json", "w") as f:
-        json.dump({"config": config, "best_val_loss": best_loss, "history": history}, f, indent=2)
+        json.dump({"config": config, "best_val_loss": best_loss,
+                   "monitored": "val_loss" if has_val else "train_loss",
+                   "history": history}, f, indent=2)
     return {"best_val_loss": best_loss, "history": history}
 
 

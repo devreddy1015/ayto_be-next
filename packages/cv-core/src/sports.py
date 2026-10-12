@@ -45,6 +45,21 @@ class SportProfile:
         max_speed_kmh: Physical ceiling used to reject impossible detections.
         drag_k: Quadratic-drag constant in 1/m.
         has_net: Whether there is a net plane at mid-court.
+        net_post_offset_m: How far the post centres stand outside the
+            sidelines. BWF and FIP posts sit on the sideline; ITF tennis
+            posts are 0.914 m outside the doubles sideline, pickleball
+            posts 12 in, and ITTF table-tennis posts 15.25 cm.
+        floor_z_m: Height of the floor in the court frame. Zero everywhere
+            except table tennis, where z=0 is the table top and the players
+            stand 0.76 m below it.
+        bounces: Whether the object bounces or rebounds between hits. A
+            shuttle never does, so a single drag arc spans the whole flight;
+            a ball does, and the arc is only valid up to the first bounce.
+        wall_rebounds: Whether the object comes off a wall between hits.
+            ``first_bounce_index`` finds a floor bounce by the vertical
+            velocity flipping, which a wall rebound does not do, so there is
+            no way to cut the flight at one. These sports report no launch
+            speed rather than a biased one.
     """
 
     name: str
@@ -55,6 +70,10 @@ class SportProfile:
     max_speed_kmh: float
     drag_k: float
     has_net: bool = True
+    net_post_offset_m: float = 0.0
+    floor_z_m: float = 0.0
+    bounces: bool = True
+    wall_rebounds: bool = False
     extra_keypoints: dict[str, tuple[float, float, float]] = field(default_factory=dict)
 
     @property
@@ -83,8 +102,9 @@ class SportProfile:
             "far_left": (0.0, length, 0.0),
         }
         if self.has_net and self.net_height_m > 0:
-            points["net_post_left"] = (0.0, self.net_y_m, self.net_height_m)
-            points["net_post_right"] = (w, self.net_y_m, self.net_height_m)
+            off = self.net_post_offset_m
+            points["net_post_left"] = (-off, self.net_y_m, self.net_height_m)
+            points["net_post_right"] = (w + off, self.net_y_m, self.net_height_m)
         points.update(self.extra_keypoints)
         return points
 
@@ -96,38 +116,41 @@ SPORTS: dict[str, SportProfile] = {
     "badminton": SportProfile(
         name="badminton", court_length_m=13.40, court_width_m=6.10,
         net_height_m=1.55, object_name="shuttle", max_speed_kmh=565.0,
-        drag_k=GRAVITY / 6.7 ** 2,
+        drag_k=GRAVITY / 6.7 ** 2, bounces=False,
     ),
     # ITF: 23.77 x 10.97 m, net 1.07 m at the posts. Ball 57.7 g, 67 mm, Cd ~0.55.
     "tennis": SportProfile(
         name="tennis", court_length_m=23.77, court_width_m=10.97,
         net_height_m=1.07, object_name="ball", max_speed_kmh=270.0,
-        drag_k=drag_constant(0.0577, 0.067, 0.55),
+        drag_k=drag_constant(0.0577, 0.067, 0.55), net_post_offset_m=0.914,
     ),
-    # ITTF table: 2.74 x 1.525 m, net 15.25 cm. Ball 2.7 g, 40 mm, Cd ~0.5.
+    # ITTF table: 2.74 x 1.525 m, net 15.25 cm, posts 15.25 cm outside the
+    # side lines. The 'court' is the table top, so z=0 is 0.76 m above the
+    # floor the players stand on. Ball 2.7 g, 40 mm, Cd ~0.5.
     "table_tennis": SportProfile(
         name="table_tennis", court_length_m=2.74, court_width_m=1.525,
         net_height_m=0.1525, object_name="ball", max_speed_kmh=130.0,
-        drag_k=drag_constant(0.0027, 0.040, 0.5),
+        drag_k=drag_constant(0.0027, 0.040, 0.5), net_post_offset_m=0.1525,
+        floor_z_m=-0.76,
     ),
     # USA Pickleball: 44 x 20 ft (13.41 x 6.10 m), net 36 in at the posts.
     # Perforated ball ~26 g, 74 mm, Cd ~0.45.
     "pickleball": SportProfile(
         name="pickleball", court_length_m=13.41, court_width_m=6.10,
         net_height_m=0.914, object_name="ball", max_speed_kmh=140.0,
-        drag_k=drag_constant(0.026, 0.074, 0.45),
+        drag_k=drag_constant(0.026, 0.074, 0.45), net_post_offset_m=0.3048,
     ),
     # FIP: 20 x 10 m, net 0.92 m at the posts. Ball ~57 g, 65 mm, Cd ~0.55.
     "padel": SportProfile(
         name="padel", court_length_m=20.0, court_width_m=10.0,
         net_height_m=0.92, object_name="ball", max_speed_kmh=220.0,
-        drag_k=drag_constant(0.057, 0.065, 0.55),
+        drag_k=drag_constant(0.057, 0.065, 0.55), wall_rebounds=True,
     ),
     # WSF singles court: 9.75 x 6.40 m, no net. Ball 24 g, 40 mm, Cd ~0.5.
     "squash": SportProfile(
         name="squash", court_length_m=9.75, court_width_m=6.40,
         net_height_m=0.0, object_name="ball", max_speed_kmh=290.0,
-        drag_k=drag_constant(0.024, 0.040, 0.5), has_net=False,
+        drag_k=drag_constant(0.024, 0.040, 0.5), wall_rebounds=True, has_net=False,
     ),
 }
 

@@ -90,6 +90,11 @@ class ShuttleTracker:
         self.x[:2] = z
         self.p = np.diag([self._r[0, 0], self._r[1, 1], 1e6, 1e6, 1e8, 1e8])
         self._initialized = True
+        # Without this a re-initialised track inherits the miss count that
+        # killed the previous one and is dropped again on its first gap.
+        self.consecutive_misses = 0
+        self._rejected = None
+        self._rejected_age = 0
 
     def _predict(self) -> None:
         self.x = self._f @ self.x
@@ -130,6 +135,8 @@ class ShuttleTracker:
             return self._emit()
 
         self._predict()
+        if self._rejected is not None:
+            self._rejected_age += 1
         if detection is not None:
             z = np.asarray(detection, dtype=float)
             y, s = self._innovation(z)
@@ -140,18 +147,18 @@ class ShuttleTracker:
                 self._rejected = None
                 return self._emit()
             # Gated out: maybe clutter, maybe the object just got hit.
+            gap = max(1, self._rejected_age)
             if self._rejected is not None and (
-                np.linalg.norm(z - self._rejected)
-                <= self.REACQUIRE_PX * (self.consecutive_misses + 1)
+                np.linalg.norm(z - self._rejected) <= self.REACQUIRE_PX * gap
             ):
                 prev = self._rejected
                 self._init_at(z)
-                self.x[2:4] = (z - prev) / self.dt
+                # The two detections are `gap` frames apart, not one.
+                self.x[2:4] = (z - prev) / (gap * self.dt)
                 self.hits = 2
-                self.consecutive_misses = 0
-                self._rejected = None
                 return self._emit()
             self._rejected = z
+            self._rejected_age = 0
 
         self.consecutive_misses += 1
         if self.consecutive_misses > self.MAX_OCCLUSION_FRAMES:
@@ -190,5 +197,6 @@ class ShuttleTracker:
         self.hits = 0
         self.consecutive_misses = 0
         self._rejected: np.ndarray | None = None
+        self._rejected_age = 0
         self._initialized = False
         self.history.clear()

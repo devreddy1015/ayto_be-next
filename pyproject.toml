@@ -1,9 +1,17 @@
+# This file is TOOL CONFIGURATION ONLY — ruff and pytest settings for the
+# monorepo. There is no importable `ayto` package at the root; the real code
+# lives under packages/*/src. Poetry and uv both try to install the root
+# project by default, which fails with "No file/folder found for package ayto",
+# so package mode is turned off below.
 [project]
 name = "ayto"
 version = "0.1.0"
 description = "SportIQ — Professional-grade sports analytics from any smartphone"
 requires-python = ">=3.10"
 license = {text = "Proprietary"}
+
+[tool.poetry]
+package-mode = false
 
 [tool.ruff]
 line-length = 100

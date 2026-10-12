@@ -1,36 +1,50 @@
-import { memo, useCallback, useState } from "react"
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
+import { memo, useCallback, useEffect, useRef, useState } from "react"
+import { ScrollView, StyleSheet, Text, View } from "react-native"
 import { router } from "expo-router"
+import { LinearGradient } from "expo-linear-gradient"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Bars, Meter } from "../../src/components/data/Bars"
-import { RisoSurface, Screen } from "../../src/components/riso/RisoSurface"
-import { SweepHeading } from "../../src/components/riso/SweepHeading"
-import Button, { tapHaptic } from "../../src/components/ui/Button"
-import { Stat } from "../../src/components/ui/Stat"
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated"
+import { Badge, Note } from "../../src/components/ui/Bits"
+import { FanDeck, type FanCard } from "../../src/components/ui/FanDeck"
+import { Icon } from "../../src/components/ui/Icon"
+import { Reveal } from "../../src/components/ui/Motion"
+import { Button, Tappable } from "../../src/components/ui/Press"
+import { Bar, Stat } from "../../src/components/ui/Stat"
+import { Card, Screen } from "../../src/components/ui/Surface"
 import { getDemo } from "../../src/data/demo"
 import { useSport } from "../../src/hooks/useSport"
-import { pad2 } from "../../src/lib/format"
-import { LIVE_SPORT, SPORTS, STATUS_LABEL, type RisoPalette, type Sport, type SportId } from "../../src/sports"
+import { SPORTS, STATUS_LABEL, type Sport, type SportId } from "../../src/sports"
 import { useUserStore } from "../../src/store/userStore"
-import { Fonts, Paper, Radius, Space, Type } from "../../src/theme"
+import { Fonts, Motion, Paper, Radius, Shadow, Space, Type } from "../../src/theme"
+import { useReducedMotion } from "../../src/hooks/useMotion"
+
+const BACK = Easing.bezier(...Motion.backOut)
 
 const STEPS = [
   {
-    kicker: "01 — Track",
-    lines: ["Every shot,", "measured."],
-    deck: "Prop your phone behind the baseline. Ayto follows the shuttle or ball frame by frame and turns it into speed you can trust.",
+    kicker: "Step one",
+    title: "Prop your phone\nbehind the line.",
+    deck: "Ayto follows the shuttle or ball frame by frame and turns the flight into a speed you can check.",
+    icon: "record" as const,
   },
   {
-    kicker: "02 — Form",
-    lines: ["Read your", "form."],
-    deck: "Pose estimation reads your elbow, wrist and knees, then sets them beside the pros.",
+    kicker: "Step two",
+    title: "It reads\nyour body.",
+    deck: "Pose estimation tracks your elbow, wrist and knees through the swing, then sets them beside reference form.",
+    icon: "activity" as const,
   },
   {
-    kicker: "03 — Sport",
-    lines: ["Pick your", "sport."],
-    deck: "Badminton is fully live. Every other sport is labelled with exactly what's ready.",
+    kicker: "Step three",
+    title: "Pick the sport\nyou play.",
+    deck: "Nine sports, each labelled with exactly what is ready. You can change this any time.",
+    icon: "grid" as const,
   },
-] as const
+]
 
 const SportTile = memo(function SportTile({
   sport,
@@ -41,176 +55,233 @@ const SportTile = memo(function SportTile({
   selected: boolean
   onSelect: (id: SportId) => void
 }) {
-  const press = useCallback(() => {
-    tapHaptic()
-    onSelect(sport.id)
-  }, [onSelect, sport.id])
-  const { palette } = sport
-  return (
-    <Pressable
-      onPress={press}
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
-      accessibilityLabel={`${sport.name}, ${STATUS_LABEL[sport.status]}`}
-      style={[styles.tile, selected && { borderColor: palette.plate, backgroundColor: Paper.stock }]}
-    >
-      <View style={[styles.code, { backgroundColor: palette.plate }]}>
-        <Text style={[styles.codeText, { color: palette.onPlate }]}>{sport.code}</Text>
-      </View>
-      <View style={styles.tileText}>
-        <Text style={styles.tileName} numberOfLines={1}>
-          {sport.name}
-        </Text>
-        <Text style={[styles.tileStatus, { color: sport.status === "live" ? palette.ink : Paper.faint }]}>
-          {STATUS_LABEL[sport.status]}
-        </Text>
-      </View>
-    </Pressable>
-  )
-})
+  const reduce = useReducedMotion()
+  const on = useSharedValue(selected ? 1 : 0)
 
-const SAMPLE = getDemo(LIVE_SPORT.id)
+  useEffect(() => {
+    on.value = reduce ? (selected ? 1 : 0) : withTiming(selected ? 1 : 0, { duration: Motion.base, easing: BACK })
+  }, [on, reduce, selected])
 
-/** A printed specimen of what the step describes, from labelled sample data. */
-const Specimen = memo(function Specimen({ step, palette }: { step: number; palette: RisoPalette }) {
-  if (!SAMPLE) return null
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: 0.97 + on.value * 0.03 }] }))
+  const ring = useAnimatedStyle(() => ({ opacity: on.value }))
+
+  const press = useCallback(() => onSelect(sport.id), [onSelect, sport.id])
+
   return (
-    <RisoSurface palette={palette} color={Paper.stock} glow={0.35} glowSize={360} grain={0.4} style={styles.specimen}>
-      <Text style={Type.kicker}>Specimen · sample {LIVE_SPORT.name.toLowerCase()} session</Text>
-      {step === 0 ? (
-        <>
-          <Stat label={LIVE_SPORT.metrics[0].label} value={SAMPLE.sessions[0].max_speed_kmh} unit="km/h" size="xl" color={palette.ink} style={styles.specimenStat} />
-          <Bars
-            values={SAMPLE.report.timeline}
-            max={Math.max(...SAMPLE.report.timeline) * 1.1}
-            height={56}
-            color={palette.plate}
-            highlight={{ threshold: Math.max(...SAMPLE.report.timeline), color: palette.ink3 }}
-            accessibilityLabel="Sample speed timeline"
+    <Animated.View style={[styles.tileWrap, style]}>
+      <Tappable
+        onPress={press}
+        label={`${sport.name}, ${STATUS_LABEL[sport.status]}`}
+        scaleTo={0.95}
+      >
+        <View style={[styles.tile, selected && Shadow.md]}>
+          <LinearGradient
+            colors={[sport.palette.grad[0], sport.palette.grad[2]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
           />
-        </>
-      ) : (
-        <View style={styles.specimenStat}>
-          {SAMPLE.report.body.map((row) => (
-            <Meter key={row.id} label={row.label} you={row.you} pro={row.pro} unit={row.unit} youColor={palette.plate} proColor={palette.ink3} />
-          ))}
+          <Animated.View style={[styles.tileRing, { borderColor: sport.palette.accent }, ring]} />
+          <View style={[styles.tileCode, { backgroundColor: Paper.veilStrong }]}>
+            <Text style={[styles.tileCodeText, { color: sport.palette.ink }]}>{sport.code}</Text>
+          </View>
+          <Text style={styles.tileName} numberOfLines={1}>
+            {sport.name}
+          </Text>
+          <Text style={[styles.tileStatus, { color: sport.palette.ink }]} numberOfLines={1}>
+            {STATUS_LABEL[sport.status]}
+          </Text>
+          {selected ? (
+            <View style={[styles.tileCheck, { backgroundColor: sport.palette.accent }]}>
+              <Icon name="check" size={12} color="#FFFFFF" weight={2.6} />
+            </View>
+          ) : null}
         </View>
-      )}
-    </RisoSurface>
+      </Tappable>
+    </Animated.View>
   )
 })
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets()
-  const [step, setStep] = useState(0)
   const sport = useSport()
-  const setSportPreference = useUserStore((s) => s.setSportPreference)
-  const setOnboardingDone = useUserStore((s) => s.setOnboardingDone)
+  const { palette } = sport
+  const setSport = useUserStore((s) => s.setSportPreference)
+  const setDone = useUserStore((s) => s.setOnboardingDone)
+  const [step, setStep] = useState(0)
+  const demo = getDemo(sport.id)
+  const best = demo?.sessions[0]
+  const headline = sport.metrics[0]
 
-  const finish = useCallback(() => {
-    setOnboardingDone(true)
-    router.replace("/login")
-  }, [setOnboardingDone])
+  const finish = () => {
+    setDone(true)
+    router.replace("/(tabs)")
+  }
 
-  const next = useCallback(() => {
-    if (step < STEPS.length - 1) setStep(step + 1)
-    else finish()
-  }, [step, finish])
+  const cards: FanCard[] = SPORTS.slice(0, 5).map((s) => ({
+    key: s.id,
+    title: s.name,
+    caption: s.playArea.size,
+    icon: s.section === "racket" ? "target" : s.section === "bat" ? "trophy" : "zap",
+    palette: s.palette,
+    onPress: () => setSport(s.id),
+  }))
 
   const current = STEPS[step]
-  const last = step === STEPS.length - 1
 
   return (
-    <Screen palette={sport.palette}>
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + Space.lg }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.topRow}>
-          <Text style={Type.kicker}>Ayto · SportIQ</Text>
-          <Pressable onPress={finish} accessibilityRole="button" hitSlop={10}>
-            <Text style={[Type.kicker, styles.skip]}>Skip</Text>
-          </Pressable>
+    <Screen palette={palette}>
+      <View style={[styles.body, { paddingTop: insets.top + Space.lg, paddingBottom: insets.bottom + Space.lg }]}>
+        <View style={styles.progress}>
+          {STEPS.map((s, i) => (
+            <View
+              key={s.kicker}
+              style={[
+                styles.tick,
+                { backgroundColor: i <= step ? palette.accent : Paper.lineStrong, flex: i === step ? 2.4 : 1 },
+              ]}
+            />
+          ))}
         </View>
 
-        <Text style={[Type.kicker, styles.stepKicker, { color: sport.palette.ink }]}>{current.kicker}</Text>
-        <SweepHeading key={step} lines={current.lines} palette={sport.palette} size="hero" />
-        <Text style={[Type.deck, styles.deck]}>{current.deck}</Text>
+        <Reveal key={`head-${step}`} style={styles.head}>
+          <Badge label={current.kicker} tone="accent" palette={palette} />
+          <Text style={[Type.hero, styles.title]}>{current.title}</Text>
+          <Text style={[Type.bodyMuted, styles.deck]}>{current.deck}</Text>
+        </Reveal>
 
-        {last ? (
-          <View style={styles.grid} accessibilityRole="radiogroup">
-            {SPORTS.map((s) => (
-              <SportTile key={s.id} sport={s} selected={s.id === sport.id} onSelect={setSportPreference} />
-            ))}
-          </View>
-        ) : (
-          <Specimen step={step} palette={sport.palette} />
-        )}
-      </ScrollView>
+        <View style={styles.stage}>
+          {step === 0 ? (
+            <Reveal key="s0" from="scale" delay={120}>
+              <FanDeck cards={cards} height={210} />
+            </Reveal>
+          ) : null}
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + Space.lg }]}>
-        <View>
-          <Text style={[Type.kicker, styles.count]}>
-            {pad2(step + 1)} / {pad2(STEPS.length)}
-          </Text>
-          <View style={styles.progress}>
-            {STEPS.map((_, i) => (
-              <View
-                key={i}
-                style={[styles.segment, { backgroundColor: i <= step ? sport.palette.plate : Paper.rule }]}
-              />
-            ))}
-          </View>
+          {step === 1 && demo && best ? (
+            <Reveal key="s1" delay={120}>
+              <Card elevation="lg" style={styles.specimen}>
+                <Text style={Type.kicker}>Sample · {sport.name.toLowerCase()}</Text>
+                <Stat
+                  label={headline.label}
+                  value={best.max_speed_kmh}
+                  unit={headline.unit}
+                  size="xl"
+                  color={palette.deep}
+                  delay={200}
+                  style={styles.specimenStat}
+                />
+                <View style={styles.rows}>
+                  {demo.report.body.map((row, i) => (
+                    <View key={row.id} style={styles.row}>
+                      <Text style={[Type.small, styles.rowLabel]} numberOfLines={1}>
+                        {row.label}
+                      </Text>
+                      <Bar
+                        value={row.you / row.pro}
+                        color={palette.accent}
+                        delay={260 + i * 90}
+                        style={styles.rowBar}
+                      />
+                      <Text style={Type.metricSm}>
+                        {row.you}
+                        {row.unit}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </Card>
+            </Reveal>
+          ) : null}
+
+          {step === 2 ? (
+            <Reveal key="s2" delay={80} style={styles.flex}>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.grid}>
+                {SPORTS.map((s) => (
+                  <SportTile key={s.id} sport={s} selected={s.id === sport.id} onSelect={setSport} />
+                ))}
+              </ScrollView>
+            </Reveal>
+          ) : null}
         </View>
-        <Button
-          label={last ? `Start with ${sport.name}` : "Next"}
-          trailing="→"
-          palette={sport.palette}
-          onPress={next}
-          style={styles.next}
-        />
+
+        {step === 1 ? (
+          <Reveal delay={400}>
+            <Note palette={palette}>
+              Sample data, shown so you can see the shape of a report. Analysing your own footage is
+              still in development.
+            </Note>
+          </Reveal>
+        ) : null}
+
+        <Reveal key={`cta-${step}`} delay={200} style={styles.actions}>
+          <Button
+            label={step === STEPS.length - 1 ? `Start with ${sport.name}` : "Next"}
+            palette={palette}
+            size="lg"
+            full
+            trailingIcon="arrowRight"
+            onPress={() => (step === STEPS.length - 1 ? finish() : setStep((s) => s + 1))}
+          />
+          <Button
+            label={step === 0 ? "Skip" : "Back"}
+            palette={palette}
+            variant="ghost"
+            full
+            onPress={() => (step === 0 ? finish() : setStep((s) => s - 1))}
+          />
+        </Reveal>
       </View>
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: Space.gutter, paddingBottom: Space.xl },
-  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: Space.xxxl },
-  skip: { color: Paper.text, textDecorationLine: "underline" },
-  stepKicker: { marginBottom: Space.md },
-  deck: { marginTop: Space.xl, maxWidth: 420 },
-  specimen: { marginTop: Space.xl, padding: Space.lg, borderWidth: 1, borderColor: Paper.rule, borderRadius: Radius.sm },
-  specimenStat: { marginTop: Space.md, marginBottom: Space.md },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: Space.sm, marginTop: Space.xl },
+  body: { flex: 1, paddingHorizontal: Space.gutter, maxWidth: 560, width: "100%", alignSelf: "center" },
+  flex: { flex: 1 },
+  progress: { flexDirection: "row", gap: Space.xs, height: 4 },
+  tick: { height: 4, borderRadius: 2 },
+  head: { marginTop: Space.xl, gap: Space.sm },
+  title: { marginTop: Space.xs },
+  deck: { marginTop: Space.xs },
+  stage: { flex: 1, justifyContent: "center", marginVertical: Space.lg },
+  specimen: { gap: Space.sm },
+  specimenStat: { marginTop: Space.sm },
+  rows: { marginTop: Space.lg, gap: Space.md },
+  row: { flexDirection: "row", alignItems: "center", gap: Space.md },
+  rowLabel: { width: 104 },
+  rowBar: { flex: 1 },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: Space.sm, paddingBottom: Space.lg },
+  tileWrap: { width: "31.5%" },
   tile: {
-    flexBasis: "48%",
-    flexGrow: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Space.sm,
+    height: 104,
+    borderRadius: Radius.lg,
+    overflow: "hidden",
     padding: Space.sm,
-    borderWidth: 1,
-    borderColor: Paper.rule,
-    borderRadius: Radius.sm,
+    justifyContent: "flex-end",
+    gap: 1,
+    backgroundColor: Paper.surface,
   },
-  code: { width: 34, height: 34, alignItems: "center", justifyContent: "center" },
-  codeText: { fontFamily: Fonts.monoBold, fontSize: 13 },
-  tileText: { flex: 1 },
-  tileName: { fontFamily: Fonts.display, fontSize: 16, lineHeight: 20, color: Paper.text },
-  tileStatus: { fontFamily: Fonts.mono, fontSize: 9, letterSpacing: 1, textTransform: "uppercase", marginTop: 2 },
-  footer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    paddingHorizontal: Space.gutter,
-    paddingTop: Space.lg,
-    borderTopWidth: 1,
-    borderTopColor: Paper.rule,
-    backgroundColor: Paper.bg,
+  tileRing: { ...StyleSheet.absoluteFillObject, borderWidth: 2.5, borderRadius: Radius.lg },
+  tileCode: {
+    position: "absolute",
+    top: Space.sm,
+    left: Space.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radius.xs,
   },
-  count: { marginBottom: Space.sm },
-  next: { flexShrink: 1, marginLeft: Space.md },
-  progress: { flexDirection: "row", gap: 4 },
-  segment: { width: 22, height: 4 },
+  tileCodeText: { fontFamily: Fonts.bodySemi, fontSize: 10, letterSpacing: 0.6 },
+  tileCheck: {
+    position: "absolute",
+    top: Space.sm,
+    right: Space.sm,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tileName: { fontFamily: Fonts.bodySemi, fontSize: 13, color: Paper.ink, letterSpacing: -0.2 },
+  tileStatus: { fontFamily: Fonts.body, fontSize: 10.5 },
+  actions: { gap: Space.xs },
 })

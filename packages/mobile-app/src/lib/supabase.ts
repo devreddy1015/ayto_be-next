@@ -19,11 +19,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 })
 
-export async function signInWithEmail(email: string): Promise<{ error: Error | null }> {
-  const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } })
-  return { error }
-}
-
 export function signInWithPassword(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password })
 }

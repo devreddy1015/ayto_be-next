@@ -7,11 +7,14 @@ Two levels:
   measured at F1 0.699, against 0.946 for its learned, trajectory-aware
   HitNet.
 * :func:`fuse_hits`: combines those peaks with shuttle-trajectory turns
-  from cv-core and enforces that the same side never hits twice in a row.
+  from cv-core and enforces that the same side never hits twice in a rally.
   Trajectory-only hits have high recall but low precision (P 0.588 / R
-  0.936 on BWF video); confirming them with the hitter's swing is what
-  lifted precision to ~0.90 in the Sensors 2024 shot-refinement study.
-  Train ml-models' HitNet once labelled hit frames exist.
+  0.936 on BWF video) and confirming them with the hitter's swing reached
+  P 0.897 in the Sensors 2024 shot-refinement study [primary, unchecked].
+  That study used a learned swing detector plus a refinement stage, not a
+  velocity-peak heuristic, so those figures are not a claim about this
+  function: ``fuse_hits`` is a rule-based fusion whose precision has not
+  been measured. Train ml-models' HitNet once labelled hit frames exist.
 
 Constants for the pose cue come from badminton biomechanics literature:
 
@@ -75,6 +78,14 @@ class StrokeDetector:
     """
 
     # --- Biomechanics-grounded constants ---
+    # These are DURATIONS. The frame counts below are what they come to at
+    # 60 fps; __init__ rescales them to the clip's actual rate. Phones record
+    # at 30 fps by default, where a fixed 24-frame gap would be 800 ms and
+    # would suppress most of a rally (badminton shots are 400-600 ms apart).
+    WINDOW_BEFORE_S: float = 0.30   # Backswing, Kwan et al. 2011 (200-600 ms)
+    WINDOW_AFTER_S: float = 0.20    # Follow-through (100-300 ms)
+    MIN_GAP_S: float = 0.40         # Fastest rally tempo, BWF match analysis
+
     WINDOW_BEFORE: int = 18      # Backswing: mean 300 ms @ 60 fps
     WINDOW_AFTER: int = 12       # Follow-through: mean 200 ms @ 60 fps
     MIN_GAP_FRAMES: int = 24     # Min rally tempo: 400 ms @ 60 fps
@@ -94,6 +105,10 @@ class StrokeDetector:
         """
         self.fps = fps
         self.angle_computer = JointAngleComputer()
+        # Frame counts for THIS clip's rate, not for 60 fps.
+        self.window_before = max(2, round(self.WINDOW_BEFORE_S * fps))
+        self.window_after = max(2, round(self.WINDOW_AFTER_S * fps))
+        self.min_gap_frames = max(1, round(self.MIN_GAP_S * fps))
 
     def detect(
         self,
@@ -128,8 +143,8 @@ class StrokeDetector:
         events: list[StrokeEvent] = []
 
         for peak_frame, confidence in peaks:
-            start = max(0, peak_frame - self.WINDOW_BEFORE)
-            end = min(len(pose_sequence) - 1, peak_frame + self.WINDOW_AFTER)
+            start = max(0, peak_frame - self.window_before)
+            end = min(len(pose_sequence) - 1, peak_frame + self.window_after)
 
             events.append(
                 StrokeEvent(
@@ -178,7 +193,7 @@ class StrokeDetector:
             1. Exceed mean + SIGMA_FACTOR × std of all velocities.
             2. Exceed MIN_ABSOLUTE_VELOCITY (reject postural sway).
             3. Be a local maximum (higher than both neighbours).
-            4. Be at least MIN_GAP_FRAMES from the previous peak.
+            4. Be at least ``min_gap_frames`` from the previous peak.
 
         Returns:
             List of (peak_frame_index, confidence) tuples.  Confidence
@@ -197,14 +212,14 @@ class StrokeDetector:
         conf_range = max(max_v - threshold, 1e-8)
 
         peaks: list[tuple[int, float]] = []
-        last_peak = -self.MIN_GAP_FRAMES - 1
+        last_peak = -self.min_gap_frames - 1
 
         for i in range(1, len(velocities) - 1):
             if (
                 velocities[i] > threshold
                 and velocities[i] >= velocities[i - 1]
                 and velocities[i] >= velocities[i + 1]
-                and (i - last_peak) >= self.MIN_GAP_FRAMES
+                and (i - last_peak) >= self.min_gap_frames
             ):
                 confidence = min(1.0, (velocities[i] - threshold) / conf_range)
                 peaks.append((i, confidence))
@@ -231,12 +246,36 @@ class Hit:
     source: str
 
 
+def _is_serve(
+    peak: int, speed: np.ndarray | None, tol: int, still_kmh: float,
+) -> bool:
+    """True when the shuttle was still before ``peak`` and moving after it.
+
+    A serve is launched from rest, so it never produces a trajectory turn:
+    ``find_trajectory_turns`` needs speed on both sides of the frame.
+    """
+    if speed is None or len(speed) == 0:
+        return False
+    win = max(1, 2 * tol)
+    before = speed[max(0, peak - win):peak]
+    after = speed[peak + 1:peak + 1 + win]
+    if len(after) == 0:
+        return False
+    def moving(a: np.ndarray) -> bool:
+        return bool(np.any(np.nan_to_num(a, nan=0.0) > still_kmh))
+
+    return not moving(before) and moving(after)
+
+
 def fuse_hits(
     pose_events: list[StrokeEvent],
     shuttle_turns: list[int],
     fps: float,
     shuttle_visible: np.ndarray | None = None,
     tolerance_s: float = 0.1,
+    shuttle_speed: np.ndarray | None = None,
+    max_shot_gap_s: float = 2.0,
+    serve_speed_kmh: float = 5.0,
 ) -> list[Hit]:
     """Fuse pose swing peaks with shuttle-trajectory turns.
 
@@ -245,11 +284,15 @@ def fuse_hits(
     1. A shuttle turn with a tracked-player swing within ``tolerance_s`` is
        a player hit (both cues agree, so confidence is highest).
     2. A shuttle turn with no player swing is an opponent hit.
-    3. A swing with no turn counts only if the shuttle was unobserved around
-       it (occlusion). If the shuttle was visible and didn't turn, it was a
-       practice swing or feint, and is dropped.
-    4. The same side can't hit twice in a row; of two consecutive same-side
-       hits, the less confident one is dropped.
+    3. A swing with no turn counts if the shuttle was unobserved around it
+       (occlusion), or if it was still before the swing and moving after it
+       (a serve, which has no incoming trajectory to turn). If the shuttle
+       was visible and moving throughout, it was a practice swing or feint,
+       and is dropped.
+    4. The same side can't hit twice in a row *within a rally*; of two
+       consecutive same-side hits less than ``max_shot_gap_s`` apart, the
+       less confident one is dropped. Across a longer gap both are kept,
+       because the rally winner serves next.
 
     Args:
         pose_events: Output of :meth:`StrokeDetector.detect`.
@@ -258,6 +301,10 @@ def fuse_hits(
         shuttle_visible: Optional per-frame bool mask of shuttle detections.
             Without it, swings without a turn are kept (pose-only fallback).
         tolerance_s: Max offset between a swing peak and a shuttle turn.
+        shuttle_speed: Optional per-frame shuttle speed (km/h, NaN where
+            unknown). Lets rule 3 recognise a serve.
+        max_shot_gap_s: Longest gap between two shots of the same rally.
+        serve_speed_kmh: Below this the shuttle counts as still.
 
     Returns:
         Hits sorted by frame.
@@ -284,16 +331,24 @@ def fuse_hits(
     for i, ev in enumerate(pose_events):
         if i in used:
             continue
+        source = "pose"
         if shuttle_visible is not None:
             lo, hi = max(0, ev.peak_frame - tol), ev.peak_frame + tol + 1
             if np.any(shuttle_visible[lo:hi]):
-                continue  # shuttle was seen and didn't turn: not a hit
-        hits.append(Hit(ev.peak_frame, "player", 0.3 + 0.3 * ev.confidence, "pose"))
+                if not _is_serve(ev.peak_frame, shuttle_speed, tol, serve_speed_kmh):
+                    continue  # seen moving and didn't turn: feint, not a hit
+                source = "pose+serve"
+        hits.append(Hit(ev.peak_frame, "player", 0.3 + 0.3 * ev.confidence, source))
 
     hits.sort(key=lambda h: h.frame)
+    rally_gap = max(1, round(max_shot_gap_s * fps))
     cleaned: list[Hit] = []
     for hit in hits:
-        if cleaned and cleaned[-1].hitter == hit.hitter:
+        if (
+            cleaned
+            and cleaned[-1].hitter == hit.hitter
+            and hit.frame - cleaned[-1].frame <= rally_gap
+        ):
             if hit.confidence > cleaned[-1].confidence:
                 cleaned[-1] = hit
             continue

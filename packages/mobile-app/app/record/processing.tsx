@@ -1,109 +1,162 @@
 import { useEffect, useMemo, useState } from "react"
 import { StyleSheet, Text, View } from "react-native"
 import { router } from "expo-router"
-import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { Screen } from "../../src/components/riso/RisoSurface"
-import { SweepHeading } from "../../src/components/riso/SweepHeading"
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated"
+import { Badge, Note } from "../../src/components/ui/Bits"
+import { Icon } from "../../src/components/ui/Icon"
+import { Reveal } from "../../src/components/ui/Motion"
+import { Button } from "../../src/components/ui/Press"
 import { Stat } from "../../src/components/ui/Stat"
+import { Card, Screen } from "../../src/components/ui/Surface"
 import { getDemo } from "../../src/data/demo"
 import { useSpeed, useSport } from "../../src/hooks/useSport"
-import { pad2 } from "../../src/lib/format"
-import { Fonts, Paper, Space, Type } from "../../src/theme"
+import { clock } from "../../src/lib/format"
+import { useSessionStore } from "../../src/store/sessionStore"
+import { Motion, Paper, Space, Type } from "../../src/theme"
+import { useReducedMotion } from "../../src/hooks/useMotion"
 
-const STAGE_MS = 1250
-const REVEAL_MS = 1500
+const STAGE_MS = 900
+const REVEAL_MS = 900
+const EASE = Easing.bezier(...Motion.ease)
 
 export default function ProcessingScreen() {
   const insets = useSafeAreaInsets()
   const sport = useSport()
   const { palette } = sport
   const { format, unit } = useSpeed()
+  const reduce = useReducedMotion()
+  const clip = useSessionStore((s) => s.clip)
   const latest = getDemo(sport.id)?.sessions[0] ?? null
-  const reduceMotion = useReducedMotion()
+
+  // On-device inference is not wired up: the recorder saves a clip, nothing
+  // analyses it. So the stages describe what actually happens — saving the
+  // file and opening a clearly-labelled sample report — and never claim to be
+  // tracking, reading pose or naming strokes.
   const stages = useMemo(
-    () => [`Tracing the ${sport.tracked}`, "Reading your pose", `Naming each ${sport.strokeNoun}`, "Printing the report"],
-    [sport.tracked, sport.strokeNoun],
+    () => [clip ? "Saving your clip" : "Preparing", "Opening a sample report"],
+    [clip],
   )
   const total = stages.length * STAGE_MS
+
   const [stage, setStage] = useState(0)
   const [done, setDone] = useState(false)
-  const progress = useSharedValue(0)
+  const progress = useSharedValue(reduce ? 1 : 0)
 
   useEffect(() => {
-    // Nothing was analysed for this sport: don't pretend, go home.
-    if (!latest) {
-      router.replace("/(tabs)")
-      return
-    }
-    // One UI-thread tween for the bar; JS only wakes up once per stage.
-    progress.value = withTiming(1, { duration: reduceMotion ? 0 : total, easing: Easing.linear })
+    if (!reduce) progress.value = withTiming(1, { duration: total, easing: Easing.linear })
     const timers = stages.map((_, i) => setTimeout(() => setStage(i), i * STAGE_MS))
     timers.push(setTimeout(() => setDone(true), total))
     timers.push(
-      setTimeout(() => router.replace({ pathname: "/session/[id]", params: { id: "latest" } }), total + REVEAL_MS),
+      setTimeout(
+        () => router.replace({ pathname: "/session/[id]", params: { id: "latest" } }),
+        total + REVEAL_MS,
+      ),
     )
     return () => timers.forEach(clearTimeout)
     // Runs once per visit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const barStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: progress.value }] }))
+  const bar = useAnimatedStyle(() => ({ transform: [{ scaleX: progress.value }] }))
+  const tickStyle = (i: number) => (i < stage || done ? palette.accent : Paper.lineStrong)
 
   return (
     <Screen palette={palette}>
       <View style={[styles.body, { paddingTop: insets.top + Space.xxl, paddingBottom: insets.bottom + Space.xl }]}>
-        <Text style={Type.kicker}>
-          Processing · {sport.name} · {pad2(stage + 1)}/{pad2(stages.length)}
-        </Text>
-        <SweepHeading key={stage} lines={stages[stage]} palette={palette} size="title" style={styles.heading} />
+        <Reveal>
+          <Badge label={`${sport.name} · ${stage + 1} of ${stages.length}`} tone="accent" palette={palette} />
+          <Text style={[Type.hero, styles.title]}>{done ? "All set." : `${stages[stage]}…`}</Text>
+        </Reveal>
 
-        <View style={styles.track} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: stages.length, now: stage + 1 }}>
-          <Animated.View style={[styles.fill, { backgroundColor: palette.plate }, barStyle]} />
-        </View>
-
-        <View style={styles.list}>
-          {stages.map((label, i) => {
-            const state = i < stage || done ? "done" : i === stage ? "now" : "next"
-            return (
-              <View key={label} style={[styles.row, i > 0 && styles.rule]}>
-                <Text style={[styles.no, { color: state === "next" ? Paper.faint : palette.ink }]}>{pad2(i + 1)}</Text>
-                <Text style={[Type.body, styles.flex, state === "next" && { color: Paper.faint }]}>{label}</Text>
-                <Text style={[styles.mark, { color: state === "done" ? palette.ink : Paper.faint }]}>
-                  {state === "done" ? "✓" : state === "now" ? "…" : ""}
-                </Text>
+        <Reveal index={1} style={styles.trackWrap}>
+          <View style={styles.track}>
+            <Animated.View style={[styles.fill, { backgroundColor: palette.accent }, bar]} />
+          </View>
+          <View style={styles.ticks}>
+            {stages.map((label, i) => (
+              <View key={label} style={styles.tickRow}>
+                <View style={[styles.tickDot, { backgroundColor: tickStyle(i) }]}>
+                  {i < stage || done ? <Icon name="check" size={11} color="#FFFFFF" weight={3} /> : null}
+                </View>
+                <Text style={[Type.small, (i < stage || done) && { color: Paper.ink }]}>{label}</Text>
               </View>
-            )
-          })}
-        </View>
+            ))}
+          </View>
+        </Reveal>
 
-        {done && latest ? (
-          <Stat
-            label={`${sport.metrics[0].label} · this session`}
-            value={format(latest.max_speed_kmh)}
-            unit={unit}
-            size="xl"
-            color={palette.ink}
-            style={styles.reveal}
-          />
-        ) : (
-          <Text style={[Type.deck, styles.reveal]}>Everything runs on this phone. Keep the app open.</Text>
-        )}
+        <View style={styles.spacer} />
+
+        {done ? (
+          <Reveal from="scale">
+            <Card elevation="lg">
+              <Text style={Type.kicker}>Sample · not your result</Text>
+              <Stat
+                label={sport.metrics[0].label}
+                value={latest ? format(latest.max_speed_kmh) : 0}
+                unit={unit}
+                size="xl"
+                color={palette.deep}
+                delay={120}
+                style={styles.stat}
+              />
+              {clip ? (
+                <View style={styles.clipRow}>
+                  <Icon name="check" size={15} color={palette.ink} weight={2.4} />
+                  <Text style={Type.small}>
+                    Your {clock(clip.seconds)} clip is saved on this phone.
+                  </Text>
+                </View>
+              ) : null}
+            </Card>
+          </Reveal>
+        ) : null}
+
+        <Reveal index={2} style={styles.footer}>
+          <Note palette={palette}>
+            Ayto cannot analyse your own footage yet. The number above is sample data, and nothing
+            was measured or uploaded.
+          </Note>
+          {done ? (
+            <Button
+              label="See the sample report"
+              palette={palette}
+              size="lg"
+              full
+              trailingIcon="arrowRight"
+              onPress={() => router.replace({ pathname: "/session/[id]", params: { id: "latest" } })}
+            />
+          ) : null}
+        </Reveal>
       </View>
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  body: { flex: 1, paddingHorizontal: Space.gutter, maxWidth: 560, width: "100%", alignSelf: "center" },
-  flex: { flex: 1 },
-  heading: { marginTop: Space.lg, minHeight: 96 },
-  track: { height: 6, backgroundColor: Paper.raised, marginTop: Space.xl, overflow: "hidden" },
-  fill: { ...StyleSheet.absoluteFillObject, transformOrigin: "left" },
-  list: { marginTop: Space.xl, borderTopWidth: 1, borderBottomWidth: 1, borderColor: Paper.rule },
-  row: { flexDirection: "row", alignItems: "center", gap: Space.md, paddingVertical: Space.md },
-  rule: { borderTopWidth: 1, borderTopColor: Paper.rule },
-  no: { fontFamily: Fonts.monoBold, fontSize: 12, width: 24 },
-  mark: { fontFamily: Fonts.monoBold, fontSize: 14, width: 18, textAlign: "right" },
-  reveal: { marginTop: Space.xxl },
+  body: { flex: 1, paddingHorizontal: Space.gutter, maxWidth: 520, width: "100%", alignSelf: "center" },
+  title: { marginTop: Space.md },
+  trackWrap: { marginTop: Space.xl, gap: Space.lg },
+  track: { height: 6, borderRadius: 3, backgroundColor: Paper.sunken, overflow: "hidden" },
+  fill: { ...StyleSheet.absoluteFillObject, borderRadius: 3, transformOrigin: "left" },
+  ticks: { gap: Space.sm },
+  tickRow: { flexDirection: "row", alignItems: "center", gap: Space.sm },
+  tickDot: { width: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  spacer: { flex: 1 },
+  stat: { marginTop: Space.sm },
+  clipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Space.sm,
+    marginTop: Space.lg,
+    paddingTop: Space.md,
+    borderTopWidth: 1,
+    borderTopColor: Paper.line,
+  },
+  footer: { gap: Space.md, marginTop: Space.xl },
 })

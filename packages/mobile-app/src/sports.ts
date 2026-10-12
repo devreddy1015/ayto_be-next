@@ -27,24 +27,26 @@ export type SportId =
 export type AnalysisStatus = "live" | "beta" | "soon"
 export type SportSection = "racket" | "bat" | "field"
 
-/** Three riso inks per sport, each checked for contrast on the black stock. */
-export interface RisoPalette {
-  /** Ink A: heading plates and primary fills. */
-  plate: string
-  /** Ink B: the hard offset plate. Decorative only, may be dark. */
-  shadow: string
-  /** Text-safe accent on the stock (>= 4.5:1). */
+/**
+ * One sport's tint of the shared surfaces.
+ *
+ * `accent` is a FILL colour — never put text in it on the canvas. Use `ink`
+ * (>=4.6:1) or `deep` (>=7.5:1) for anything readable. `grad` holds the three
+ * mesh stops; `Paper.ink` clears 10:1 on every one of them.
+ */
+export interface SportPalette {
+  /** Primary fill: buttons, bars, the live dot. */
+  accent: string
+  /** Accent darkened for text and icons on the canvas (>= 4.6:1). */
   ink: string
-  /** Second data tone (>= 3:1). */
-  ink2: string
-  /** Third data tone (>= 3:1). */
-  ink3: string
-  /** Misregistered ghost behind paper-coloured type; picked to separate from cream. */
-  ghost: string
-  /** Text colour on a plate. */
-  onPlate: string
-  /** Real riso ink names, for the colophon. */
-  names: readonly [string, string, string]
+  /** Accent darkened further, for headings (>= 7.5:1). */
+  deep: string
+  /** Near-white accent tint: chips, wells, selected rows. */
+  soft: string
+  /** Text on `soft` (>= 4.6:1). */
+  onSoft: string
+  /** Mesh-gradient stops, corner to corner. */
+  grad: readonly [string, string, string]
 }
 
 interface Stroke {
@@ -67,11 +69,13 @@ export interface Sport {
   tagline: string
   /** Home hero, one entry per SweepHeading line. */
   heading: readonly string[]
-  palette: RisoPalette
+  palette: SportPalette
   playArea: { label: string; size: string }
   tracked: "shuttle" | "ball"
   /** What one action is called: "stroke", "shot", "delivery"… */
   strokeNoun: string
+  /** Explicit plural: "touch" -> "touches", not "touchs". */
+  strokeNounPlural: string
   strokes: readonly Stroke[]
   metrics: readonly HeadlineMetric[]
   status: AnalysisStatus
@@ -90,8 +94,6 @@ export const SECTIONS: readonly { id: SportSection; title: string; deck: string 
   { id: "field", title: "Field & court", deck: "Team sports, measured one player at a time." },
 ]
 
-const DARK = "#121011"
-
 const s = (id: string, label: string): Stroke => ({ id, label })
 const m = (id: string, label: string, unit: string): HeadlineMetric => ({ id, label, unit })
 
@@ -104,22 +106,21 @@ export const SPORTS: readonly Sport[] = [
     tagline: "The fastest racket sport on earth, measured from your phone.",
     heading: ["Smash", "harder."],
     palette: {
-      plate: "#FF48B0",
-      shadow: "#3255A4",
-      ink: "#FF6EC0",
-      ink2: "#6F9BEA",
-      ink3: "#FFE800",
-      ghost: "#FF48B0",
-      onPlate: DARK,
-      names: ["Fluorescent Pink", "Medium Blue", "Yellow"],
+      accent: "#76AA97",
+      ink: "#4A7767",
+      deep: "#355549",
+      soft: "#EDF2F0",
+      onSoft: "#497565",
+      grad: ["#AACBAE", "#F3EFE6", "#F0D9C4"],
     },
     playArea: { label: "Court", size: "13.4 × 6.1 m" },
     tracked: "shuttle",
     strokeNoun: "stroke",
+    strokeNounPlural: "strokes",
     strokes: [s("smash", "Smash"), s("drop", "Drop"), s("clear", "Clear"), s("net", "Net"), s("serve", "Serve"), s("defensive", "Defence")],
     metrics: [m("smash_speed", "Smash speed", "km/h"), m("strokes", "Strokes", ""), m("form", "Form score", "/100")],
     status: "live",
-    statusNote: "Shuttle tracking, pose, stroke classification, speed and pro comparison all run today.",
+    statusNote: "Shuttle tracking, pose, stroke classification, speed and pro comparison are built and tested. Running them on a clip inside the app is still in development.",
   },
   {
     id: "tennis",
@@ -129,18 +130,17 @@ export const SPORTS: readonly Sport[] = [
     tagline: "Serve speed, groundstroke rhythm and where you stand on court.",
     heading: ["Serve", "bigger."],
     palette: {
-      plate: "#FFE916",
-      shadow: "#00A95C",
-      ink: "#FFE916",
-      ink2: "#3FC487",
-      ink3: "#FF6C2F",
-      ghost: "#00A95C",
-      onPlate: DARK,
-      names: ["Fluorescent Yellow", "Green", "Orange"],
+      accent: "#A4A06B",
+      ink: "#726F46",
+      deep: "#514E32",
+      soft: "#F1F1EB",
+      onSoft: "#706D45",
+      grad: ["#D9DCC4", "#F5F2E8", "#E7E3C9"],
     },
     playArea: { label: "Court", size: "23.77 × 10.97 m" },
     tracked: "ball",
     strokeNoun: "stroke",
+    strokeNounPlural: "strokes",
     strokes: [s("serve", "Serve"), s("forehand", "Forehand"), s("backhand", "Backhand"), s("volley", "Volley"), s("smash", "Smash"), s("lob", "Lob"), s("drop", "Drop")],
     metrics: [m("serve_speed", "Serve speed", "km/h"), m("forehand_speed", "Forehand speed", "km/h"), m("rally", "Rally length", "shots")],
     status: "beta",
@@ -154,18 +154,17 @@ export const SPORTS: readonly Sport[] = [
     tagline: "Spin, speed and footwork at the table.",
     heading: ["Loop", "faster."],
     palette: {
-      plate: "#FF6C2F",
-      shadow: "#0078BF",
-      ink: "#FF8A57",
-      ink2: "#4AA6E8",
-      ink3: "#FFE800",
-      ghost: "#FF6C2F",
-      onPlate: DARK,
-      names: ["Orange", "Blue", "Yellow"],
+      accent: "#A57463",
+      ink: "#906353",
+      deep: "#66463B",
+      soft: "#F1ECEA",
+      onSoft: "#8B5F50",
+      grad: ["#E8C9B8", "#F5EFE8", "#DCD3C2"],
     },
     playArea: { label: "Table", size: "2.74 × 1.525 m" },
     tracked: "ball",
     strokeNoun: "stroke",
+    strokeNounPlural: "strokes",
     strokes: [s("serve", "Serve"), s("forehand", "Forehand"), s("backhand", "Backhand"), s("push", "Push"), s("block", "Block"), s("chop", "Chop"), s("smash", "Smash"), s("lob", "Lob")],
     metrics: [m("ball_speed", "Ball speed", "km/h"), m("rally", "Rally length", "shots"), m("tempo", "Tempo", "shots/min")],
     status: "beta",
@@ -179,18 +178,17 @@ export const SPORTS: readonly Sport[] = [
     tagline: "Dinks, drops and owning the kitchen line.",
     heading: ["Own the", "kitchen."],
     palette: {
-      plate: "#E3ED55",
-      shadow: "#00838A",
-      ink: "#E3ED55",
-      ink2: "#2FB8BF",
-      ink3: "#FF48B0",
-      ghost: "#00838A",
-      onPlate: DARK,
-      names: ["Light Lime", "Teal", "Fluorescent Pink"],
+      accent: "#D89648",
+      ink: "#986120",
+      deep: "#6D4617",
+      soft: "#F7F0E8",
+      onSoft: "#966020",
+      grad: ["#F2D9B4", "#F7F2E8", "#DDE2D4"],
     },
     playArea: { label: "Court", size: "13.41 × 6.10 m" },
     tracked: "ball",
     strokeNoun: "shot",
+    strokeNounPlural: "shots",
     strokes: [s("serve", "Serve"), s("forehand", "Forehand"), s("backhand", "Backhand"), s("dink", "Dink"), s("drop", "Drop"), s("volley", "Volley"), s("smash", "Smash"), s("lob", "Lob")],
     metrics: [m("drive_speed", "Drive speed", "km/h"), m("drop_rate", "Drops into the kitchen", "%"), m("dink_rally", "Dink rally", "shots")],
     status: "beta",
@@ -204,18 +202,17 @@ export const SPORTS: readonly Sport[] = [
     tagline: "Four walls, one ball, nowhere to hide.",
     heading: ["Hit the", "nick."],
     palette: {
-      plate: "#F65058",
-      shadow: "#484D7A",
-      ink: "#FF7477",
-      ink2: "#8E93C9",
-      ink3: "#F2CDCF",
-      ghost: "#F65058",
-      onPlate: DARK,
-      names: ["Scarlet", "Indigo", "Bisque"],
+      accent: "#B2706F",
+      ink: "#A45958",
+      deep: "#753F3E",
+      soft: "#F3ECEC",
+      onSoft: "#9E5655",
+      grad: ["#E6C6C3", "#F5EEEA", "#D8DBCF"],
     },
     playArea: { label: "Court", size: "9.75 × 6.40 m" },
     tracked: "ball",
     strokeNoun: "shot",
+    strokeNounPlural: "shots",
     strokes: [s("serve", "Serve"), s("forehand", "Forehand"), s("backhand", "Backhand"), s("volley", "Volley"), s("drop", "Drop"), s("boast", "Boast"), s("lob", "Lob")],
     metrics: [m("ball_speed", "Ball speed", "km/h"), m("t_recovery", "Back to the T", "s"), m("rally", "Rally length", "shots")],
     status: "beta",
@@ -229,18 +226,17 @@ export const SPORTS: readonly Sport[] = [
     tagline: "Glass walls, bandejas and patient points.",
     heading: ["Play the", "glass."],
     palette: {
-      plate: "#62A8E5",
-      shadow: "#235BA8",
-      ink: "#7DBBEE",
-      ink2: "#5EC8E5",
-      ink3: "#FFB511",
-      ghost: "#62A8E5",
-      onPlate: DARK,
-      names: ["Cornflower", "Lake", "Sunflower"],
+      accent: "#6E9BB5",
+      ink: "#48738D",
+      deep: "#335264",
+      soft: "#ECF1F3",
+      onSoft: "#467089",
+      grad: ["#C3D9E4", "#F0F3F2", "#CFE2D4"],
     },
     playArea: { label: "Court", size: "20 × 10 m" },
     tracked: "ball",
     strokeNoun: "shot",
+    strokeNounPlural: "shots",
     strokes: [s("serve", "Serve"), s("forehand", "Forehand"), s("backhand", "Backhand"), s("volley", "Volley"), s("bandeja", "Bandeja"), s("vibora", "Víbora"), s("smash", "Smash"), s("lob", "Lob")],
     metrics: [m("smash_speed", "Smash speed", "km/h"), m("bandeja_speed", "Bandeja speed", "km/h"), m("net_time", "Time at net", "%")],
     status: "soon",
@@ -254,18 +250,17 @@ export const SPORTS: readonly Sport[] = [
     tagline: "Bat speed for batters, release speed for bowlers.",
     heading: ["Middle", "it."],
     palette: {
-      plate: "#FFB511",
-      shadow: "#A75154",
-      ink: "#FFB511",
-      ink2: "#D97A7D",
-      ink3: "#82D8D5",
-      ghost: "#A75154",
-      onPlate: DARK,
-      names: ["Sunflower", "Brick", "Mint"],
+      accent: "#C0924F",
+      ink: "#8C6732",
+      deep: "#644A24",
+      soft: "#F4EFE8",
+      onSoft: "#886431",
+      grad: ["#E8D6B2", "#F6F1E6", "#D3D6BC"],
     },
     playArea: { label: "Pitch", size: "20.12 × 3.05 m" },
     tracked: "ball",
     strokeNoun: "shot",
+    strokeNounPlural: "shots",
     strokes: [s("drive", "Drive"), s("pull", "Pull"), s("cut", "Cut"), s("sweep", "Sweep"), s("defence", "Defence"), s("pace", "Pace ball"), s("spin", "Spin ball")],
     metrics: [m("release_speed", "Release speed", "km/h"), m("bat_speed", "Bat speed", "km/h"), m("length", "Length", "m")],
     status: "soon",
@@ -279,18 +274,17 @@ export const SPORTS: readonly Sport[] = [
     tagline: "Shot power, first touch and sprint load.",
     heading: ["Strike", "clean."],
     palette: {
-      plate: "#44D62C",
-      shadow: "#407060",
-      ink: "#5FE04A",
-      ink2: "#6FB79A",
-      ink3: "#FFE916",
-      ghost: "#44D62C",
-      onPlate: DARK,
-      names: ["Fluorescent Green", "Hunter Green", "Fluorescent Yellow"],
+      accent: "#6FA67C",
+      ink: "#4A7855",
+      deep: "#35563D",
+      soft: "#ECF2ED",
+      onSoft: "#497654",
+      grad: ["#BFDCC2", "#F1F4EA", "#E3DCC6"],
     },
     playArea: { label: "Pitch", size: "105 × 68 m" },
     tracked: "ball",
     strokeNoun: "touch",
+    strokeNounPlural: "touches",
     strokes: [s("shot", "Shot"), s("pass", "Pass"), s("cross", "Cross"), s("header", "Header"), s("dribble", "Dribble"), s("first_touch", "First touch")],
     metrics: [m("shot_speed", "Shot speed", "km/h"), m("sprint", "Top sprint", "km/h"), m("touches", "Touches", "")],
     status: "soon",
@@ -304,18 +298,17 @@ export const SPORTS: readonly Sport[] = [
     tagline: "Shot arc, release time and range.",
     heading: ["Find your", "arc."],
     palette: {
-      plate: "#FF6F4C",
-      shadow: "#3D5588",
-      ink: "#FF8A6C",
-      ink2: "#7D95CF",
-      ink3: "#BB8B41",
-      ghost: "#FF6F4C",
-      onPlate: DARK,
-      names: ["Pumpkin", "Federal Blue", "Flat Gold"],
+      accent: "#C47A4E",
+      ink: "#A05D35",
+      deep: "#714226",
+      soft: "#F5EDE8",
+      onSoft: "#9A5A33",
+      grad: ["#EFCBAE", "#F7F0E8", "#DCD8C8"],
     },
     playArea: { label: "Court", size: "28 × 15 m" },
     tracked: "ball",
     strokeNoun: "shot",
+    strokeNounPlural: "shots",
     strokes: [s("jump_shot", "Jump shot"), s("three", "Three"), s("free_throw", "Free throw"), s("layup", "Layup"), s("floater", "Floater")],
     metrics: [m("release", "Release time", "s"), m("arc", "Shot arc", "°"), m("make_rate", "Make rate", "%")],
     status: "soon",
@@ -325,25 +318,34 @@ export const SPORTS: readonly Sport[] = [
 
 export const DEFAULT_SPORT_ID: SportId = "badminton"
 
-const BY_ID = Object.fromEntries(SPORTS.map((sport) => [sport.id, sport])) as Record<SportId, Sport>
+const BY_ID = new Map<string, Sport>(SPORTS.map((sport) => [sport.id, sport]))
 
 export function isSportId(id: unknown): id is SportId {
-  return typeof id === "string" && id in BY_ID
+  return typeof id === "string" && BY_ID.has(id)
 }
 
 export function getSport(id: string | null | undefined): Sport {
-  return isSportId(id) ? BY_ID[id] : BY_ID[DEFAULT_SPORT_ID]
+  // A Map, not a plain object: `"constructor" in obj` is true for every
+  // inherited key, and a route param like /sport/constructor would then
+  // return Object instead of a Sport and crash on `sport.palette`.
+  return (isSportId(id) ? BY_ID.get(id) : undefined) ?? (BY_ID.get(DEFAULT_SPORT_ID) as Sport)
 }
 
-export const LIVE_SPORT = BY_ID[DEFAULT_SPORT_ID]
+export const LIVE_SPORT = BY_ID.get(DEFAULT_SPORT_ID) as Sport
 
 export function strokeLabel(sport: Sport, strokeId: string): string {
   return sport.strokes.find((stroke) => stroke.id === strokeId)?.label ?? strokeId
 }
 
-/** Strokes cycle through the sport's three data inks. */
+/**
+ * A per-stroke colour that stays readable on the canvas.
+ *
+ * There is one accent per sport now, not three inks, so strokes are separated
+ * by weight rather than hue: the first is the full accent, later ones step
+ * towards the text colour. Never the only cue — pair it with a label.
+ */
 export function strokeColor(sport: Sport, strokeId: string): string {
   const index = sport.strokes.findIndex((stroke) => stroke.id === strokeId)
-  const { ink, ink2, ink3 } = sport.palette
-  return index < 0 ? ink : [ink, ink2, ink3][index % 3]
+  const { accent, ink, deep } = sport.palette
+  return index < 0 ? ink : [accent, deep, ink][index % 3]
 }

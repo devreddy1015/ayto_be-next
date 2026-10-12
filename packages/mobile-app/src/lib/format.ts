@@ -12,6 +12,14 @@ export function clock(totalSeconds: number): string {
 
 /** "2025-05-25" -> "25 May". Manual so it renders identically on Hermes and the web. */
 export function shortDate(iso: string): string {
+  // A date-only string parses as UTC midnight but getDate()/getMonth() read
+  // local time, so west of UTC every session showed the day before. Read the
+  // calendar date straight out of the string; full timestamps still render
+  // in local time.
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  if (dateOnly) {
+    return `${Number(dateOnly[3])} ${MONTHS[Number(dateOnly[2]) - 1]}`
+  }
   const d = new Date(iso)
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
